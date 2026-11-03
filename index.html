@@ -4,68 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة كشف التصيد الإلكتروني | Phishing Detector</title>
+    <!-- استيراد خط Cairo الرسمي المتناسق مع مشروعك -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #0b0f19, #1e293b);
             color: #ffffff;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            padding: 20px;
         }
         .container {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(17, 24, 39, 0.85);
             padding: 40px;
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 500px;
-            width: 90%;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            max-width: 550px;
+            width: 100%;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
         }
-        h1 { margin-bottom: 10px; font-size: 26px; color: #38bdf8; }
-        p { color: #94a3b8; margin-bottom: 30px; font-size: 14px; }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+        }
+        .uni-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #60a5fa;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 24px; font-weight: 900; color: #ffffff; }
+        p { color: #9ca3af; margin-bottom: 30px; font-size: 14px; line-height: 1.6; }
         .btn-group {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
         .btn {
-            padding: 14px 20px;
-            border-radius: 8px;
+            padding: 15px 20px;
+            border-radius: 12px;
             text-decoration: none;
-            font-weight: bold;
-            font-size: 16px;
-            transition: 0.3s;
-            display: inline-block;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .btn-web {
-            background-color: #2563eb;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
         }
-        .btn-web:hover { background-color: #1d4ed8; }
+        .btn-web:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-2px); }
         .btn-download {
-            background-color: #10b981;
+            background: linear-gradient(135deg, #059669, #047857);
             color: white;
         }
-        .btn-download:hover { background-color: #059669; }
+        .btn-download:hover { background: linear-gradient(135deg, #047857, #065f46); transform: translateY(-2px); }
+        .footer-note {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #1f2937;
+            padding-top: 15px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🛡️ Phishing Detector System</h1>
-        <p>نظام ذكي متكامل لحماية المستخدمين وكشف الروابط الاحتيالية بدقة عالية.</p>
+        <div class="uni-badge">جامعة تكريت | كلية علوم الحاسوب والرياضيات</div>
+        <h1>🛡️ نظام كشف التصيد الإلكتروني</h1>
+        <p>منصة ذكية متكاملة ومتقدمة لفحص وتقييم خطورة الروابط الاحتيالية وحماية المستخدمين بدقة عالية.</p>
         
         <div class="btn-group">
             <!-- زر فتح التطبيق عبر المتصفح -->
-            <a href="/app" class="btn btn-web">🌐 تشغيل عبر المتصفح (Web App)</a>
+            <a href="/app" class="btn btn-web">
+                🌐 تشغيل عبر المتصفح (Web App)
+            </a>
             
-            <!-- زر تحميل تطبيق سطح المكتب -->
-            <a href="/downloads/PhishingDetector-App.zip" class="btn btn-download">📥 تحميل تطبيق سطح المكتب (Windows)</a>
+            <!-- زر تحميل تطبيق سطح المكتب (تأكد من استبدال اسم الحساب والمستودع برابط ملفك الفعلي على GitHub) -->
+            <a href="https://raw.githubusercontent.com/اسم-حسابك/اسم-مستودعك/main/PhishingDetector-App.zip" class="btn btn-download" download>
+                📥 تحميل تطبيق سطح المكتب (Windows .zip)
+            </a>
+        </div>
+
+        <div class="footer-note">
+            إعداد الطلبة: مصعب رمزي أحمد & محمود حكمت ذياب | إشراف: رئاسة القسم
         </div>
     </div>
 

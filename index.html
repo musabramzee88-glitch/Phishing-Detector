@@ -66,10 +66,16 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 1.2rem;
             font-weight: 700;
             color: var(--accent-blue);
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
         }
 
         .nav-controls {
@@ -466,7 +472,9 @@
 
     <header>
         <div class="logo">
-            <i class="fa-solid fa-shield-halved"></i>
+            <!-- ضع صورة الشعار باسم logo.png في نفس مجلد المشروع -->
+            <img src="logo.png" alt="شعار النظام" onerror="this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
+            <i id="fallbackIcon" class="fa-solid fa-shield-halved" style="display:none; font-size: 1.5rem;"></i>
             <span>Phishing Detector</span>
         </div>
 

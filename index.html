@@ -241,7 +241,7 @@
         }
 
         .dev-tag a:hover {
-            color: #E1306C; /* Instagram Color on hover */
+            color: #E1306C;
         }
 
         .scanner-container {
@@ -390,7 +390,6 @@
         .li-safe::before { color: var(--accent-green); }
         .li-warning::before { color: var(--accent-yellow); }
 
-        /* Audit Trail / History Table */
         .history-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -504,19 +503,19 @@
             <div class="team-card">
                 <div class="institution-header">
                     <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت</a></h3>
-                    <p><a href="https://tu.edu.iq" target="_blank" title="كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
+                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
                 </div>
                 <div class="developers-section">
                     <h4>إعداد وتطوير المبرمجين:</h4>
                     <div class="dev-names">
                         <div class="dev-tag">
-                            <a href="https://instagram.com" target="_blank" title="حساب إنستغرام">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي أحمد
+                            <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank" title="حساب إنستغرام لمصعب">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي
                             </a>
                         </div>
                         <div class="dev-tag">
-                            <a href="https://instagram.com" target="_blank" title="حساب إنستغرام">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت ذياب
+                            <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank" title="حساب إنستغرام لمحمود">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت
                             </a>
                         </div>
                     </div>
@@ -559,7 +558,6 @@
                 <div id="reportBox" class="report-box"></div>
             </div>
 
-            <!-- Audit Trail / Recent Scans History Table -->
             <div class="history-card">
                 <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)</h3>
                 <div style="overflow-x: auto;">
@@ -649,7 +647,6 @@
             analyzeUrl();
         }
 
-        // Audit Trail History Array
         let scanHistory = [];
 
         function addToHistory(target, type, score, statusText) {
@@ -673,7 +670,6 @@
             });
         }
 
-        // Levenshtein Algorithm for Typosquatting
         function getLevenshteinDistance(a, b) {
             const matrix = [];
             for (let i = 0; i <= b.length; i++) matrix[i] = [i];
@@ -709,6 +705,7 @@
             { name: 'تليجرام', domain: 'telegram.org', core: 'telegram' },
             { name: 'باي بال', domain: 'paypal.com', core: 'paypal' },
             { name: 'جامعة تكريت', domain: 'tu.edu.iq', core: 'tu.edu.iq' },
+            { name: 'كلية علوم الحاسوب والرياضيات', domain: 'ccms.tu.edu.iq', core: 'ccms' },
             { name: 'وزارة التعليم العالي', domain: 'mohesr.gov.iq', core: 'mohesr' }
         ];
 
@@ -785,7 +782,6 @@
                         });
                     }
 
-                    // Academic Defense Mode check
                     if (academicDefense && (cleanHost.includes('edu.iq') || cleanHost.includes('gov.iq'))) {
                         riskScore += 20;
                         reasons.push({ text: 'تم تفعيل الحماية الأكاديمية المشددة: تم فحص شهادة السجل وتوافق النطاق المحلي بدقة.', type: 'warning' });
@@ -845,13 +841,11 @@
                     </ul>
                 `;
 
-                // Add to Audit Trail History
                 addToHistory(input, 'رابط URL', riskScore, riskScore >= 50 ? 'خطر' : (riskScore > 0 ? 'تنبيه' : 'آمن'));
 
             }, 600);
         }
 
-        // Social Engineering Text Scanner
         function analyzeText() {
             const textInput = document.getElementById('textInput').value.trim();
             const textReportBox = document.getElementById('textReportBox');
@@ -918,7 +912,6 @@
                     </ul>
                 `;
 
-                // Add to Audit Trail History
                 addToHistory(textInput.substring(0, 30) + '...', 'نص رسالة', textScore, textScore >= 40 ? 'خطر' : 'آمن');
 
             }, 600);

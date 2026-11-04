@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام كشف ومكافحة التصيد الإلكتروني | Phishing Detector</title>
+    <link rel="icon" type="image/jpeg" href="logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -74,8 +75,10 @@
 
         .logo img {
             height: 40px;
-            width: auto;
-            object-fit: contain;
+            width: 40px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .nav-controls {
@@ -472,9 +475,8 @@
 
     <header>
         <div class="logo">
-            <!-- ضع صورة الشعار باسم logo.png في نفس مجلد المشروع -->
-            <img src="logo.jpg" alt="شعار النظام" onerror="this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
-            <i id="fallbackIcon" class="fa-solid fa-shield-halved" style="display:none; font-size: 1.5rem;"></i>
+            <img src="logo.png" alt="شعار النظام" onerror="this.style.display='none'; document.getElementById('fallbackIcon').style.display='inline-block';">
+            <i id="fallbackIcon" class="fa-solid fa-shield-halved" style="display:none; font-size: 1.5rem; color: var(--accent-blue);"></i>
             <span>Phishing Detector</span>
         </div>
 

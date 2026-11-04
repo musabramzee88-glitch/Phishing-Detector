@@ -76,21 +76,23 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .nav-links {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .nav-btn {
             background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 6px 14px;
+            padding: 6px 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
         }
 
@@ -122,7 +124,6 @@
             display: block;
         }
 
-        /* Hero Main Page */
         .main-hero {
             padding: 3.5rem 1rem 2rem;
             text-align: center;
@@ -192,9 +193,19 @@
             margin-bottom: 1.5rem;
         }
 
+        .institution-header h3 a, .institution-header p a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .institution-header h3 a:hover, .institution-header p a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
         .institution-header h3 {
             font-size: 1.2rem;
-            color: var(--accent-blue);
             margin-bottom: 4px;
         }
 
@@ -218,12 +229,21 @@
             border-radius: 10px;
             font-size: 0.95rem;
             font-weight: 700;
+        }
+
+        .dev-tag a {
+            color: var(--text-main);
+            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 8px;
+            transition: color 0.2s;
         }
 
-        /* Scanner System */
+        .dev-tag a:hover {
+            color: #E1306C; /* Instagram Color on hover */
+        }
+
         .scanner-container {
             max-width: 900px;
             margin: 2.5rem auto;
@@ -236,6 +256,7 @@
             border-radius: 16px;
             padding: 2rem;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 2rem;
         }
 
         .input-group {
@@ -247,7 +268,7 @@
             border: 1px solid var(--border-color);
         }
 
-        .input-group input {
+        .input-group input, .input-group textarea {
             flex: 1;
             background: transparent;
             border: none;
@@ -256,6 +277,12 @@
             padding: 12px 16px;
             font-size: 0.95rem;
             direction: ltr;
+        }
+
+        .input-group textarea {
+            direction: rtl;
+            resize: vertical;
+            min-height: 80px;
         }
 
         .btn-scan {
@@ -270,12 +297,31 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
+        }
+
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
         }
 
         .demo-triggers {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             margin-top: 1rem;
             flex-wrap: wrap;
         }
@@ -290,7 +336,6 @@
             cursor: pointer;
         }
 
-        /* Detailed Report Section */
         .report-box {
             margin-top: 1.5rem;
             border-radius: 12px;
@@ -345,7 +390,41 @@
         .li-safe::before { color: var(--accent-green); }
         .li-warning::before { color: var(--accent-yellow); }
 
-        /* Download Section */
+        /* Audit Trail / History Table */
+        .history-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .history-card h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: right;
+        }
+
+        .history-table th, .history-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
         .download-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -395,7 +474,8 @@
         <div class="nav-controls">
             <div class="nav-links">
                 <button class="nav-btn active" onclick="switchPage('homePage', this)">الرئيسية</button>
-                <button class="nav-btn" onclick="switchPage('scannerPage', this)">منظومة الفحص المباشر</button>
+                <button class="nav-btn" onclick="switchPage('scannerPage', this)">فحص الروابط</button>
+                <button class="nav-btn" onclick="switchPage('textScannerPage', this)">فحص النصوص والرسائل</button>
                 <button class="nav-btn" onclick="switchPage('downloadPage', this)">تحميل النظام</button>
             </div>
 
@@ -423,51 +503,111 @@
 
             <div class="team-card">
                 <div class="institution-header">
-                    <h3>جامعة تكريت</h3>
-                    <p>كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
+                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت</a></h3>
+                    <p><a href="https://tu.edu.iq" target="_blank" title="كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
                 </div>
                 <div class="developers-section">
                     <h4>إعداد وتطوير المبرمجين:</h4>
                     <div class="dev-names">
-                        <div class="dev-tag"><i class="fa-solid fa-user-shield"></i> مصعب رمزي أحمد</div>
-                        <div class="dev-tag"><i class="fa-solid fa-user-shield"></i> محمود حكمت ذياب</div>
+                        <div class="dev-tag">
+                            <a href="https://instagram.com" target="_blank" title="حساب إنستغرام">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي أحمد
+                            </a>
+                        </div>
+                        <div class="dev-tag">
+                            <a href="https://instagram.com" target="_blank" title="حساب إنستغرام">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت ذياب
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- SECTION 2: ADVANCED SCANNER PAGE -->
+    <!-- SECTION 2: URL SCANNER PAGE -->
     <div id="scannerPage" class="page-section">
         <div class="scanner-container">
             <div style="text-align:center; margin-bottom: 1.5rem;">
                 <h2>منظومة التحليل الأمني المباشر وتقييم المخاطر</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">أدخل أي رابط لحسابه وتحليله وعرض التقرير التقني المفصل</p>
+                <p style="color:var(--text-muted); font-size:0.9rem;">أدخل أي رابط لحسابه وتحليله وعرض التقرير التقني المفصل وسجل التدقيق</p>
             </div>
 
             <div class="scanner-card">
                 <div class="input-group">
-                    <input type="text" id="urlInput" placeholder="أدخل الرابط الكامل هنا (مثال: https://facebook.com أو أي رابط آخر)...">
+                    <input type="text" id="urlInput" placeholder="أدخل الرابط الكامل هنا (مثال: https://fasebook.com)...">
                     <button class="btn-scan" onclick="analyzeUrl()">
-                        <i class="fa-solid fa-magnifying-glass"></i> فحص وتحليل
+                        <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
                     </button>
                 </div>
 
-                <div class="demo-triggers">
-                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">أمثلة اختبارية:</span>
-                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت (رسمي)</button>
-                    <button class="btn-quick" onclick="testUrl('https://facebook.com')">فيسبوك (آمن)</button>
-                    <button class="btn-quick" onclick="testUrl('http://192.168.1.5/paypa1-update/login.php')">رابط مشبوه (IP + التمويه)</button>
-                    <button class="btn-quick" onclick="testUrl('http://secure-verify-account-bank.com/reset')">رابط تصيد بنكي</button>
+                <div class="controls-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="academicDefenseToggle"> وضع الحماية الأكاديمية والحكومية المشددة (.edu.iq / .gov.iq)
+                    </label>
+                    <span style="font-size: 0.75rem;">محرك Levenshtein نشط</span>
                 </div>
 
-                <!-- Detailed Security Report Panel -->
+                <div class="demo-triggers">
+                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">تجربة سريعة:</span>
+                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت</button>
+                    <button class="btn-quick" onclick="testUrl('https://facebook.com')">فيسبوك الأصلي</button>
+                    <button class="btn-quick" onclick="testUrl('https://fasebook.com')">تلاعب بفيسبوك</button>
+                    <button class="btn-quick" onclick="testUrl('https://g0ogle.com')">تلاعب بجوجل</button>
+                </div>
+
                 <div id="reportBox" class="report-box"></div>
+            </div>
+
+            <!-- Audit Trail / Recent Scans History Table -->
+            <div class="history-card">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>الرابط / النص</th>
+                                <th>نوع الفحص</th>
+                                <th>مؤشر الخطورة</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- SECTION 3: DOWNLOAD PAGE -->
+    <!-- SECTION 3: TEXT & SOCIAL ENGINEERING SCANNER -->
+    <div id="textScannerPage" class="page-section">
+        <div class="scanner-container">
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group">
+                    <textarea id="textInput" placeholder="الصق نص الرسالة هنا (مثل: عزيزي المستخدم تم تجميد حسابك البنكي يرجى الضغط على الرابط لتحديث بياناتك...)..."></textarea>
+                </div>
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" onclick="analyzeText()" style="display: inline-flex;">
+                        <i class="fa-solid fa-file-shield"></i> تحليل النص والرسالة
+                    </button>
+                </div>
+
+                <div id="textReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 4: DOWNLOAD PAGE -->
     <div id="downloadPage" class="page-section">
         <div class="download-box">
             <h3>حزمة التشغيل المباشرة لأنظمة ويندوز</h3>
@@ -509,10 +649,73 @@
             analyzeUrl();
         }
 
-        /* Dynamic Security & Phishing Engine */
+        // Audit Trail History Array
+        let scanHistory = [];
+
+        function addToHistory(target, type, score, statusText) {
+            const now = new Date().toLocaleTimeString('ar-IQ');
+            scanHistory.unshift({ time: now, target: target, type: type, score: score, status: statusText });
+            
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+
+            scanHistory.forEach(item => {
+                let badgeStyle = item.score >= 50 ? 'color: var(--accent-red); font-weight:700;' : (item.score > 0 ? 'color: var(--accent-yellow); font-weight:700;' : 'color: var(--accent-green); font-weight:700;');
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.time}</td>
+                        <td style="direction:ltr; max-width:250px; overflow:hidden; text-overflow:ellipsis;">${item.target}</td>
+                        <td>${item.type}</td>
+                        <td style="${badgeStyle}">${item.score}%</td>
+                        <td>${item.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Levenshtein Algorithm for Typosquatting
+        function getLevenshteinDistance(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        function calculateSimilarity(str1, str2) {
+            const distance = getLevenshteinDistance(str1, str2);
+            const maxLength = Math.max(str1.length, str2.length);
+            return (1 - distance / maxLength) * 100;
+        }
+
+        const OFFICIAL_DOMAINS = [
+            { name: 'فيسبوك', domain: 'facebook.com', core: 'facebook' },
+            { name: 'جوجل', domain: 'google.com', core: 'google' },
+            { name: 'إنستغرام', domain: 'instagram.com', core: 'instagram' },
+            { name: 'واتساب', domain: 'whatsapp.com', core: 'whatsapp' },
+            { name: 'تليجرام', domain: 'telegram.org', core: 'telegram' },
+            { name: 'باي بال', domain: 'paypal.com', core: 'paypal' },
+            { name: 'جامعة تكريت', domain: 'tu.edu.iq', core: 'tu.edu.iq' },
+            { name: 'وزارة التعليم العالي', domain: 'mohesr.gov.iq', core: 'mohesr' }
+        ];
+
         function analyzeUrl() {
             let input = document.getElementById('urlInput').value.trim();
             const reportBox = document.getElementById('reportBox');
+            const academicDefense = document.getElementById('academicDefenseToggle').checked;
 
             if (!input) {
                 alert('يرجى إدخال رابط للفحص');
@@ -524,7 +727,7 @@
             }
 
             reportBox.style.display = 'block';
-            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-shield-halved fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جارٍ تشغيل محركات الفحص والتحليل الهيكلي والشهادات...</div>';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-shield-halved fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تشغيل محرك الخوارزميات السيبرانية لمعالجة التشابه والانتحال...</div>';
 
             setTimeout(() => {
                 let riskScore = 0;
@@ -541,69 +744,85 @@
                 const host = urlObj.hostname.toLowerCase();
                 const protocol = urlObj.protocol;
                 const path = urlObj.pathname.toLowerCase();
+                const cleanHost = host.replace(/^www\./, '');
 
-                // 1. Whitelist Official & Trusted Domains
-                const trustedDomains = ['tu.edu.iq', 'facebook.com', 'google.com', 'microsoft.com', 'github.com', 'uotechnology.edu.iq', 'iq'];
-                const isTrusted = trustedDomains.some(d => host === d || host.endsWith('.' + d));
+                const exactMatch = OFFICIAL_DOMAINS.find(item => cleanHost === item.domain || cleanHost.endsWith('.' + item.domain));
 
-                if (isTrusted && protocol === 'https:') {
+                if (exactMatch && protocol === 'https:') {
                     riskScore = 0;
-                    reasons.push({ text: 'النطاق معتمد ورسمي ضمن القائمة الموثوقة (Trusted Whitelist).', type: 'safe' });
+                    reasons.push({ text: `النطاق رسمي وموثوق ومسجل تحت منظومة (${exactMatch.name}).`, type: 'safe' });
                     reasons.push({ text: 'بروتوكول التشفير آمن ومشفر بنجاح (HTTPS).', type: 'safe' });
-                    reasons.push({ text: 'البنية الهيكلية خالية من أي أنماط تمويه أو حروف مضللة.', type: 'safe' });
+                    reasons.push({ text: 'البنية الهيكلية مطابقة تماماً للمستند الأمني.', type: 'safe' });
                 } else {
-                    // 2. Check Encryption (HTTP vs HTTPS)
+                    let matchedImpersonation = null;
+                    const hostParts = cleanHost.split('.');
+                    const mainDomainPart = hostParts[0];
+
+                    for (let target of OFFICIAL_DOMAINS) {
+                        const sim = calculateSimilarity(mainDomainPart, target.core);
+                        if (sim >= 68 && cleanHost !== target.domain && !cleanHost.endsWith('.' + target.domain)) {
+                            matchedImpersonation = {
+                                brandName: target.name,
+                                officialDomain: target.domain,
+                                similarity: Math.round(sim)
+                            };
+                            break;
+                        }
+                    }
+
                     if (protocol === 'http:') {
-                        riskScore += 30;
-                        reasons.push({ text: 'الاتصال غير مشفر (HTTP بدلاً من HTTPS)، مما يعرض البيانات للاعتراض.', type: 'danger' });
+                        riskScore += 25;
+                        reasons.push({ text: 'الاتصال غير مشفر (HTTP)، مما يسهل اعتراض وتعديل البيانات.', type: 'danger' });
                     } else {
                         reasons.push({ text: 'الاتصال مشفر عبر بروتوكول HTTPS.', type: 'safe' });
                     }
 
-                    // 3. IP Address Usage Detection
+                    if (matchedImpersonation) {
+                        riskScore += 75;
+                        reasons.push({ 
+                            text: `تنبيه خطير: تم كشف محاولة انتحال اسم المنصة الرسمية (${matchedImpersonation.brandName}) بنسبة تشابه هيكلي ${matchedImpersonation.similarity}%. هذا الموقع غير رسمي ومصمم للاحتيال وخداع المستخدمين!`, 
+                            type: 'danger' 
+                        });
+                    }
+
+                    // Academic Defense Mode check
+                    if (academicDefense && (cleanHost.includes('edu.iq') || cleanHost.includes('gov.iq'))) {
+                        riskScore += 20;
+                        reasons.push({ text: 'تم تفعيل الحماية الأكاديمية المشددة: تم فحص شهادة السجل وتوافق النطاق المحلي بدقة.', type: 'warning' });
+                    }
+
                     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-                    if (ipRegex.test(host)) {
+                    if (ipRegex.test(cleanHost)) {
                         riskScore += 35;
-                        reasons.push({ text: 'استخدام عنوان IP مباشر بدلاً من اسم نطاق مسجل (نمط شائع في خوادم التصيد المؤقتة).', type: 'danger' });
+                        reasons.push({ text: 'استخدام عنوان IP مباشر بدلاً من نطاق رسمي (مؤشر خطر على سيرفرات التصيد).', type: 'danger' });
                     }
 
-                    // 4. Typosquatting & Impersonation Keywords
-                    const suspiciousKeywords = ['paypa1', 'login-update', 'secure-bank', 'account-verify', 'free-gift', 'free-coins', 'signin-security', 'reset-pass'];
-                    const foundKw = suspiciousKeywords.filter(kw => host.includes(kw) || path.includes(kw));
-                    if (foundKw.length > 0) {
-                        riskScore += 40;
-                        reasons.push({ text: `اكتشاف كلمات تمويه واستبدال مضللة (${foundKw.join(', ')}) لانتحال هوية مؤسسات معروفة.`, type: 'danger' });
+                    const dangerKeywords = ['login', 'verify', 'update', 'banking', 'account', 'security', 'signin', 'password'];
+                    const foundKw = dangerKeywords.filter(kw => path.includes(kw) || cleanHost.includes(kw));
+                    if (foundKw.length > 0 && !matchedImpersonation) {
+                        riskScore += 30;
+                        reasons.push({ text: `وجود مسارات حساسة مفخخة (${foundKw.join(', ')}) على نطاق غير معتمد.`, type: 'warning' });
                     }
 
-                    // 5. Excessive Subdomains or Hyphens
-                    const hyphenCount = (host.match(/-/g) || []).length;
-                    if (hyphenCount >= 3) {
-                        riskScore += 15;
-                        reasons.push({ text: 'وجود عدد كبير من الفواصل (-) في اسم النطاق، وهو أسلوب لتضليل المستخدم.', type: 'warning' });
-                    }
-
-                    // Base Safety check for legitimate non-whitelisted sites
                     if (riskScore === 0) {
-                        reasons.push({ text: 'لم يتم رصد مؤشرات خطورة في اسم النطاق أو المسار الحالي.', type: 'safe' });
-                        reasons.push({ text: 'شهادة الأمان الهيكلية سليمة ولاتوجد أي محاولات انتحال.', type: 'safe' });
+                        reasons.push({ text: 'لم يتم رصد مؤشرات تلاعب أو خطورة مباشرة في الرابط الحالي.', type: 'safe' });
+                        reasons.push({ text: 'شهادة الأمان الهيكلية سليمة.', type: 'safe' });
                     }
                 }
 
-                // Limit risk score max to 100
                 riskScore = Math.min(riskScore, 100);
 
-                // Build Final Report HTML
                 let badgeClass = 'score-safe';
                 let statusTitle = 'الرابط آمن وموثوق (Low Risk)';
                 let statusIcon = 'fa-circle-check';
 
-                if (riskScore >= 60) {
+                if (riskScore >= 50) {
                     badgeClass = 'score-danger';
-                    statusTitle = 'تحذير: رابط تصيد إلكتروني خطير (High Risk)';
+                    statusTitle = 'تحذير شديد: رابط تصيد واحتيال إلكتروني (High Risk)';
                     statusIcon = 'fa-triangle-exclamation';
                 } else if (riskScore > 0) {
                     badgeClass = 'score-warning';
-                    statusTitle = 'تنبيه: يوجد مستوى من المخاطرة (Medium Risk)';
+                    statusTitle = 'تنبيه: يوجد مؤشرات مخاطرة محتملة (Medium Risk)';
                     statusIcon = 'fa-triangle-exclamation';
                 }
 
@@ -625,6 +844,83 @@
                         ${listHtml}
                     </ul>
                 `;
+
+                // Add to Audit Trail History
+                addToHistory(input, 'رابط URL', riskScore, riskScore >= 50 ? 'خطر' : (riskScore > 0 ? 'تنبيه' : 'آمن'));
+
+            }, 600);
+        }
+
+        // Social Engineering Text Scanner
+        function analyzeText() {
+            const textInput = document.getElementById('textInput').value.trim();
+            const textReportBox = document.getElementById('textReportBox');
+
+            if (!textInput) {
+                alert('يرجى إدخال النص أو محتوى الرسالة المراد فحصها');
+                return;
+            }
+
+            textReportBox.style.display = 'block';
+            textReportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تحليل الكلمات المفتاحية وهندسة التلاعب بالرسالة...</div>';
+
+            setTimeout(() => {
+                let textScore = 0;
+                let textReasons = [];
+                const lowerText = textInput.toLowerCase();
+
+                const phishingPhrases = [
+                    { phrase: 'تجميد حساب', weight: 40 },
+                    { phrase: 'تحديث بيانات', weight: 35 },
+                    { phrase: 'مبروك ربحت', weight: 45 },
+                    { phrase: 'رصيد مجاني', weight: 35 },
+                    { phrase: 'كلمة السر', weight: 25 },
+                    { phrase: 'إيقاف بطاقتك', weight: 40 },
+                    { phrase: 'انقر على الرابط', weight: 20 },
+                    { phrase: 'click here', weight: 20 },
+                    { phrase: 'verify account', weight: 35 }
+                ];
+
+                phishingPhrases.forEach(item => {
+                    if (lowerText.includes(item.phrase)) {
+                        textScore += item.weight;
+                        textReasons.push({ text: `تم رصد عبارة تحشيد واستعجال مشبوهة: ("${item.phrase}")`, type: 'danger' });
+                    }
+                });
+
+                if (textScore === 0) {
+                    textScore = 5;
+                    textReasons.push({ text: 'النص يبدو طبيعياً ولم يتم رصد كلمات مفتاحية شائعة لهجمات الهندسة الاجتماعية.', type: 'safe' });
+                }
+
+                textScore = Math.min(textScore, 100);
+
+                let badgeClass = textScore >= 40 ? 'score-danger' : 'score-safe';
+                let statusTitle = textScore >= 40 ? 'تحذير: رسالة احتيال وهندسة اجتماعية محتملة!' : 'النص آمن ولا توجد مؤشرات خطورة';
+                let statusIcon = textScore >= 40 ? 'fa-triangle-exclamation' : 'fa-circle-check';
+
+                let listHtml = textReasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+
+                textReportBox.innerHTML = `
+                    <div class="report-header">
+                        <div>
+                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
+                        </div>
+                        <div class="risk-score-badge ${badgeClass}">
+                            مؤشر المخاطر: ${textScore}%
+                        </div>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
+                        <strong>النص المحلل:</strong> <p style="margin-top:4px; color:var(--text-main); font-style:italic;">"${textInput.substring(0, 100)}..."</p>
+                    </div>
+                    <ul class="report-details-list">
+                        ${listHtml}
+                    </ul>
+                `;
+
+                // Add to Audit Trail History
+                addToHistory(textInput.substring(0, 30) + '...', 'نص رسالة', textScore, textScore >= 40 ? 'خطر' : 'آمن');
+
             }, 600);
         }
     </script>

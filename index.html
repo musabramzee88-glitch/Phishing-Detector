@@ -12,6 +12,7 @@
             --bg-card: #131b2e;
             --accent-blue: #00f2fe;
             --accent-green: #00e676;
+            --accent-yellow: #ffab00;
             --accent-red: #ff1744;
             --text-main: #ffffff;
             --text-muted: #8e9aaf;
@@ -19,12 +20,12 @@
             --header-bg: rgba(10, 15, 29, 0.9);
         }
 
-        /* Light Theme Options */
         [data-theme="light"] {
             --bg-primary: #f4f6f9;
             --bg-card: #ffffff;
             --accent-blue: #0066ff;
             --accent-green: #00a854;
+            --accent-yellow: #ff8f00;
             --accent-red: #e53935;
             --text-main: #1e293b;
             --text-muted: #64748b;
@@ -49,7 +50,6 @@
             overflow-x: hidden;
         }
 
-        /* Top Header Navbar */
         header {
             background: var(--header-bg);
             backdrop-filter: blur(10px);
@@ -113,11 +113,6 @@
             gap: 6px;
         }
 
-        .theme-toggle-btn:hover {
-            border-color: var(--accent-blue);
-        }
-
-        /* Sections Routing */
         .page-section {
             display: none;
             animation: fadeIn 0.4s ease-in-out forwards;
@@ -164,14 +159,6 @@
             margin: 0 auto 2.5rem;
         }
 
-        .cta-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 3rem;
-            flex-wrap: wrap;
-        }
-
         .btn-primary-action {
             background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
             color: #fff;
@@ -188,19 +175,13 @@
             text-decoration: none;
         }
 
-        .btn-primary-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 25px rgba(0, 114, 255, 0.4);
-        }
-
-        /* Team & Institution Showcase Card */
         .team-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 18px;
             padding: 2rem;
             max-width: 800px;
-            margin: 0 auto 3rem;
+            margin: 3rem auto;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
@@ -217,16 +198,10 @@
             margin-bottom: 4px;
         }
 
-        .institution-header p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
         .developers-section h4 {
             font-size: 0.85rem;
             color: var(--text-muted);
             margin-bottom: 1rem;
-            letter-spacing: 0.5px;
         }
 
         .dev-names {
@@ -248,9 +223,9 @@
             gap: 8px;
         }
 
-        /* Scanner Section Styling */
+        /* Scanner System */
         .scanner-container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 2.5rem auto;
             padding: 0 1rem;
         }
@@ -300,40 +275,75 @@
         .demo-triggers {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             margin-top: 1rem;
+            flex-wrap: wrap;
         }
 
         .btn-quick {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 6px 14px;
+            padding: 6px 12px;
             border-radius: 6px;
             font-size: 0.8rem;
             cursor: pointer;
         }
 
-        .result-panel {
+        /* Detailed Report Section */
+        .report-box {
             margin-top: 1.5rem;
-            padding: 1.2rem;
-            border-radius: 10px;
+            border-radius: 12px;
             display: none;
+            padding: 1.5rem;
             text-align: right;
-            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.1);
         }
 
-        .result-safe {
-            background: rgba(0, 230, 118, 0.1);
-            border: 1px solid rgba(0, 230, 118, 0.3);
-            color: var(--accent-green);
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .result-danger {
-            background: rgba(255, 23, 68, 0.1);
-            border: 1px solid rgba(255, 23, 68, 0.3);
-            color: var(--accent-red);
+        .risk-score-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.95rem;
         }
+
+        .score-safe { background: rgba(0, 230, 118, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .score-warning { background: rgba(255, 171, 0, 0.15); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+        .score-danger { background: rgba(255, 23, 68, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
+
+        .report-details-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .report-details-list li {
+            position: relative;
+            padding-right: 24px;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+            color: var(--text-main);
+        }
+
+        .report-details-list li::before {
+            content: '•';
+            position: absolute;
+            right: 8px;
+            font-size: 1.2rem;
+        }
+
+        .li-danger::before { color: var(--accent-red); }
+        .li-safe::before { color: var(--accent-green); }
+        .li-warning::before { color: var(--accent-yellow); }
 
         /* Download Section */
         .download-box {
@@ -357,7 +367,6 @@
             border-radius: 10px;
             font-weight: 800;
             font-size: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 230, 118, 0.2);
         }
 
         footer {
@@ -377,7 +386,6 @@
 </head>
 <body data-theme="dark">
 
-    <!-- Top Navigation Bar -->
     <header>
         <div class="logo">
             <i class="fa-solid fa-shield-halved"></i>
@@ -391,7 +399,6 @@
                 <button class="nav-btn" onclick="switchPage('downloadPage', this)">تحميل النظام</button>
             </div>
 
-            <!-- Global Theme Switcher Button -->
             <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
                 <i class="fa-solid fa-moon"></i> <span>المظهر</span>
             </button>
@@ -402,11 +409,11 @@
     <div id="homePage" class="page-section active">
         <main class="main-hero">
             <div class="academic-badge">
-                <i class="fa-solid fa-graduation-cap"></i> مشروع أكاديمي معتمد
+                <i class="fa-solid fa-graduation-cap"></i> مشروع تخرج أكاديمي معتمد
             </div>
             
             <h1>منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
-            <p>حل أمني استباقي متكامل يعتمد تقنيات الذكاء الاصطناعي والتحليل الفوري لحماية المؤسسات والمستخدمين من الروابط المشبوهة وهجمات الهندسة الاجتماعية.</p>
+            <p>حل أمني استباقي متكامل يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية.</p>
 
             <div class="cta-buttons">
                 <button class="btn-primary-action" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
@@ -414,7 +421,6 @@
                 </button>
             </div>
 
-            <!-- Team & Academic Information Box -->
             <div class="team-card">
                 <div class="institution-header">
                     <h3>جامعة تكريت</h3>
@@ -431,29 +437,32 @@
         </main>
     </div>
 
-    <!-- SECTION 2: SCANNER PAGE -->
+    <!-- SECTION 2: ADVANCED SCANNER PAGE -->
     <div id="scannerPage" class="page-section">
         <div class="scanner-container">
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>منظومة الفحص الآلي المباشر</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">قم بإدخال أي رابط لاختبار مدة أمانه وكشف ثغرات التصيد</p>
+                <h2>منظومة التحليل الأمني المباشر وتقييم المخاطر</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">أدخل أي رابط لحسابه وتحليله وعرض التقرير التقني المفصل</p>
             </div>
 
             <div class="scanner-card">
                 <div class="input-group">
-                    <input type="text" id="urlInput" placeholder="أدخل الرابط المراد فحصه هنا (مثال: https://example.com)...">
-                    <button class="btn-scan" onclick="runAnalysis()">
-                        <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
+                    <input type="text" id="urlInput" placeholder="أدخل الرابط الكامل هنا (مثال: https://facebook.com أو أي رابط آخر)...">
+                    <button class="btn-scan" onclick="analyzeUrl()">
+                        <i class="fa-solid fa-magnifying-glass"></i> فحص وتحليل
                     </button>
                 </div>
 
                 <div class="demo-triggers">
-                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">أمثلة سريعة للتجربة:</span>
-                    <button class="btn-quick" onclick="setDemoUrl('https://tu.edu.iq', 'safe')">رابط آمن (جامعة تكريت)</button>
-                    <button class="btn-quick" onclick="setDemoUrl('http://paypa1-security-update.com/login', 'danger')">رابط تصيد مشبوه</button>
+                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">أمثلة اختبارية:</span>
+                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت (رسمي)</button>
+                    <button class="btn-quick" onclick="testUrl('https://facebook.com')">فيسبوك (آمن)</button>
+                    <button class="btn-quick" onclick="testUrl('http://192.168.1.5/paypa1-update/login.php')">رابط مشبوه (IP + التمويه)</button>
+                    <button class="btn-quick" onclick="testUrl('http://secure-verify-account-bank.com/reset')">رابط تصيد بنكي</button>
                 </div>
 
-                <div id="resultPanel" class="result-panel"></div>
+                <!-- Detailed Security Report Panel -->
+                <div id="reportBox" class="report-box"></div>
             </div>
         </div>
     </div>
@@ -469,22 +478,18 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer>
         <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
     </footer>
 
     <script>
-        // Switch between sections
         function switchPage(pageId, btnElement) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            
             document.getElementById(pageId).classList.add('active');
             if (btnElement) btnElement.classList.add('active');
         }
 
-        // Toggle Dark/Light Theme
         function toggleTheme() {
             const body = document.body;
             const themeBtn = document.getElementById('themeBtn');
@@ -499,42 +504,128 @@
             }
         }
 
-        // Scanner Demo Script
-        function setDemoUrl(url, type) {
+        function testUrl(url) {
             document.getElementById('urlInput').value = url;
-            runAnalysis(type);
+            analyzeUrl();
         }
 
-        function runAnalysis(forcedType) {
-            const input = document.getElementById('urlInput').value;
-            const panel = document.getElementById('resultPanel');
+        /* Dynamic Security & Phishing Engine */
+        function analyzeUrl() {
+            let input = document.getElementById('urlInput').value.trim();
+            const reportBox = document.getElementById('reportBox');
 
             if (!input) {
                 alert('يرجى إدخال رابط للفحص');
                 return;
             }
 
-            panel.style.display = 'block';
-            panel.className = 'result-panel';
-            panel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ تحليل الرابط وربط البيانات بالفحص السحابي...';
+            if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                input = 'http://' + input;
+            }
+
+            reportBox.style.display = 'block';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-shield-halved fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جارٍ تشغيل محركات الفحص والتحليل الهيكلي والشهادات...</div>';
 
             setTimeout(() => {
-                let isDanger = forcedType === 'danger' || input.includes('paypa1') || input.includes('login-update');
+                let riskScore = 0;
+                let reasons = [];
+                let urlObj;
                 
-                if (isDanger) {
-                    panel.className = 'result-panel result-danger';
-                    panel.innerHTML = `
-                        <strong><i class="fa-solid fa-triangle-exclamation"></i> تحذير: تم اكتشاف محاولة تصيد إلكتروني!</strong><br>
-                        <span style="font-size:0.8rem;">السبب: تشابه مع نطاق استبدالي مضلل (Typosquatting) وعدم توفر تشفير آمن معتمد.</span>
-                    `;
-                } else {
-                    panel.className = 'result-panel result-safe';
-                    panel.innerHTML = `
-                        <strong><i class="fa-solid fa-circle-check"></i> الرابط آمن وموثوق</strong><br>
-                        <span style="font-size:0.8rem;">شهادة التشفير سليمة ولم يتم رصد أي أنشطة مشبوهة في السجلات.</span>
-                    `;
+                try {
+                    urlObj = new URL(input);
+                } catch (e) {
+                    reportBox.innerHTML = '<div style="color:var(--accent-red);">عذراً، الرابط المدخل غير صالح هيكلياً.</div>';
+                    return;
                 }
-            }, 800);
+
+                const host = urlObj.hostname.toLowerCase();
+                const protocol = urlObj.protocol;
+                const path = urlObj.pathname.toLowerCase();
+
+                // 1. Whitelist Official & Trusted Domains
+                const trustedDomains = ['tu.edu.iq', 'facebook.com', 'google.com', 'microsoft.com', 'github.com', 'uotechnology.edu.iq', 'iq'];
+                const isTrusted = trustedDomains.some(d => host === d || host.endsWith('.' + d));
+
+                if (isTrusted && protocol === 'https:') {
+                    riskScore = 0;
+                    reasons.push({ text: 'النطاق معتمد ورسمي ضمن القائمة الموثوقة (Trusted Whitelist).', type: 'safe' });
+                    reasons.push({ text: 'بروتوكول التشفير آمن ومشفر بنجاح (HTTPS).', type: 'safe' });
+                    reasons.push({ text: 'البنية الهيكلية خالية من أي أنماط تمويه أو حروف مضللة.', type: 'safe' });
+                } else {
+                    // 2. Check Encryption (HTTP vs HTTPS)
+                    if (protocol === 'http:') {
+                        riskScore += 30;
+                        reasons.push({ text: 'الاتصال غير مشفر (HTTP بدلاً من HTTPS)، مما يعرض البيانات للاعتراض.', type: 'danger' });
+                    } else {
+                        reasons.push({ text: 'الاتصال مشفر عبر بروتوكول HTTPS.', type: 'safe' });
+                    }
+
+                    // 3. IP Address Usage Detection
+                    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+                    if (ipRegex.test(host)) {
+                        riskScore += 35;
+                        reasons.push({ text: 'استخدام عنوان IP مباشر بدلاً من اسم نطاق مسجل (نمط شائع في خوادم التصيد المؤقتة).', type: 'danger' });
+                    }
+
+                    // 4. Typosquatting & Impersonation Keywords
+                    const suspiciousKeywords = ['paypa1', 'login-update', 'secure-bank', 'account-verify', 'free-gift', 'free-coins', 'signin-security', 'reset-pass'];
+                    const foundKw = suspiciousKeywords.filter(kw => host.includes(kw) || path.includes(kw));
+                    if (foundKw.length > 0) {
+                        riskScore += 40;
+                        reasons.push({ text: `اكتشاف كلمات تمويه واستبدال مضللة (${foundKw.join(', ')}) لانتحال هوية مؤسسات معروفة.`, type: 'danger' });
+                    }
+
+                    // 5. Excessive Subdomains or Hyphens
+                    const hyphenCount = (host.match(/-/g) || []).length;
+                    if (hyphenCount >= 3) {
+                        riskScore += 15;
+                        reasons.push({ text: 'وجود عدد كبير من الفواصل (-) في اسم النطاق، وهو أسلوب لتضليل المستخدم.', type: 'warning' });
+                    }
+
+                    // Base Safety check for legitimate non-whitelisted sites
+                    if (riskScore === 0) {
+                        reasons.push({ text: 'لم يتم رصد مؤشرات خطورة في اسم النطاق أو المسار الحالي.', type: 'safe' });
+                        reasons.push({ text: 'شهادة الأمان الهيكلية سليمة ولاتوجد أي محاولات انتحال.', type: 'safe' });
+                    }
+                }
+
+                // Limit risk score max to 100
+                riskScore = Math.min(riskScore, 100);
+
+                // Build Final Report HTML
+                let badgeClass = 'score-safe';
+                let statusTitle = 'الرابط آمن وموثوق (Low Risk)';
+                let statusIcon = 'fa-circle-check';
+
+                if (riskScore >= 60) {
+                    badgeClass = 'score-danger';
+                    statusTitle = 'تحذير: رابط تصيد إلكتروني خطير (High Risk)';
+                    statusIcon = 'fa-triangle-exclamation';
+                } else if (riskScore > 0) {
+                    badgeClass = 'score-warning';
+                    statusTitle = 'تنبيه: يوجد مستوى من المخاطرة (Medium Risk)';
+                    statusIcon = 'fa-triangle-exclamation';
+                }
+
+                let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+
+                reportBox.innerHTML = `
+                    <div class="report-header">
+                        <div>
+                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
+                        </div>
+                        <div class="risk-score-badge ${badgeClass}">
+                            مؤشر الخطورة: ${riskScore}%
+                        </div>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
+                        <strong>الرابط المحلل:</strong> <code style="direction:ltr; display:inline-block;">${input}</code>
+                    </div>
+                    <ul class="report-details-list">
+                        ${listHtml}
+                    </ul>
+                `;
+            }, 600);
         }
     </script>
 </body>

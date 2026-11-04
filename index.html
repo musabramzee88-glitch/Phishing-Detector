@@ -16,6 +16,20 @@
             --text-main: #ffffff;
             --text-muted: #8e9aaf;
             --border-color: rgba(255, 255, 255, 0.08);
+            --header-bg: rgba(10, 15, 29, 0.9);
+        }
+
+        /* Light Theme Options */
+        [data-theme="light"] {
+            --bg-primary: #f4f6f9;
+            --bg-card: #ffffff;
+            --accent-blue: #0066ff;
+            --accent-green: #00a854;
+            --accent-red: #e53935;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --header-bg: rgba(255, 255, 255, 0.95);
         }
 
         * {
@@ -23,6 +37,7 @@
             margin: 0;
             padding: 0;
             font-family: 'Tajawal', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
@@ -34,12 +49,12 @@
             overflow-x: hidden;
         }
 
-        /* Navbar */
+        /* Top Header Navbar */
         header {
-            background: rgba(10, 15, 29, 0.9);
+            background: var(--header-bg);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 5%;
+            padding: 0.9rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -57,56 +72,201 @@
             color: var(--accent-blue);
         }
 
-        .badge-official {
-            background: rgba(0, 242, 254, 0.1);
-            color: var(--accent-blue);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(0, 242, 254, 0.3);
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
-        /* Hero Section */
-        .hero {
-            padding: 3rem 1rem 2rem;
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .nav-btn.active, .nav-btn:hover {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+        }
+
+        .theme-toggle-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--accent-blue);
+        }
+
+        /* Sections Routing */
+        .page-section {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Hero Main Page */
+        .main-hero {
+            padding: 3.5rem 1rem 2rem;
             text-align: center;
             max-width: 900px;
             margin: 0 auto;
         }
 
-        .hero h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .academic-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            color: var(--accent-blue);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
         }
 
-        .hero p {
+        .main-hero h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            margin-bottom: 1.2rem;
+            line-height: 1.3;
+        }
+
+        .main-hero p {
             color: var(--text-muted);
             font-size: 0.95rem;
-            line-height: 1.6;
-            max-width: 700px;
-            margin: 0 auto 2rem;
+            line-height: 1.7;
+            max-width: 750px;
+            margin: 0 auto 2.5rem;
         }
 
-        /* Scanner Box */
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary-action {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .btn-primary-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px rgba(0, 114, 255, 0.4);
+        }
+
+        /* Team & Institution Showcase Card */
+        .team-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .institution-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .institution-header h3 {
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+        }
+
+        .institution-header p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .developers-section h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .dev-names {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .dev-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Scanner Section Styling */
+        .scanner-container {
+            max-width: 850px;
+            margin: 2.5rem auto;
+            padding: 0 1rem;
+        }
+
         .scanner-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 2rem;
-            max-width: 800px;
-            margin: 0 auto 3rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         }
 
         .input-group {
             display: flex;
             gap: 10px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.15);
             padding: 6px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
@@ -117,7 +277,7 @@
             background: transparent;
             border: none;
             outline: none;
-            color: #fff;
+            color: var(--text-main);
             padding: 12px 16px;
             font-size: 0.95rem;
             direction: ltr;
@@ -132,15 +292,9 @@
             font-weight: 700;
             font-size: 0.95rem;
             cursor: pointer;
-            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-
-        .btn-scan:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
         }
 
         .demo-triggers {
@@ -158,15 +312,8 @@
             border-radius: 6px;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: 0.2s;
         }
 
-        .btn-quick:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        /* Result Panel */
         .result-panel {
             margin-top: 1.5rem;
             padding: 1.2rem;
@@ -174,71 +321,29 @@
             display: none;
             text-align: right;
             font-size: 0.9rem;
-            animation: fadeIn 0.4s ease-in-out;
         }
 
         .result-safe {
-            background: rgba(0, 230, 118, 0.08);
+            background: rgba(0, 230, 118, 0.1);
             border: 1px solid rgba(0, 230, 118, 0.3);
             color: var(--accent-green);
         }
 
         .result-danger {
-            background: rgba(255, 23, 68, 0.08);
+            background: rgba(255, 23, 68, 0.1);
             border: 1px solid rgba(255, 23, 68, 0.3);
             color: var(--accent-red);
         }
 
-        /* Metrics Bar (Small Font) */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.5rem;
-            max-width: 900px;
-            margin: 0 auto 3rem;
-            padding: 0 1rem;
-        }
-
-        .metric-item {
-            background: rgba(19, 27, 46, 0.5);
-            border: 1px solid var(--border-color);
-            padding: 1.2rem;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        .metric-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--accent-blue);
-            margin-bottom: 4px;
-        }
-
-        .metric-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
         /* Download Section */
         .download-box {
-            background: linear-gradient(180deg, rgba(19, 27, 46, 0.8) 0%, rgba(10, 15, 29, 0.9) 100%);
-            border: 1px solid rgba(0, 242, 254, 0.2);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 2.5rem 1.5rem;
             text-align: center;
             max-width: 700px;
-            margin: 0 auto 4rem;
-        }
-
-        .download-box h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .download-box p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
+            margin: 2rem auto 4rem;
         }
 
         .btn-download-main {
@@ -253,12 +358,6 @@
             font-weight: 800;
             font-size: 1rem;
             box-shadow: 0 10px 25px rgba(0, 230, 118, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .btn-download-main:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(0, 230, 118, 0.3);
         }
 
         footer {
@@ -266,7 +365,7 @@
             border-top: 1px solid var(--border-color);
             padding: 1.5rem;
             text-align: center;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
@@ -276,71 +375,131 @@
         }
     </style>
 </head>
-<body>
+<body data-theme="dark">
 
+    <!-- Top Navigation Bar -->
     <header>
         <div class="logo">
             <i class="fa-solid fa-shield-halved"></i>
             <span>Phishing Detector</span>
         </div>
-        <span class="badge-official"><i class="fa-solid fa-certificate"></i> مشروع معتمد</span>
+
+        <div class="nav-controls">
+            <div class="nav-links">
+                <button class="nav-btn active" onclick="switchPage('homePage', this)">الرئيسية</button>
+                <button class="nav-btn" onclick="switchPage('scannerPage', this)">منظومة الفحص المباشر</button>
+                <button class="nav-btn" onclick="switchPage('downloadPage', this)">تحميل النظام</button>
+            </div>
+
+            <!-- Global Theme Switcher Button -->
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+                <i class="fa-solid fa-moon"></i> <span>المظهر</span>
+            </button>
+        </div>
     </header>
 
-    <main>
-        <section class="hero">
+    <!-- SECTION 1: HOME PAGE -->
+    <div id="homePage" class="page-section active">
+        <main class="main-hero">
+            <div class="academic-badge">
+                <i class="fa-solid fa-graduation-cap"></i> مشروع أكاديمي معتمد
+            </div>
+            
             <h1>منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
-            <p>حل أمني متكامل لحماية المستخدمين والمؤسسات من الروابط الضارة وهجمات الهندسة الاجتماعية عبر تقنيات الذكاء الاصطناعي والتحليل الفوري.</p>
-        </section>
+            <p>حل أمني استباقي متكامل يعتمد تقنيات الذكاء الاصطناعي والتحليل الفوري لحماية المؤسسات والمستخدمين من الروابط المشبوهة وهجمات الهندسة الاجتماعية.</p>
 
-        <!-- Interactive Live Demo -->
-        <div class="scanner-card">
-            <div class="input-group">
-                <input type="text" id="urlInput" placeholder="أدخل الرابط المراد فحصه هنا (مثال: https://example.com)...">
-                <button class="btn-scan" onclick="runAnalysis()">
-                    <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
+            <div class="cta-buttons">
+                <button class="btn-primary-action" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
+                    <i class="fa-solid fa-magnifying-glass"></i> الدخول إلى صفحة فحص الروابط
                 </button>
             </div>
 
-            <div class="demo-triggers">
-                <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">أمثلة سريعة للتجربة:</span>
-                <button class="btn-quick" onclick="setDemoUrl('https://uotechnology.edu.iq', 'safe')">رابط آمن</button>
-                <button class="btn-quick" onclick="setDemoUrl('http://paypa1-security-update.com/login', 'danger')">رابط تصيد مشبوه</button>
+            <!-- Team & Academic Information Box -->
+            <div class="team-card">
+                <div class="institution-header">
+                    <h3>جامعة تكريت</h3>
+                    <p>كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
+                </div>
+                <div class="developers-section">
+                    <h4>إعداد وتطوير المبرمجين:</h4>
+                    <div class="dev-names">
+                        <div class="dev-tag"><i class="fa-solid fa-user-shield"></i> مصعب رمزي أحمد</div>
+                        <div class="dev-tag"><i class="fa-solid fa-user-shield"></i> محمود حكمت ذياب</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SECTION 2: SCANNER PAGE -->
+    <div id="scannerPage" class="page-section">
+        <div class="scanner-container">
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>منظومة الفحص الآلي المباشر</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">قم بإدخال أي رابط لاختبار مدة أمانه وكشف ثغرات التصيد</p>
             </div>
 
-            <div id="resultPanel" class="result-panel"></div>
+            <div class="scanner-card">
+                <div class="input-group">
+                    <input type="text" id="urlInput" placeholder="أدخل الرابط المراد فحصه هنا (مثال: https://example.com)...">
+                    <button class="btn-scan" onclick="runAnalysis()">
+                        <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
+                    </button>
+                </div>
+
+                <div class="demo-triggers">
+                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">أمثلة سريعة للتجربة:</span>
+                    <button class="btn-quick" onclick="setDemoUrl('https://tu.edu.iq', 'safe')">رابط آمن (جامعة تكريت)</button>
+                    <button class="btn-quick" onclick="setDemoUrl('http://paypa1-security-update.com/login', 'danger')">رابط تصيد مشبوه</button>
+                </div>
+
+                <div id="resultPanel" class="result-panel"></div>
+            </div>
         </div>
+    </div>
 
-        <!-- System Metrics -->
-        <div class="metrics-grid">
-            <div class="metric-item">
-                <div class="metric-value">99.4%</div>
-                <div class="metric-label">دقة خوارزميات الكشف</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-value">&lt; 0.2s</div>
-                <div class="metric-label">زمن الاستجابة والتكشيف</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-value">Real-Time</div>
-                <div class="metric-label">تحليل البنية والشهادات</div>
-            </div>
-        </div>
-
-        <!-- Official Download Card -->
+    <!-- SECTION 3: DOWNLOAD PAGE -->
+    <div id="downloadPage" class="page-section">
         <div class="download-box">
             <h3>حزمة التشغيل المباشرة لأنظمة ويندوز</h3>
-            <p>تحميل النظام بصيغة ZIP جاهز للتشغيل المباشر بنقرة واحدة بدون أي إعدادات معقدة.</p>
+            <p style="margin-bottom: 1.5rem;">تحميل النظام بصيغة ZIP جاهز للتشغيل المباشر بنقرة واحدة بدون أي إعدادات معقدة.</p>
             <a href="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/PhishingDetector-Windows-x64.zip" download class="btn-download-main">
                 <i class="fa-solid fa-download"></i> تحميل النظام (ZIP)
             </a>
         </div>
-    </main>
+    </div>
 
+    <!-- Footer -->
     <footer>
-        <p>مشروع تطوير نظام كشف ومكافحة التصيد الإلكتروني — إعداد وتطوير الهندسة السيبرانية © 2026</p>
+        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
     </footer>
 
     <script>
+        // Switch between sections
+        function switchPage(pageId, btnElement) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(pageId).classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
+        }
+
+        // Toggle Dark/Light Theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeBtn = document.getElementById('themeBtn');
+            const currentTheme = body.getAttribute('data-theme');
+            
+            if (currentTheme === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> <span>المظهر الضوئي</span>';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> <span>المظهر الداكن</span>';
+            }
+        }
+
+        // Scanner Demo Script
         function setDemoUrl(url, type) {
             document.getElementById('urlInput').value = url;
             runAnalysis(type);

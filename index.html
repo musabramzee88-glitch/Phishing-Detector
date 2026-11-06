@@ -350,29 +350,38 @@
         @media (max-width: 900px) {
             header {
                 display: flex;
-                flex-direction: column;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
                 gap: 10px;
                 padding: 0.75rem 3%;
             }
 
             .logo {
-                width: 100%;
-                justify-content: space-between;
+                order: 1;
+                justify-content: flex-start;
+                gap: 10px;
+                font-size: 1.05rem;
+            }
+
+            .logo img {
+                height: 35px;
+                width: 35px;
             }
 
             .nav-controls {
-                position: absolute;
-                left: 3%;
-                top: 0.75rem;
+                order: 2;
+                justify-self: unset;
             }
 
             .nav-links {
+                order: 3;
                 width: 100%;
-                max-width: 100%;
                 overflow-x: auto;
                 white-space: nowrap;
                 justify-content: flex-start;
                 padding: 6px;
+                gap: 4px;
                 scroll-behavior: smooth;
                 -webkit-overflow-scrolling: touch;
             }

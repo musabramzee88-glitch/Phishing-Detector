@@ -203,7 +203,7 @@
             box-shadow: 0 8px 25px var(--accent-glow);
         }
 
-        /* شريط التنقل العلوي الاحترافي للغاية مع توزيع متناسق (الشعار يمين، التبويبات منتصف، المظهر يسار) */
+        /* شريط التنقل العلوي الاحترافي للغاية مع توزيع متناسق */
         header {
             background: var(--header-bg);
             backdrop-filter: blur(14px);
@@ -262,6 +262,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
         }
 
         .nav-btn:hover {
@@ -300,6 +301,7 @@
             align-items: center;
             gap: 8px;
             font-weight: 700;
+            white-space: nowrap;
         }
 
         .theme-menu {
@@ -342,6 +344,69 @@
         .theme-option:hover {
             background: rgba(255, 255, 255, 0.08);
             color: var(--accent-blue);
+        }
+
+        /* تعديلات الاستجابة لشاشات الهواتف المحمولة (Responsive Design) */
+        @media (max-width: 900px) {
+            header {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 0.75rem 3%;
+            }
+
+            .logo {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .nav-controls {
+                position: absolute;
+                left: 3%;
+                top: 0.75rem;
+            }
+
+            .nav-links {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                white-space: nowrap;
+                justify-content: flex-start;
+                padding: 6px;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .nav-links::-webkit-scrollbar {
+                display: none;
+            }
+
+            .nav-btn {
+                padding: 6px 12px;
+                font-size: 0.78rem;
+                flex-shrink: 0;
+            }
+
+            .main-hero h1 {
+                font-size: 1.6rem !important;
+            }
+
+            .main-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .scanner-card {
+                padding: 1.2rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .btn-scan {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         /* تأثيرات حركة الانتقال السلس بين الأقسام */

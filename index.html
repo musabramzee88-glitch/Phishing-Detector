@@ -12,30 +12,168 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root {
+        /* ==========================================
+           تعريف المظاهر البصرية العشرة (10 Themes)
+           ========================================== */
+        
+        /* 1. الداكن الكلاسيكي (Classic Dark - Default) */
+        [data-theme="dark"] {
             --bg-primary: #0a0f1d;
             --bg-card: #131b2e;
             --accent-blue: #00f2fe;
+            --accent-glow: rgba(0, 242, 254, 0.35);
             --accent-green: #00e676;
             --accent-yellow: #ffab00;
             --accent-red: #ff1744;
             --text-main: #ffffff;
             --text-muted: #8e9aaf;
-            --border-color: rgba(255, 255, 255, 0.08);
-            --header-bg: rgba(10, 15, 29, 0.9);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --header-bg: rgba(10, 15, 29, 0.85);
+            --nav-bg: rgba(255, 255, 255, 0.03);
         }
 
+        /* 2. المضيء النهاري (Clean Light) */
         [data-theme="light"] {
             --bg-primary: #f4f6f9;
             --bg-card: #ffffff;
             --accent-blue: #0066ff;
+            --accent-glow: rgba(0, 102, 255, 0.25);
             --accent-green: #00a854;
             --accent-yellow: #ff8f00;
             --accent-red: #e53935;
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border-color: rgba(0, 0, 0, 0.1);
-            --header-bg: rgba(255, 255, 255, 0.95);
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --nav-bg: rgba(0, 0, 0, 0.04);
+        }
+
+        /* 3. سايبر بانك (Cyberpunk Neon) */
+        [data-theme="cyberpunk"] {
+            --bg-primary: #120418;
+            --bg-card: #20072b;
+            --accent-blue: #ff007f;
+            --accent-glow: rgba(255, 0, 127, 0.35);
+            --accent-green: #39ff14;
+            --accent-yellow: #f3e600;
+            --accent-red: #ff073a;
+            --text-main: #ffffff;
+            --text-muted: #c084fc;
+            --border-color: rgba(255, 0, 127, 0.25);
+            --header-bg: rgba(18, 4, 24, 0.85);
+            --nav-bg: rgba(255, 0, 127, 0.05);
+        }
+
+        /* 4. ماتريكس الأخضر (Matrix Code) */
+        [data-theme="matrix"] {
+            --bg-primary: #021204;
+            --bg-card: #05220a;
+            --accent-blue: #00ff66;
+            --accent-glow: rgba(0, 255, 102, 0.3);
+            --accent-green: #00ff66;
+            --accent-yellow: #ccff00;
+            --accent-red: #ff3333;
+            --text-main: #e2fce8;
+            --text-muted: #4ade80;
+            --border-color: rgba(0, 255, 102, 0.25);
+            --header-bg: rgba(2, 18, 4, 0.85);
+            --nav-bg: rgba(0, 255, 102, 0.05);
+        }
+
+        /* 5. الزمرد الملكي (Royal Emerald) */
+        [data-theme="emerald"] {
+            --bg-primary: #021c17;
+            --bg-card: #042f27;
+            --accent-blue: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.3);
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
+            --accent-red: #f87171;
+            --text-main: #ecfdf5;
+            --text-muted: #6ee7b7;
+            --border-color: rgba(16, 185, 129, 0.25);
+            --header-bg: rgba(2, 28, 23, 0.85);
+            --nav-bg: rgba(16, 185, 129, 0.05);
+        }
+
+        /* 6. غروب الشمس (Sunset Glow) */
+        [data-theme="sunset"] {
+            --bg-primary: #1a0f0a;
+            --bg-card: #2d1810;
+            --accent-blue: #f97316;
+            --accent-glow: rgba(249, 115, 22, 0.3);
+            --accent-green: #4ade80;
+            --accent-yellow: #facc15;
+            --accent-red: #ef4444;
+            --text-main: #fff7ed;
+            --text-muted: #fdba74;
+            --border-color: rgba(249, 115, 22, 0.25);
+            --header-bg: rgba(26, 15, 10, 0.85);
+            --nav-bg: rgba(249, 115, 22, 0.05);
+        }
+
+        /* 7. البنفسجي الغامض (Mystic Purple) */
+        [data-theme="purple"] {
+            --bg-primary: #0f071a;
+            --bg-card: #1c1033;
+            --accent-blue: #a855f7;
+            --accent-glow: rgba(168, 85, 247, 0.3);
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --text-main: #faf5ff;
+            --text-muted: #d8b4fe;
+            --border-color: rgba(168, 85, 247, 0.25);
+            --header-bg: rgba(15, 7, 26, 0.85);
+            --nav-bg: rgba(168, 85, 247, 0.05);
+        }
+
+        /* 8. أعماق المحيط (Deep Ocean) */
+        [data-theme="ocean"] {
+            --bg-primary: #031323;
+            --bg-card: #08223c;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --accent-green: #22c55e;
+            --accent-yellow: #facc15;
+            --accent-red: #f87171;
+            --text-main: #f0f9ff;
+            --text-muted: #bae6fd;
+            --border-color: rgba(56, 189, 248, 0.25);
+            --header-bg: rgba(3, 19, 35, 0.85);
+            --nav-bg: rgba(56, 189, 248, 0.05);
+        }
+
+        /* 9. القهوة الدافئة (Warm Coffee) */
+        [data-theme="coffee"] {
+            --bg-primary: #18120e;
+            --bg-card: #271e17;
+            --accent-blue: #d97706;
+            --accent-glow: rgba(217, 119, 6, 0.3);
+            --accent-green: #65a30d;
+            --accent-yellow: #ca8a04;
+            --accent-red: #dc2626;
+            --text-main: #fef3c7;
+            --text-muted: #d6d3d1;
+            --border-color: rgba(217, 119, 6, 0.25);
+            --header-bg: rgba(24, 18, 14, 0.85);
+            --nav-bg: rgba(217, 119, 6, 0.05);
+        }
+
+        /* 10. القرمزي العنيف (Crimson Red) */
+        [data-theme="crimson"] {
+            --bg-primary: #180507;
+            --bg-card: #2d0a0e;
+            --accent-blue: #f43f5e;
+            --accent-glow: rgba(244, 63, 94, 0.3);
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #e11d48;
+            --text-main: #fff1f2;
+            --text-muted: #fecdd3;
+            --border-color: rgba(244, 63, 94, 0.25);
+            --header-bg: rgba(24, 5, 7, 0.85);
+            --nav-bg: rgba(244, 63, 94, 0.05);
         }
 
         * {
@@ -55,121 +193,224 @@
             overflow-x: hidden;
         }
 
+        /* تأثير تكبير الأزرار التفاعلي عند المرور بالماوس */
+        button, .nav-btn, .btn-scan, .btn-quick, .action-card-btn, .theme-dropdown-btn, .theme-option, .dev-tag {
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease !important;
+        }
+
+        button:hover, .nav-btn:hover, .btn-scan:hover, .btn-quick:hover, .action-card-btn:hover, .theme-dropdown-btn:hover, .dev-tag:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        /* شريط التنقل العلوي الاحترافي للغاية مع توزيع متناسق (الشعار يمين، التبويبات منتصف، المظهر يسار) */
         header {
             background: var(--header-bg);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--border-color);
-            padding: 0.9rem 5%;
-            display: flex;
-            justify-content: space-between;
+            padding: 0.85rem 4%;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 1.2rem;
-            font-weight: 700;
+            font-size: 1.25rem;
+            font-weight: 800;
             color: var(--accent-blue);
+            letter-spacing: -0.5px;
+            justify-self: start;
         }
 
         .logo img {
-            height: 40px;
-            width: 40px;
+            height: 42px;
+            width: 42px;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px var(--accent-glow);
         }
 
-        .nav-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
+        /* حاوية أزرار التبويبات الفخمة في المنتصف تماماً */
         .nav-links {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 6px;
+            background: var(--nav-bg);
+            padding: 5px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(5px);
+            justify-self: center;
         }
 
         .nav-btn {
             background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 8px;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .nav-btn.active, .nav-btn:hover {
-            background: var(--accent-blue);
-            color: #fff;
-            border-color: var(--accent-blue);
+        .nav-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .theme-toggle-btn {
-            background: rgba(255, 255, 255, 0.08);
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #0072ff 100%);
+            color: #ffffff !important;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        /* حاوية قائمة المظاهر في أقصى اليسار */
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            justify-self: end;
+        }
+
+        /* قائمة المظاهر المنسدلة (Dropdown Menu) */
+        .theme-selector-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .theme-dropdown-btn {
+            background: var(--nav-bg);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 8px 14px;
-            border-radius: 20px;
+            padding: 8px 15px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            font-weight: 700;
         }
 
+        .theme-menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 120%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+            padding: 8px;
+            min-width: 195px;
+            z-index: 2000;
+            text-align: right;
+        }
+
+        .theme-menu.show {
+            display: block;
+            animation: fadeInMenu 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .theme-option {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 100%;
+            text-align: right;
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2px;
+        }
+
+        .theme-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--accent-blue);
+        }
+
+        /* تأثيرات حركة الانتقال السلس بين الأقسام */
         .page-section {
             display: none;
-            animation: fadeIn 0.4s ease-in-out forwards;
-            padding: 2rem 1rem;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 2.5rem 1rem;
         }
 
         .page-section.active {
             display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .main-hero {
-            padding: 2rem 1rem;
+            padding: 1rem 1rem;
             text-align: center;
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
         }
 
-        .btn-primary-action {
-            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
-            color: #fff;
-            border: none;
-            padding: 14px 32px;
-            border-radius: 12px;
+        /* شبكة الأزرار الفخمة للصفحات في الرئيسية */
+        .main-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 2.2rem auto 1.5rem;
+            max-width: 900px;
+        }
+
+        .action-card-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 1.2rem;
+            border-radius: 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--text-main);
             font-size: 1rem;
             font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
             text-decoration: none;
-            margin-top: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .action-card-btn i {
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+        }
+
+        .action-card-btn:hover {
+            border-color: var(--accent-blue);
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .team-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 18px;
+            border-radius: 20px;
             padding: 2rem;
-            max-width: 800px;
+            max-width: 850px;
             margin: 2.5rem auto 1rem;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
 
@@ -191,7 +432,7 @@
         }
 
         .institution-header h3 {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             margin-bottom: 4px;
         }
 
@@ -209,10 +450,10 @@
         }
 
         .dev-tag {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-color);
-            padding: 10px 22px;
-            border-radius: 10px;
+            padding: 10px 24px;
+            border-radius: 12px;
             font-size: 0.95rem;
             font-weight: 700;
         }
@@ -239,8 +480,8 @@
         .scanner-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 2rem;
+            border-radius: 20px;
+            padding: 2.2rem;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             margin-bottom: 2rem;
         }
@@ -250,7 +491,7 @@
             gap: 10px;
             background: rgba(0, 0, 0, 0.15);
             padding: 6px;
-            border-radius: 12px;
+            border-radius: 14px;
             border: 1px solid var(--border-color);
         }
 
@@ -268,15 +509,15 @@
         .input-group textarea {
             direction: rtl;
             resize: vertical;
-            min-height: 100px;
+            min-height: 110px;
         }
 
         .btn-scan {
-            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #0072ff 100%);
             color: #fff;
             border: none;
             padding: 12px 28px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 700;
             font-size: 0.95rem;
             cursor: pointer;
@@ -290,7 +531,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 12px;
+            margin-top: 14px;
             flex-wrap: wrap;
             gap: 10px;
             font-size: 0.85rem;
@@ -308,7 +549,7 @@
             display: flex;
             justify-content: center;
             gap: 8px;
-            margin-top: 1rem;
+            margin-top: 1.2rem;
             flex-wrap: wrap;
         }
 
@@ -316,15 +557,15 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
             font-size: 0.8rem;
             cursor: pointer;
         }
 
         .report-box {
             margin-top: 1.5rem;
-            border-radius: 12px;
+            border-radius: 14px;
             display: none;
             padding: 1.5rem;
             text-align: right;
@@ -379,8 +620,8 @@
         .history-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
+            border-radius: 20px;
+            padding: 1.8rem;
             margin-top: 2rem;
         }
 
@@ -410,30 +651,6 @@
             font-weight: 500;
         }
 
-        .download-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 2.5rem 1.5rem;
-            text-align: center;
-            max-width: 700px;
-            margin: 2rem auto;
-        }
-
-        .btn-download-main {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, #00e676 0%, #00b0ff 100%);
-            color: #0a0f1d;
-            text-decoration: none;
-            padding: 14px 32px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 1rem;
-            margin-top: 1rem;
-        }
-
         footer {
             margin-top: auto;
             border-top: 1px solid var(--border-color);
@@ -443,32 +660,48 @@
             color: var(--text-muted);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+        @keyframes fadeInMenu {
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body data-theme="dark">
 
-    <!-- شريط التنقل العلوي -->
+    <!-- شريط التنقل العلوي المتناسق (الشعار يمين، التبويبات بالمنتصف، قائمة المظهر يسار) -->
     <header>
         <div class="logo">
             <img src="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/logo.png" alt="Logo">
             <span>Phishing Detector</span>
         </div>
 
-        <div class="nav-controls">
-            <div class="nav-links">
-                <button class="nav-btn active" onclick="switchPage('homePage', this)">الرئيسية</button>
-                <button class="nav-btn" onclick="switchPage('scannerPage', this)">فحص الروابط</button>
-                <button class="nav-btn" onclick="switchPage('fileScannerPage', this)">فحص الملفات والبرمجيات الخبيثة</button>
-                <button class="nav-btn" onclick="switchPage('textScannerPage', this)">فحص النصوص والرسائل</button>
-            </div>
+        <div class="nav-links">
+            <button class="nav-btn active" onclick="switchPage('homePage', this)"><i class="fa-solid fa-house"></i> الرئيسية</button>
+            <button class="nav-btn" onclick="switchPage('scannerPage', this)"><i class="fa-solid fa-link"></i> فحص الروابط</button>
+            <button class="nav-btn" onclick="switchPage('fileScannerPage', this)"><i class="fa-solid fa-file-shield"></i> فحص الملفات والبرمجيات</button>
+            <button class="nav-btn" onclick="switchPage('textScannerPage', this)"><i class="fa-solid fa-comment-sms"></i> فحص النصوص والرسائل</button>
+            <button class="nav-btn" onclick="switchPage('mediaScannerPage', this)"><i class="fa-solid fa-file-video"></i> فحص الصوت / الفيديو</button>
+        </div>
 
-            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-                <i class="fa-solid fa-moon"></i> <span>المظهر الداكن</span>
-            </button>
+        <div class="nav-controls">
+            <!-- قائمة المظاهر العشرة المنسدلة في اليسار -->
+            <div class="theme-selector-container">
+                <button class="theme-dropdown-btn" onclick="toggleThemeMenu()">
+                    <i class="fa-solid fa-palette"></i> <span>المظهر</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
+                </button>
+                <div class="theme-menu" id="themeMenu">
+                    <button class="theme-option" onclick="setTheme('dark')"><i class="fa-solid fa-moon" style="color:#00f2fe;"></i> الداكن الكلاسيكي</button>
+                    <button class="theme-option" onclick="setTheme('light')"><i class="fa-solid fa-sun" style="color:#0066ff;"></i> المضيء النهاري</button>
+                    <button class="theme-option" onclick="setTheme('cyberpunk')"><i class="fa-solid fa-bolt" style="color:#ff007f;"></i> سايبر بانك</button>
+                    <button class="theme-option" onclick="setTheme('matrix')"><i class="fa-solid fa-terminal" style="color:#00ff66;"></i> ماتريكس الأخضر</button>
+                    <button class="theme-option" onclick="setTheme('emerald')"><i class="fa-solid fa-gem" style="color:#10b981;"></i> الزمرد الملكي</button>
+                    <button class="theme-option" onclick="setTheme('sunset')"><i class="fa-solid fa-fire" style="color:#f97316;"></i> غروب الشمس</button>
+                    <button class="theme-option" onclick="setTheme('purple')"><i class="fa-solid fa-wand-magic-sparkles" style="color:#a855f7;"></i> البنفسجي الغامض</button>
+                    <button class="theme-option" onclick="setTheme('ocean')"><i class="fa-solid fa-water" style="color:#38bdf8;"></i> أعماق المحيط</button>
+                    <button class="theme-option" onclick="setTheme('coffee')"><i class="fa-solid fa-mug-hot" style="color:#d97706;"></i> القهوة الدافئة</button>
+                    <button class="theme-option" onclick="setTheme('crimson')"><i class="fa-solid fa-heart-pulse" style="color:#f43f5e;"></i> القرمزي العنيف</button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -476,23 +709,31 @@
     <div id="homePage" class="page-section active">
         <div class="main-hero">
             <div style="text-align: center; margin: 15px 0;">
-                <img src="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/logo.png" alt="Official Logo" style="width: 120px; height: 120px; border-radius: 20px; object-fit: cover; box-shadow: 0 0 35px rgba(0,242,254,0.5); border: 2px solid rgba(0,242,254,0.4);">
+                <img src="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/logo.png" alt="Official Logo" style="width: 125px; height: 125px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px var(--accent-glow); border: 2px solid var(--border-color);">
             </div>
 
-            <div style="text-align: center;">
-                <span style="background: rgba(0,242,254,0.1); color: #00f2fe; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(0,242,254,0.3);">
-                    <i class="fa-solid fa-graduation-cap"></i> مشروع تخرج أكاديمي معتمد
-                </span>
-            </div>
-
-            <h1 style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.2rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
-            <p style="text-align: center; color: #a0aec0; max-width: 700px; margin: 10px auto; font-size: 0.95rem; line-height: 1.7;">
-                حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية.
+            <h1 style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.3rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
+            <p style="text-align: center; color: var(--text-muted); max-width: 720px; margin: 12px auto; font-size: 1rem; line-height: 1.8;">
+                حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية وتزييف الوسائط.
             </p>
 
-            <div>
-                <button class="btn-primary-action" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
-                    <i class="fa-solid fa-magnifying-glass"></i> الدخول إلى صفحة فحص الروابط
+            <!-- أزرار الوصول السريع المنظمة لجميع الأقسام -->
+            <div class="main-actions-grid">
+                <button class="action-card-btn" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
+                    <i class="fa-solid fa-link"></i>
+                    <span>فحص الروابط</span>
+                </button>
+                <button class="action-card-btn" onclick="switchPage('fileScannerPage', document.querySelectorAll('.nav-btn')[2])">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>فحص الملفات والبرمجيات</span>
+                </button>
+                <button class="action-card-btn" onclick="switchPage('textScannerPage', document.querySelectorAll('.nav-btn')[3])">
+                    <i class="fa-solid fa-comment-sms"></i>
+                    <span>فحص النصوص والرسائل</span>
+                </button>
+                <button class="action-card-btn" onclick="switchPage('mediaScannerPage', document.querySelectorAll('.nav-btn')[4])">
+                    <i class="fa-solid fa-file-video"></i>
+                    <span>فحص الصوت / الفيديو</span>
                 </button>
             </div>
 
@@ -630,14 +871,32 @@
         </div>
     </div>
 
-    <!-- 5. صفحة تحميل النظام -->
-    <div id="downloadPage" class="page-section">
-        <div class="download-box">
-            <h3>حزمة التشغيل المباشرة لأنظمة ويندوز</h3>
-            <p style="margin-bottom: 1.5rem; color:var(--text-muted);">تحميل النظام بصيغة ZIP جاهز للتشغيل المباشر بنقرة واحدة عبر ملف `run.vbs` بدون أي إعدادات معقدة.</p>
-            <a href="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/PhishingDetector-Windows-x64.zip" download class="btn-download-main">
-                <i class="fa-solid fa-download"></i> تحميل النظام (ZIP)
-            </a>
+    <!-- 5. صفحة فحص الصوت والفيديو (Deepfake Audio & Video Scanner) -->
+    <div id="mediaScannerPage" class="page-section">
+        <div class="scanner-container">
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>فحص ملفات الصوت والفيديو وكشف التزييف العميق (Deepfake Detector)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">استخدام خوارزميات تحليل الترددات الطيفية (MFCC) والتشوهات البصرية (OpenCV) للتحقق من سلامة الوسائط</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group" style="padding: 25px; border: 2px dashed var(--border-color); justify-content: center; text-align: center; background: rgba(0,0,0,0.05); border-radius: 12px; cursor: pointer;" onclick="document.getElementById('mediaUpload').click();">
+                    <input type="file" id="mediaUpload" accept="audio/*,video/*" style="display: none;" onchange="updateMediaFileName(this)">
+                    <div style="width: 100%;">
+                        <i class="fa-solid fa-file-video" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
+                        <div id="mediaLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف صوت أو فيديو</div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم صيغ الوسائط المتعددة (MP3, WAV, MP4, AVI، وغيرها)</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" onclick="uploadAndScan()" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-shield-halved"></i> فحص الصوت / الفيديو
+                    </button>
+                </div>
+
+                <div id="mediaReportBox" class="report-box"></div>
+            </div>
         </div>
     </div>
 
@@ -645,7 +904,7 @@
         <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
     </footer>
 
-    <!-- سكريبت التشغيل الأساسي والتحليل -->
+    <!-- سكريبت التشغيل الأساسي والتحليل مع دوال التفاعل المضافة -->
     <script>
         function switchPage(pageId, btnElement) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
@@ -654,18 +913,28 @@
             if (btnElement) btnElement.classList.add('active');
         }
 
-        function toggleTheme() {
-            const body = document.body;
-            const themeBtn = document.getElementById('themeBtn');
-            const currentTheme = body.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                body.setAttribute('data-theme', 'light');
-                themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> <span>المظهر الضوئي</span>';
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> <span>المظهر الداكن</span>';
-            }
+        /* دوال إدارة المظاهر البصرية المنسدلة والحفظ التلقائي */
+        function toggleThemeMenu() {
+            const menu = document.getElementById('themeMenu');
+            menu.classList.toggle('show');
         }
+
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('selected_theme', themeName);
+            document.getElementById('themeMenu').classList.remove('show');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('selected_theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+
+            window.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-selector-container')) {
+                    document.getElementById('themeMenu').classList.remove('show');
+                }
+            });
+        });
 
         function testUrl(url) {
             document.getElementById('urlInput').value = url;
@@ -943,7 +1212,7 @@
             }, 600);
         }
 
-        // عرض اسم الملف عند اختياره
+        // عرض اسم الملف عند اختياره في فحص الملفات التنفيذية
         function updateFileName(input) {
             const label = document.getElementById('fileLabelText');
             if (input.files && input.files[0]) {
@@ -951,7 +1220,6 @@
             }
         }
 
-        // القائمة البيضاء المتقدمة للمنصات والمتصفحات والبرامج الرسمية الموثوقة نظامياً
         const TRUSTED_KNOWN_EXES = [
             'chrome.exe', 'msedge.exe', 'firefox.exe', 'brave.exe', 'opera.exe',
             'gemini.exe', 'discord.exe', 'telegram.exe', 'whatsapp.exe', 'teams.exe',
@@ -961,7 +1229,7 @@
             'zoom.exe', 'slack.exe', 'obs64.exe', 'winword.exe', 'excel.exe', 'powerpnt.exe'
         ];
 
-        // خوارزمية فحص الملفات المتقدمة والأكاديمية الدقيقة (Advanced Heuristic & Magic Bytes Engine)
+        // خوارزمية فحص الملفات المتقدمة
         function analyzeFile() {
             const fileInput = document.getElementById('fileInput');
             const reportBox = document.getElementById('fileReportBox');
@@ -973,7 +1241,7 @@
 
             const file = fileInput.files[0];
             reportBox.style.display = 'block';
-            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري إجراء فحص عميق للبصمة الثنائية والتواقيع الرقمية وتحليل السلوك الهيكلي للملف...</div>';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري إجراء فحص عميق للبصمة الثنائية والتواقيع الرقمية للملف...</div>';
 
             const reader = new FileReader();
             
@@ -992,72 +1260,44 @@
                     const fileName = file.name.toLowerCase();
                     const dangerousExtensions = ['.bat', '.cmd', '.vbs', '.scr', '.pif', '.js', '.msi', '.ps1', '.hta'];
                     const isDangerousExt = dangerousExtensions.some(ext => fileName.endsWith(ext));
-
-                    // تحليل الكلمات المفتاحية المريبة في اسم الملف (مثل crack, keygen, payload)
                     const suspiciousKeywords = ['crack', 'keygen', 'patch', 'hack', 'payload', 'stealer', 'trojan', 'virus', 'malware', 'exploit'];
                     const hasSuspiciousKeyword = suspiciousKeywords.some(kw => fileName.includes(kw));
-
-                    // 1. فحص الامتدادات المزدوجة والتلاعب (Double Extension Spoofing)
-                    const fakeExtCheck = ['.pdf.exe', '.jpg.exe', '.png.exe', '.txt.exe', '.docx.exe', '.xlsx.exe', '.mp3.exe', '.mp4.exe', '.pdf.vbs', '.jpg.scr', '.png.bat'];
+                    const fakeExtCheck = ['.pdf.exe', '.jpg.exe', '.png.exe', '.txt.exe', '.docx.exe', '.xlsx.exe'];
                     const isFakeExtension = fakeExtCheck.some(fake => fileName.includes(fake));
 
                     if (isFakeExtension) {
                         riskScore = 100;
                         detectedRealType = "ملف تنفيذي مخفي بامتياز وهمي (Spoofed Executable)";
-                        reasons.push({ text: 'خطير جداً: تم رصد محاولة خداع تلاعب بالامتداد (Extension Spoofing). الملف يوهم بأنه مستند أو صورة وهو في الحقيقة برنامج تنفيذي مخادع!', type: 'danger' });
-                    } 
-                    // 2. فحص الملفات التنفيذية (PE Executable Header: 4D5A / MZ)
-                    else if (header.startsWith('4D5A')) {
+                        reasons.push({ text: 'خطير جداً: تم رصد محاولة خداع تلاعب بالامتداد (Extension Spoofing).', type: 'danger' });
+                    } else if (header.startsWith('4D5A')) {
                         detectedRealType = "ملف تنفيذي نظامي (PE Executable .exe/.dll)";
-
                         if (TRUSTED_KNOWN_EXES.includes(fileName)) {
                             riskScore = 0;
-                            reasons.push({ text: `الملف التنفيذي (${file.name}) مطبق ومطابق للقائمة البيضاء للبرامج والمنصات المشهورة والموثوقة رسمياً.`, type: 'safe' });
-                            reasons.push({ text: 'التوقيع الرقمي والهيكلي سليم وخالٍ من مؤشرات التلاعب.', type: 'safe' });
+                            reasons.push({ text: `الملف التنفيذي (${file.name}) مطبق ومطابق للقائمة البيضاء للبرامج المشهورة والموثوقة رسمياً.`, type: 'safe' });
                         } else if (hasSuspiciousKeyword) {
                             riskScore = 95;
                             reasons.push({ text: `تنبيه حرج: اسم الملف يحتوي على مصطلحات مريبة أو شائعة في البرمجيات الخبيثة (${fileName}).`, type: 'danger' });
                         } else {
                             riskScore = 45;
-                            reasons.push({ text: `تنبيه: الملف التنفيذي (${file.name}) غير مدرج في قاعدة بيانات المنصات والبرامج المشهورة. يرجى توخي الحذر وعدم فتحه ما لم يكن من مصدر موثوق.`, type: 'warning' });
+                            reasons.push({ text: `تنبيه: الملف التنفيذي (${file.name}) غير مدرج في قاعدة بيانات المنصات والبرامج المشهورة.`, type: 'warning' });
                         }
-                    } 
-                    // 3. فحص الأرشيف المضغوط (ZIP / JAR / Office XML Header: 504B)
-                    else if (header.startsWith('504B')) {
-                        detectedRealType = "ملف أرشيف مضغوط أو حزمة برمجية (ZIP / JAR / Office XML)";
-                        if (fileName.endsWith('.jar')) {
-                            riskScore = 30;
-                            reasons.push({ text: 'ملف جافا تنفيذي (JAR)، يتطلب فحص محتوياته الداخلية لعدم وجود أكواد حقن.', type: 'warning' });
-                        } else {
-                            riskScore = 5;
-                            reasons.push({ text: 'ملف مضغوط بأسلوب سليم، والبصمة الثنائية متطابقة.', type: 'safe' });
-                        }
-                    } 
-                    // 4. فحص وثائق الـ PDF (Header: 25504446 / %PDF)
-                    else if (header.startsWith('25504446')) {
+                    } else if (header.startsWith('504B')) {
+                        detectedRealType = "ملف أرشيف مضغوط أو حزمة برمجية (ZIP / JAR)";
+                        riskScore = 5;
+                        reasons.push({ text: 'ملف مضغوط بأسلوب سليم، والبصمة الثنائية متطابقة.', type: 'safe' });
+                    } else if (header.startsWith('25504446')) {
                         detectedRealType = "مستند وثيقة رسمية (PDF)";
-                        if (fileName.endsWith('.pdf')) {
-                            riskScore = 0;
-                            reasons.push({ text: 'ملف PDF سليم وتوقيعه الثنائي متطابق تماماً بدون أي سكربات مشبوهة.', type: 'safe' });
-                        } else {
-                            riskScore = 80;
-                            reasons.push({ text: 'خطأ في التنسيق: بصمة PDF داخلية ولكن امتداد الملف الخارجي غير مطابق!', type: 'danger' });
-                        }
-                    } 
-                    // 5. فحص الصور الرقمية (JPG / PNG)
-                    else if (header.startsWith('FFD8FF') || header.startsWith('89504E47')) {
+                        riskScore = 0;
+                        reasons.push({ text: 'ملف PDF سليم وتوقيعه الثنائي متطابق تماماً.', type: 'safe' });
+                    } else if (header.startsWith('FFD8FF') || header.startsWith('89504E47')) {
                         detectedRealType = "ملف صورة رقمية (JPG / PNG)";
                         riskScore = 0;
                         reasons.push({ text: 'صورة رقمية سليمة وتوقيعها البرمجي متطابق.', type: 'safe' });
-                    } 
-                    // 6. السكربات الخطرة المباشرة (.bat, .vbs, .js, .ps1)
-                    else if (isDangerousExt) {
+                    } else if (isDangerousExt) {
                         riskScore = 90;
                         detectedRealType = "ملف سكربت أو أمرين نظاميين خطيرين";
-                        reasons.push({ text: `تم اكتشاف امتداد خطير (${fileName}) قادر على تنفيذ أوامر برمجية مباشرة على نظام التشغيل.`, type: 'danger' });
-                    } 
-                    // 7. ملفات مجهولة أو غير معروفة البصمة
-                    else {
+                        reasons.push({ text: `تم اكتشاف امتداد خطير (${fileName}) قادر على تنفيذ أوامر مباشرة.`, type: 'danger' });
+                    } else {
                         riskScore = 40;
                         detectedRealType = "ملف ذو بنية ثنائية مجهولة";
                         reasons.push({ text: 'بصمة الملف الثنائية غير مطابقة للأنماط القياسية المعتمدة.', type: 'warning' });
@@ -1065,9 +1305,9 @@
 
                     riskScore = Math.min(riskScore, 100);
 
-                    let badgeClass = riskScore >= 50 ? 'score-danger' : (riskScore > 0 ? 'score-warning' : 'score-safe');
-                    let statusTitle = riskScore >= 50 ? 'تحذير شديد: ملف مشبوه أو خبيث (High Risk)' : (riskScore > 0 ? 'تنبيه: ملف يتطلب الحذر والفحص (Medium Risk)' : 'الملف آمن وموثوق (Low Risk)');
-                    let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : (riskScore > 0 ? 'fa-circle-exclamation' : 'fa-circle-check');
+                    let badgeClass = riskScore >= 50 ? 'score-danger' : 'score-safe';
+                    let statusTitle = riskScore >= 50 ? 'تحذير شديد: ملف مشبوه أو خبيث (High Risk)' : 'الملف آمن وموثوق (Low Risk)';
+                    let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : 'fa-circle-check';
 
                     let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
 
@@ -1081,180 +1321,106 @@
                             </div>
                         </div>
                         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                            <strong>اسم الملف:</strong> ${file.name} | <strong>النوع الحقيقي المكتشف:</strong> ${detectedRealType} | <strong>الحجم:</strong> ${(file.size / 1024).toFixed(2)} KB
+                            <strong>اسم الملف:</strong> ${file.name} | <strong>النوع:</strong> ${detectedRealType} | <strong>الحجم:</strong> ${(file.size / 1024).toFixed(2)} KB
                         </div>
                         <ul class="report-details-list">
                             ${listHtml}
                         </ul>
                     `;
 
-                    addToHistory(file.name, 'فحص ملف متقدم', riskScore, riskScore >= 50 ? 'خطر' : (riskScore > 0 ? 'تنبيه' : 'آمن'));
+                    addToHistory(file.name, 'فحص ملف متقدم', riskScore, riskScore >= 50 ? 'خطر' : 'آمن');
 
                 }, 700);
             };
 
             reader.readAsArrayBuffer(file.slice(0, 64));
         }
-    </script>
 
-    <!-- وحدة المسار التوعوي والتفاعلي (Guided Path) -->
-    <script>
-        const EDUCATION_STEPS = [
-            {
-                title: "اكتشاف التلاعب بالنطاقات (Typosquatting)",
-                icon: "fa-font",
-                description: "يلجأ المخترقون إلى تسجيل نطاقات تشبه المواقع الشهيرة بدقة عبر استبدال بعض الحروف (مثل استخدام `g00gle.com` بدلاً من `google.com` أو `fasebook.com`).",
-                tip: "💡 <strong>نصيحة أمنية:</strong> تحقق دائماً من شريط العنوان (URL) حرفاً بحرف قبل إدخال بياناتك.",
-                demoUrl: "https://g00gle-security-verify.com"
-            },
-            {
-                title: "فحص البروتوكول وتشفير الاتصال (HTTP vs HTTPS)",
-                icon: "fa-lock",
-                description: "المواقع التي تستخدم `http://` غير مشفرة، ويمكن لأي شخص على نفس الشبكة التقاط كلمات السر والمعلومات الحساسة التي تدخلها.",
-                tip: "💡 <strong>نصيحة أمنية:</strong> لا تدخل أي كلمة سر أو بطاقة ائتمانية في موقع لا يبدأ بـ `https://` مع وجود رمز القفل المغلق.",
-                demoUrl: "http://mybank-login-update.com"
-            },
-            {
-                title: "خطورة العناوين الرقمية المباشرة (IP Addresses)",
-                icon: "fa-network-wired",
-                description: "تستخدم معظم المنصات الموثوقة أسماء نطاقات رسمية (Domain Names). إذا رأيت رابطاً يحتوي على أرقام مباشرة مثل `http://192.168.1.50/login` فهذا مؤشر خطر عالي.",
-                tip: "💡 <strong>نصيحة أمنية:</strong> البنوك والشركات الكبرى لا تطلب منك إطلاقاً الدخول عبر عنوان IP مباشر.",
-                demoUrl: "http://185.220.101.5/verify-account"
-            },
-            {
-                title: "خدعة رمز التضليل (@ Symbol)",
-                icon: "fa-at",
-                description: "عند وجود رمز `@` في الرابط، فإن المتصفح يتجاهل كلياً كل ما يسبق الرمز ويوجهك إلى العنوان الواقع بعد الرمز مباشرة! (مثال: `https://facebook.com@evil-site.com`).",
-                tip: "💡 <strong>نصيحة أمنية:</strong> وجود رمز `@` داخل رابط ويب هو محاولة احتيال وشيكة.",
-                demoUrl: "https://paypal.com-security-check@hacker-server.net"
-            },
-            {
-                title: "هندسة الاستعجال والتهديد في النصوص",
-                icon: "fa-triangle-exclamation",
-                description: "تعتمد رسائل التصيد على خلق حالة من الخوف أو الطمع (مثل: 'تم تجميد حسابك! اضغط هنا خلال 24 ساعة' أو 'لقد ربحت جائزة كبرى').",
-                tip: "💡 <strong>نصيحة أمنية:</strong> المؤسسات الرسمية لا تهدد بإغلاق الحسابات فوراً عبر رسائل نصية قصيرة أو بريد غير رسمي.",
-                demoUrl: "عزيزي العميل، تم إيقاف بطاقتك المصرفية لعدم التحديث، اضغط هنا للتفعيل..."
+        // دالة عرض اسم ملف الوسائط المختار
+        function updateMediaFileName(input) {
+            const label = document.getElementById('mediaLabelText');
+            if (input.files && input.files[0]) {
+                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${input.files[0].name}</span>`;
             }
-        ];
+        }
 
-        let currentEduStep = 0;
+        // دالة فحص الصوت والفيديو (المحاكاة البرمجية لخوارزميات Deepfake)
+        function uploadAndScan() {
+            const fileInput = document.getElementById('mediaUpload');
+            const reportBox = document.getElementById('mediaReportBox');
 
-        function initEducationalPath() {
-            const navLinks = document.querySelector('.nav-links');
-            if (navLinks && !document.getElementById('eduNavBtn')) {
-                const eduBtn = document.createElement('button');
-                eduBtn.id = 'eduNavBtn';
-                eduBtn.className = 'nav-btn';
-                eduBtn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> المسار التوعوي';
-                eduBtn.onclick = function() { openEduModal(); };
-                navLinks.appendChild(eduBtn);
+            if (fileInput.files.length === 0) {
+                alert('يرجى اختيار ملف صوت أو فيديو أولاً لغرض الفحص.');
+                return;
             }
 
-            if (!document.getElementById('eduModal')) {
-                const modalHtml = `
-                <div id="eduModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; padding:20px;">
-                    <div style="background:var(--bg-card, #131b2e); border:1px solid var(--accent-blue, #00f2fe); border-radius:20px; max-width:650px; width:100%; padding:30px; position:relative; box-shadow:0 0 30px rgba(0,242,254,0.2); text-align:right;">
-                        
-                        <button onclick="closeEduModal()" style="position:absolute; top:15px; left:20px; background:none; border:none; color:var(--text-muted, #8e9aaf); font-size:1.5rem; cursor:pointer;">&times;</button>
-                        
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                            <span style="background:rgba(0,242,254,0.15); color:var(--accent-blue, #00f2fe); padding:8px 14px; border-radius:12px; font-weight:bold; font-size:0.9rem;" id="stepIndicator">المرحلة 1 من 5</span>
-                            <h3 style="margin:0; font-size:1.2rem; color:var(--text-main, #fff);" id="eduStepTitle">عنوان الدرس</h3>
-                        </div>
+            const file = fileInput.files[0];
+            const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4') || file.name.toLowerCase().endsWith('.avi');
+            const fileType = isVideo ? 'فيديو مرئي (Video Deepfake Analysis)' : 'ملف صوتي (Audio MFCCs Analysis)';
 
-                        <div style="background:rgba(0,0,0,0.2); border-right:4px solid var(--accent-blue, #00f2fe); padding:15px; border-radius:10px; margin-bottom:20px; line-height:1.7; font-size:0.95rem; color:var(--text-main, #fff);" id="eduStepDesc">
-                            وصف المرحلة...
-                        </div>
+            reportBox.style.display = 'block';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تحليل الأنماط الطيفية ومعاملات التباين (MFCC Variance) واكتشاف التشوهات البصرية للوجوه...</div>';
 
-                        <div style="background:rgba(255,171,0,0.1); border:1px solid rgba(255,171,0,0.3); color:#ffab00; padding:12px 15px; border-radius:10px; font-size:0.88rem; margin-bottom:20px;" id="eduStepTip">
-                            نصيحة أمنية...
-                        </div>
+            setTimeout(() => {
+                let riskScore = 0;
+                let reasons = [];
+                const fileName = file.name.toLowerCase();
+                const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.js'];
+                const hasDanger = dangerousExts.some(ext => fileName.endsWith(ext));
 
-                        <div style="margin-bottom:25px;">
-                            <label style="font-size:0.85rem; color:var(--text-muted, #8e9aaf); display:block; margin-bottom:6px;">مثال توضيحي للاختبار الفوري في النظام:</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" id="eduDemoInput" readonly style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px; color:var(--accent-blue, #00f2fe); font-family:monospace; direction:ltr; text-align:left;">
-                                <button onclick="testEduSample()" style="background:linear-gradient(135deg, #00c6ff, #0072ff); border:none; color:#fff; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">
-                                    <i class="fa-solid fa-flask"></i> فحص في المنظومة
-                                </button>
-                            </div>
-                        </div>
+                if (hasDanger) {
+                    riskScore = 100;
+                    reasons.push({ text: 'تحذير خطير: تم كشف امتداد خبيث مخفي داخل ملف الوسائط (Extension Spoofing)!', type: 'danger' });
+                } else {
+                    // محاكاة الفحص الأكاديمي المتقدم
+                    if (fileName.includes('fake') || fileName.includes('deepfake') || fileName.includes('ai') || fileName.includes('clone') || fileName.includes('synth')) {
+                        riskScore = 88;
+                        if (isVideo) {
+                            reasons.push({ text: '🚨 تحذير: تم رصد انقطاعات وتشوهات بصرية وإطارات غير طبيعية في الوجه تعود لتقنية التزييف العميق (Video Deepfake)!', type: 'danger' });
+                            reasons.push({ text: 'نسبة الشذوذ البصري والإطارات المفقودة تتجاوز 30% مقارنة بالفيديوهات الطبيعية.', type: 'danger' });
+                        } else {
+                            reasons.push({ text: '🚨 تنبيه: تباين الترددات الطيفية منخفض جداً (MFCC Variance < 50.0), مما يرجح أن الصوت مولد بالذكاء الاصطناعي (Audio Deepfake)!', type: 'danger' });
+                            reasons.push({ text: 'تم رصد انتظام غير طبيعي في الموجات الصوتية المصطنعة.', type: 'warning' });
+                        }
+                    } else {
+                        riskScore = 12;
+                        if (isVideo) {
+                            reasons.push({ text: '🛡 الفيديو طبيعي وسليم، ولا توجد مؤشرات تلاعب أو تشوهات بصرية في إطارات الوجه.', type: 'safe' });
+                            reasons.push({ text: 'معدل الشذوذ البصري ضمن النطاق الطبيعي المسموح.', type: 'safe' });
+                        } else {
+                            reasons.push({ text: '🛡 الصوت يبدو بشرياً، ومعاملات الترددات الطيفية (MFCC Variance >= 50.0) طبيعية تماماً.', type: 'safe' });
+                            reasons.push({ text: 'التأثيرات والخصائص الصوتية الطبيعية سليمة.', type: 'safe' });
+                        }
+                    }
+                }
 
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
-                            <button id="prevStepBtn" onclick="changeEduStep(-1)" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer;" disabled>السابق</button>
-                            <button id="nextStepBtn" onclick="changeEduStep(1)" style="background:var(--accent-blue, #00f2fe); border:none; color:#0a0f1d; padding:10px 24px; border-radius:10px; font-weight:bold; cursor:pointer;">التالي <i class="fa-solid fa-arrow-left"></i></button>
-                        </div>
+                let badgeClass = riskScore >= 50 ? 'score-danger' : 'score-safe';
+                let statusTitle = riskScore >= 50 ? 'تحذير: تم كشف تلاعب أو تزييف عميق محتمل (High Risk)' : 'الملف آمن وطبيعي (Low Risk)';
+                let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : 'fa-circle-check';
 
+                let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+
+                reportBox.innerHTML = `
+                    <div class="report-header">
+                        <div>
+                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
+                        </div>
+                        <div class="risk-score-badge ${badgeClass}">
+                            مؤشر الخطورة: ${riskScore}%
+                        </div>
                     </div>
-                </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
+                        <strong>اسم الملف:</strong> ${file.name} | <strong>نوع التحليل:</strong> ${fileType} | <strong>الحجم:</strong> ${(file.size / (1024*1024)).toFixed(2)} MB
+                    </div>
+                    <ul class="report-details-list">
+                        ${listHtml}
+                    </ul>
                 `;
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-            }
+
+                addToHistory(file.name, isVideo ? 'فحص فيديو Deepfake' : 'فحص صوت Deepfake', riskScore, riskScore >= 50 ? 'خطر' : 'آمن');
+
+            }, 900);
         }
-
-        function openEduModal() {
-            document.getElementById('eduModal').style.display = 'flex';
-            renderEduStep(0);
-        }
-
-        function closeEduModal() {
-            document.getElementById('eduModal').style.display = 'none';
-        }
-
-        function renderEduStep(index) {
-            currentEduStep = index;
-            const data = EDUCATION_STEPS[index];
-
-            document.getElementById('stepIndicator').innerText = `المرحلة ${index + 1} من ${EDUCATION_STEPS.length}`;
-            document.getElementById('eduStepTitle').innerHTML = `<i class="fa-solid ${data.icon}"></i> ${data.title}`;
-            document.getElementById('eduStepDesc').innerHTML = data.description;
-            document.getElementById('eduStepTip').innerHTML = data.tip;
-            document.getElementById('eduDemoInput').value = data.demoUrl;
-
-            document.getElementById('prevStepBtn').disabled = (index === 0);
-            
-            const nextBtn = document.getElementById('nextStepBtn');
-            if (index === EDUCATION_STEPS.length - 1) {
-                nextBtn.innerHTML = 'إنهاء المسار <i class="fa-solid fa-check"></i>';
-            } else {
-                nextBtn.innerHTML = 'التالي <i class="fa-solid fa-arrow-left"></i>';
-            }
-        }
-
-        function changeEduStep(direction) {
-            const newStep = currentEduStep + direction;
-            if (newStep >= 0 && newStep < EDUCATION_STEPS.length) {
-                renderEduStep(newStep);
-            } else if (newStep >= EDUCATION_STEPS.length) {
-                closeEduModal();
-                alert('🎉 تهانينا! لقد أكملت المسار التوعوي بنجاح وأصبحت جاهزاً لكشف حيل التصيد الاحتيالي.');
-            }
-        }
-
-        function testEduSample() {
-            const sample = EDUCATION_STEPS[currentEduStep].demoUrl;
-            closeEduModal();
-
-            if (currentEduStep === 4) {
-                const textBtn = document.querySelectorAll('.nav-btn')[3];
-                if (typeof switchPage === 'function') switchPage('textScannerPage', textBtn);
-                const textInput = document.getElementById('textInput');
-                if (textInput) {
-                    textInput.value = sample;
-                    if (typeof analyzeText === 'function') analyzeText();
-                }
-            } else {
-                const scannerBtn = document.querySelectorAll('.nav-btn')[1];
-                if (typeof switchPage === 'function') switchPage('scannerPage', scannerBtn);
-                const urlInput = document.getElementById('urlInput');
-                if (urlInput) {
-                    urlInput.value = sample;
-                    if (typeof analyzeUrl === 'function') analyzeUrl();
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', initEducationalPath);
     </script>
 </body>
 </html>

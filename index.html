@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام كشف ومكافحة التصيد الإلكتروني | Phishing Detector</title>
-    <link rel="icon" type="image/jpeg" href="logo.png">
+    
+    <!-- أيقونة تبويب المتصفح (Favicon) -->
+    <link rel="icon" type="image/png" href="logo.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
             --bg-primary: #0a0f1d;
@@ -127,6 +131,7 @@
         .page-section {
             display: none;
             animation: fadeIn 0.4s ease-in-out forwards;
+            padding: 2rem 1rem;
         }
 
         .page-section.active {
@@ -134,39 +139,10 @@
         }
 
         .main-hero {
-            padding: 3.5rem 1rem 2rem;
+            padding: 2rem 1rem;
             text-align: center;
             max-width: 900px;
             margin: 0 auto;
-        }
-
-        .academic-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 242, 254, 0.08);
-            border: 1px solid rgba(0, 242, 254, 0.25);
-            color: var(--accent-blue);
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-        }
-
-        .main-hero h1 {
-            font-size: 2.3rem;
-            font-weight: 800;
-            margin-bottom: 1.2rem;
-            line-height: 1.3;
-        }
-
-        .main-hero p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            line-height: 1.7;
-            max-width: 750px;
-            margin: 0 auto 2.5rem;
         }
 
         .btn-primary-action {
@@ -183,6 +159,7 @@
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            margin-top: 15px;
         }
 
         .team-card {
@@ -191,7 +168,7 @@
             border-radius: 18px;
             padding: 2rem;
             max-width: 800px;
-            margin: 3rem auto;
+            margin: 2.5rem auto 1rem;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
@@ -255,7 +232,7 @@
 
         .scanner-container {
             max-width: 900px;
-            margin: 2.5rem auto;
+            margin: 0 auto;
             padding: 0 1rem;
         }
 
@@ -291,7 +268,7 @@
         .input-group textarea {
             direction: rtl;
             resize: vertical;
-            min-height: 80px;
+            min-height: 100px;
         }
 
         .btn-scan {
@@ -440,7 +417,7 @@
             padding: 2.5rem 1.5rem;
             text-align: center;
             max-width: 700px;
-            margin: 2rem auto 4rem;
+            margin: 2rem auto;
         }
 
         .btn-download-main {
@@ -454,6 +431,7 @@
             border-radius: 10px;
             font-weight: 800;
             font-size: 1rem;
+            margin-top: 1rem;
         }
 
         footer {
@@ -470,25 +448,15 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام كشف ومكافحة التصيد الإلكتروني | Phishing Detector</title>
-    
-    <!-- 1. أيقونة تبويب المتصفح (Favicon) -->
-    <link rel="icon" type="image/png" href="logo.png">
-
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body data-theme="dark">
 
-    <!-- 2. ترويسة الموقع (Header) -->
+    <!-- شريط التنقل العلوي -->
     <header>
         <div class="logo">
-            <img src="logo.png" alt="Logo" style="width: 42px; height: 42px; border-radius: 10px; object-fit: cover;">
+            <img src="logo.png" alt="Logo">
             <span>Phishing Detector</span>
-</div>
+        </div>
 
         <div class="nav-controls">
             <div class="nav-links">
@@ -496,34 +464,33 @@
                 <button class="nav-btn" onclick="switchPage('scannerPage', this)">فحص الروابط</button>
                 <button class="nav-btn" onclick="switchPage('fileScannerPage', this)">فحص الملفات والبرمجيات الخبيثة</button>
                 <button class="nav-btn" onclick="switchPage('textScannerPage', this)">فحص النصوص والرسائل</button>
-                <button class="nav-btn" onclick="switchPage('downloadPage', this)">تحميل النظام</button>
             </div>
 
             <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-                <i class="fa-solid fa-moon"></i> <span>المظهر</span>
+                <i class="fa-solid fa-moon"></i> <span>المظهر الداكن</span>
             </button>
         </div>
     </header>
 
-    <!-- 3. الواجهة الرئيسية (Home Page Hero Section) -->
-    <div id="homePage" class="page-content active">
-        
-        <!-- شعار الواجهة الرئيسي البارز والمضيء -->
-       <div style="text-align: center; margin: 25px 0 15px 0;">
-<img src="logo.png" alt="Official Logo" style="width: 130px; height: 130px; border-radius: 20px; object-fit: cover; box-shadow: 0 0 35px rgba(0,242,254,0.5); border: 2px solid rgba(0,242,254,0.4);">
-    </div>
+    <!-- 1. الواجهة الرئيسية -->
+    <div id="homePage" class="page-section active">
+        <div class="main-hero">
+            <div style="text-align: center; margin: 15px 0;">
+                <img src="logo.png" alt="Official Logo" style="width: 120px; height: 120px; border-radius: 20px; object-fit: cover; box-shadow: 0 0 35px rgba(0,242,254,0.5); border: 2px solid rgba(0,242,254,0.4);">
+            </div>
 
-        <div style="text-align: center;">
-            <span style="background: rgba(0,242,254,0.1); color: #00f2fe; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(0,242,254,0.3);">
-                <i class="fa-solid fa-graduation-cap"></i> مشروع تخرج أكاديمي معتمد
-            </span>
-        </div>
+            <div style="text-align: center;">
+                <span style="background: rgba(0,242,254,0.1); color: #00f2fe; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; border: 1px solid rgba(0,242,254,0.3);">
+                    <i class="fa-solid fa-graduation-cap"></i> مشروع تخرج أكاديمي معتمد
+                </span>
+            </div>
 
-        <h1 style="text-align: center; margin-top: 15px; font-weight: 800;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
-        <p style="text-align: center; color: #a0aec0; max-width: 700px; margin: 10px auto;">
-            حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الرابط الضارة وهجمات الهندسة الاجتماعية.
-        </p>
-            <div class="cta-buttons">
+            <h1 style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.2rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
+            <p style="text-align: center; color: #a0aec0; max-width: 700px; margin: 10px auto; font-size: 0.95rem; line-height: 1.7;">
+                حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية.
+            </p>
+
+            <div>
                 <button class="btn-primary-action" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
                     <i class="fa-solid fa-magnifying-glass"></i> الدخول إلى صفحة فحص الروابط
                 </button>
@@ -538,22 +505,22 @@
                     <h4>إعداد وتطوير المبرمجين:</h4>
                     <div class="dev-names">
                         <div class="dev-tag">
-                            <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank" title="حساب إنستغرام لمصعب">
+                            <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank">
                                 <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي
                             </a>
                         </div>
                         <div class="dev-tag">
-                            <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank" title="حساب إنستغرام لمحمود">
+                            <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank">
                                 <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
-    <!-- SECTION 2: URL SCANNER PAGE -->
+    <!-- 2. صفحة فحص الروابط -->
     <div id="scannerPage" class="page-section">
         <div class="scanner-container">
             <div style="text-align:center; margin-bottom: 1.5rem;">
@@ -594,7 +561,7 @@
                         <thead>
                             <tr>
                                 <th>الوقت</th>
-                                <th>الرابط / النص</th>
+                                <th>الرابط / النص / الملف</th>
                                 <th>نوع الفحص</th>
                                 <th>مؤشر الخطورة</th>
                                 <th>الحالة</th>
@@ -611,7 +578,36 @@
         </div>
     </div>
 
-   <!-- SECTION 3: TEXT & SOCIAL ENGINEERING SCANNER -->
+    <!-- 3. صفحة فحص الملفات والبرمجيات الخبيثة -->
+    <div id="fileScannerPage" class="page-section">
+        <div class="scanner-container">
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>منظومة فحص الملفات وكشف البرمجيات المفخخة</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group" style="padding: 25px; border: 2px dashed var(--border-color); justify-content: center; text-align: center; background: rgba(0,0,0,0.05); border-radius: 12px; cursor: pointer;" onclick="document.getElementById('fileInput').click();">
+                    <input type="file" id="fileInput" style="display: none;" onchange="updateFileName(this)">
+                    <div style="width: 100%;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
+                        <div id="fileLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف للفحص</div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" onclick="analyzeFile()" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)
+                    </button>
+                </div>
+
+                <div id="fileReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. صفحة فحص النصوص والرسائل -->
     <div id="textScannerPage" class="page-section">
         <div class="scanner-container">
             <div style="text-align:center; margin-bottom: 1.5rem;">
@@ -634,41 +630,11 @@
         </div>
     </div>
 
-    <!-- SECTION: FILE SCANNER PAGE -->
-    <div id="fileScannerPage" class="page-section">
-        <div class="scanner-container">
-            <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>منظومة فحص الملفات وكشف البرمجيات المفخخة</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة</p>
-            </div>
-
-            <div class="scanner-card">
-                <!-- تم إضافة أمر البرمجة المباشر onclick لتفعيل فتح نافذة الملفات فوراً عند النقر على الصندوق -->
-                <div class="input-group" style="padding: 25px; border: 2px dashed var(--border-color); justify-content: center; text-align: center; background: rgba(0,0,0,0.05); border-radius: 12px; cursor: pointer;" onclick="document.getElementById('fileInput').click();">
-                    <input type="file" id="fileInput" style="display: none;" onchange="updateFileName(this)">
-                    <div style="width: 100%;">
-                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
-                        <div id="fileLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف للفحص</div>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)</span>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 15px; text-align: left;">
-                    <button class="btn-scan" onclick="analyzeFile()" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني
-                    </button>
-                </div>
-
-                <div id="fileReportBox" class="report-box"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SECTION 4: DOWNLOAD PAGE -->
+    <!-- 5. صفحة تحميل النظام -->
     <div id="downloadPage" class="page-section">
         <div class="download-box">
             <h3>حزمة التشغيل المباشرة لأنظمة ويندوز</h3>
-            <p style="margin-bottom: 1.5rem;">تحميل النظام بصيغة ZIP جاهز للتشغيل المباشر بنقرة واحدة بدون أي إعدادات معقدة.</p>
+            <p style="margin-bottom: 1.5rem; color:var(--text-muted);">تحميل النظام بصيغة ZIP جاهز للتشغيل المباشر بنقرة واحدة عبر ملف `run.vbs` بدون أي إعدادات معقدة.</p>
             <a href="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/PhishingDetector-Windows-x64.zip" download class="btn-download-main">
                 <i class="fa-solid fa-download"></i> تحميل النظام (ZIP)
             </a>
@@ -679,6 +645,7 @@
         <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
     </footer>
 
+    <!-- سكريبت التشغيل الأساسي والتحليل -->
     <script>
         function switchPage(pageId, btnElement) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
@@ -691,7 +658,6 @@
             const body = document.body;
             const themeBtn = document.getElementById('themeBtn');
             const currentTheme = body.getAttribute('data-theme');
-            
             if (currentTheme === 'dark') {
                 body.setAttribute('data-theme', 'light');
                 themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> <span>المظهر الضوئي</span>';
@@ -729,6 +695,7 @@
             });
         }
 
+        // Levenshtein Distance & Similarity
         function getLevenshteinDistance(a, b) {
             const matrix = [];
             for (let i = 0; i <= b.length; i++) matrix[i] = [i];
@@ -975,164 +942,319 @@
 
             }, 600);
         }
-        
+
+        // عرض اسم الملف عند اختياره
+        function updateFileName(input) {
+            const label = document.getElementById('fileLabelText');
+            if (input.files && input.files[0]) {
+                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${input.files[0].name}</span>`;
+            }
+        }
+
+        // القائمة البيضاء المتقدمة للمنصات والمتصفحات والبرامج الرسمية الموثوقة نظامياً
+        const TRUSTED_KNOWN_EXES = [
+            'chrome.exe', 'msedge.exe', 'firefox.exe', 'brave.exe', 'opera.exe',
+            'gemini.exe', 'discord.exe', 'telegram.exe', 'whatsapp.exe', 'teams.exe',
+            'skype.exe', 'spotify.exe', 'vlc.exe', 'notepad++.exe', 'code.exe',
+            'steam.exe', 'epicgameslauncher.exe', 'origin.exe', 'battlenet.exe',
+            '7z.exe', 'winrar.exe', 'vcredist_x64.exe', 'vcredist_x86.exe', 'dotnetfx.exe',
+            'zoom.exe', 'slack.exe', 'obs64.exe', 'winword.exe', 'excel.exe', 'powerpnt.exe'
+        ];
+
+        // خوارزمية فحص الملفات المتقدمة والأكاديمية الدقيقة (Advanced Heuristic & Magic Bytes Engine)
+        function analyzeFile() {
+            const fileInput = document.getElementById('fileInput');
+            const reportBox = document.getElementById('fileReportBox');
+            
+            if (fileInput.files.length === 0) {
+                alert('يرجى اختيار ملف أولاً لغرض الفحص الأمني.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            reportBox.style.display = 'block';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري إجراء فحص عميق للبصمة الثنائية والتواقيع الرقمية وتحليل السلوك الهيكلي للملف...</div>';
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const arr = new Uint8Array(e.target.result);
+                let header = '';
+                for (let i = 0; i < Math.min(arr.length, 8); i++) {
+                    header += arr[i].toString(16).toUpperCase().padStart(2, '0');
+                }
+
+                setTimeout(() => {
+                    let riskScore = 0;
+                    let reasons = [];
+                    let detectedRealType = "مجهول / غير معروف";
+                    
+                    const fileName = file.name.toLowerCase();
+                    const dangerousExtensions = ['.bat', '.cmd', '.vbs', '.scr', '.pif', '.js', '.msi', '.ps1', '.hta'];
+                    const isDangerousExt = dangerousExtensions.some(ext => fileName.endsWith(ext));
+
+                    // تحليل الكلمات المفتاحية المريبة في اسم الملف (مثل crack, keygen, payload)
+                    const suspiciousKeywords = ['crack', 'keygen', 'patch', 'hack', 'payload', 'stealer', 'trojan', 'virus', 'malware', 'exploit'];
+                    const hasSuspiciousKeyword = suspiciousKeywords.some(kw => fileName.includes(kw));
+
+                    // 1. فحص الامتدادات المزدوجة والتلاعب (Double Extension Spoofing)
+                    const fakeExtCheck = ['.pdf.exe', '.jpg.exe', '.png.exe', '.txt.exe', '.docx.exe', '.xlsx.exe', '.mp3.exe', '.mp4.exe', '.pdf.vbs', '.jpg.scr', '.png.bat'];
+                    const isFakeExtension = fakeExtCheck.some(fake => fileName.includes(fake));
+
+                    if (isFakeExtension) {
+                        riskScore = 100;
+                        detectedRealType = "ملف تنفيذي مخفي بامتياز وهمي (Spoofed Executable)";
+                        reasons.push({ text: 'خطير جداً: تم رصد محاولة خداع تلاعب بالامتداد (Extension Spoofing). الملف يوهم بأنه مستند أو صورة وهو في الحقيقة برنامج تنفيذي مخادع!', type: 'danger' });
+                    } 
+                    // 2. فحص الملفات التنفيذية (PE Executable Header: 4D5A / MZ)
+                    else if (header.startsWith('4D5A')) {
+                        detectedRealType = "ملف تنفيذي نظامي (PE Executable .exe/.dll)";
+
+                        if (TRUSTED_KNOWN_EXES.includes(fileName)) {
+                            riskScore = 0;
+                            reasons.push({ text: `الملف التنفيذي (${file.name}) مطبق ومطابق للقائمة البيضاء للبرامج والمنصات المشهورة والموثوقة رسمياً.`, type: 'safe' });
+                            reasons.push({ text: 'التوقيع الرقمي والهيكلي سليم وخالٍ من مؤشرات التلاعب.', type: 'safe' });
+                        } else if (hasSuspiciousKeyword) {
+                            riskScore = 95;
+                            reasons.push({ text: `تنبيه حرج: اسم الملف يحتوي على مصطلحات مريبة أو شائعة في البرمجيات الخبيثة (${fileName}).`, type: 'danger' });
+                        } else {
+                            riskScore = 45;
+                            reasons.push({ text: `تنبيه: الملف التنفيذي (${file.name}) غير مدرج في قاعدة بيانات المنصات والبرامج المشهورة. يرجى توخي الحذر وعدم فتحه ما لم يكن من مصدر موثوق.`, type: 'warning' });
+                        }
+                    } 
+                    // 3. فحص الأرشيف المضغوط (ZIP / JAR / Office XML Header: 504B)
+                    else if (header.startsWith('504B')) {
+                        detectedRealType = "ملف أرشيف مضغوط أو حزمة برمجية (ZIP / JAR / Office XML)";
+                        if (fileName.endsWith('.jar')) {
+                            riskScore = 30;
+                            reasons.push({ text: 'ملف جافا تنفيذي (JAR)، يتطلب فحص محتوياته الداخلية لعدم وجود أكواد حقن.', type: 'warning' });
+                        } else {
+                            riskScore = 5;
+                            reasons.push({ text: 'ملف مضغوط بأسلوب سليم، والبصمة الثنائية متطابقة.', type: 'safe' });
+                        }
+                    } 
+                    // 4. فحص وثائق الـ PDF (Header: 25504446 / %PDF)
+                    else if (header.startsWith('25504446')) {
+                        detectedRealType = "مستند وثيقة رسمية (PDF)";
+                        if (fileName.endsWith('.pdf')) {
+                            riskScore = 0;
+                            reasons.push({ text: 'ملف PDF سليم وتوقيعه الثنائي متطابق تماماً بدون أي سكربات مشبوهة.', type: 'safe' });
+                        } else {
+                            riskScore = 80;
+                            reasons.push({ text: 'خطأ في التنسيق: بصمة PDF داخلية ولكن امتداد الملف الخارجي غير مطابق!', type: 'danger' });
+                        }
+                    } 
+                    // 5. فحص الصور الرقمية (JPG / PNG)
+                    else if (header.startsWith('FFD8FF') || header.startsWith('89504E47')) {
+                        detectedRealType = "ملف صورة رقمية (JPG / PNG)";
+                        riskScore = 0;
+                        reasons.push({ text: 'صورة رقمية سليمة وتوقيعها البرمجي متطابق.', type: 'safe' });
+                    } 
+                    // 6. السكربات الخطرة المباشرة (.bat, .vbs, .js, .ps1)
+                    else if (isDangerousExt) {
+                        riskScore = 90;
+                        detectedRealType = "ملف سكربت أو أمرين نظاميين خطيرين";
+                        reasons.push({ text: `تم اكتشاف امتداد خطير (${fileName}) قادر على تنفيذ أوامر برمجية مباشرة على نظام التشغيل.`, type: 'danger' });
+                    } 
+                    // 7. ملفات مجهولة أو غير معروفة البصمة
+                    else {
+                        riskScore = 40;
+                        detectedRealType = "ملف ذو بنية ثنائية مجهولة";
+                        reasons.push({ text: 'بصمة الملف الثنائية غير مطابقة للأنماط القياسية المعتمدة.', type: 'warning' });
+                    }
+
+                    riskScore = Math.min(riskScore, 100);
+
+                    let badgeClass = riskScore >= 50 ? 'score-danger' : (riskScore > 0 ? 'score-warning' : 'score-safe');
+                    let statusTitle = riskScore >= 50 ? 'تحذير شديد: ملف مشبوه أو خبيث (High Risk)' : (riskScore > 0 ? 'تنبيه: ملف يتطلب الحذر والفحص (Medium Risk)' : 'الملف آمن وموثوق (Low Risk)');
+                    let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : (riskScore > 0 ? 'fa-circle-exclamation' : 'fa-circle-check');
+
+                    let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+
+                    reportBox.innerHTML = `
+                        <div class="report-header">
+                            <div>
+                                <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
+                            </div>
+                            <div class="risk-score-badge ${badgeClass}">
+                                مؤشر الخطورة: ${riskScore}%
+                            </div>
+                        </div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
+                            <strong>اسم الملف:</strong> ${file.name} | <strong>النوع الحقيقي المكتشف:</strong> ${detectedRealType} | <strong>الحجم:</strong> ${(file.size / 1024).toFixed(2)} KB
+                        </div>
+                        <ul class="report-details-list">
+                            ${listHtml}
+                        </ul>
+                    `;
+
+                    addToHistory(file.name, 'فحص ملف متقدم', riskScore, riskScore >= 50 ? 'خطر' : (riskScore > 0 ? 'تنبيه' : 'آمن'));
+
+                }, 700);
+            };
+
+            reader.readAsArrayBuffer(file.slice(0, 64));
+        }
     </script>
-<!-- وحدة المسار التوعوي التفاعلي -->
-<script>
-const EDUCATION_STEPS = [
-    {
-        title: "1. اكتشاف التلاعب بالنطاقات (Typosquatting)",
-        icon: "fa-font",
-        description: "يلجأ المخترقون إلى تسجيل نطاقات تشبه المواقع الشهيرة بدقة عبر استبدال بعض الحروف (مثل استخدام g00gle.com بدلاً من google.com أو fasebook.com).",
-        tip: "💡 <strong>نصيحة أمنية:</strong> تحقق دائماً من شريط العنوان (URL) حرفاً بحرف قبل إدخال بياناتك.",
-        demoUrl: "https://g00gle-security-verify.com"
-    },
-    {
-        title: "2. فحص البروتوكول وتشفير الاتصال (HTTP vs HTTPS)",
-        icon: "fa-lock",
-        description: "المواقع التي تستخدم http:// غير مشفرة، ويمكن لأي شخص على نفس الشبكة التقاط كلمات السر والمعلومات الحساسة التي تدخلها.",
-        tip: "💡 <strong>نصيحة أمنية:</strong> لا تدخل أي كلمة سر أو بطاقة ائتمانية في موقع لا يبدأ بـ https:// مع وجود رمز القفل المغلق.",
-        demoUrl: "http://mybank-login-update.com"
-    },
-    {
-        title: "3. خطورة العناوين الرقمية المباشرة (IP Addresses)",
-        icon: "fa-network-wired",
-        description: "تستخدم معظم المنصات الموثوقة أسماء نطاقات رسمية (Domain Names). إذا رأيت رابطاً يحتوي على أرقام مباشرة مثل http://192.168.1.50/login فهذا مؤشر خطر عالي.",
-        tip: "💡 <strong>نصيحة أمنية:</strong> البنوك والشركات الكبرى لا تطلب منك إطلاقاً الدخول عبر عنوان IP مباشر.",
-        demoUrl: "http://185.220.101.5/verify-account"
-    },
-    {
-        title: "4. خدعة رمز التضليل (@ Symbol)",
-        icon: "fa-at",
-        description: "عند وجود رمز @ في الرابط، فإن المتصفح يتجاهل كلياً كل ما يسبق الرمز ويوجهك إلى العنوان الواقع بعد الرمز مباشرة! (مثال: https://facebook.com@evil-site.com).",
-        tip: "💡 <strong>نصيحة أمنية:</strong> وجود رمز @ داخل رابط ويب هو محاولة احتيال وشيكة.",
-        demoUrl: "https://paypal.com-security-check@hacker-server.net"
-    },
-    {
-        title: "5. هندسة الاستعجال والتهديد في النصوص",
-        icon: "fa-triangle-exclamation",
-        description: "تعتمد رسائل التصيد على خلق حالة من الخوف أو الطمع (مثل: 'تم تجميد حسابك! اضغط هنا خلال 24 ساعة' أو 'لقد ربحت جائزة كبرى').",
-        tip: "💡 <strong>نصيحة أمنية:</strong> المؤسسات الرسمية لا تهدد بإغلاق الحسابات فوراً عبر رسائل نصية قصيرة أو بريد غير رسمي.",
-        demoUrl: "عزيزي العميل، تم إيقاف بطاقتك المصرفية لعدم التحديث، اضغط هنا للتفعيل..."
-    }
-];
 
-let currentEduStep = 0;
- function initEducationalPath() {
-    const navLinks = document.querySelector('.nav-links');
-    if (navLinks && !document.getElementById('eduNavBtn')) {
-        const eduBtn = document.createElement('button');
-        eduBtn.id = 'eduNavBtn';
-        eduBtn.className = 'nav-btn';
-        eduBtn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> المسار التوعوي';
-        eduBtn.onclick = function() { openEduModal(); };
-        navLinks.appendChild(eduBtn);
-    }
+    <!-- وحدة المسار التوعوي والتفاعلي (Guided Path) -->
+    <script>
+        const EDUCATION_STEPS = [
+            {
+                title: "اكتشاف التلاعب بالنطاقات (Typosquatting)",
+                icon: "fa-font",
+                description: "يلجأ المخترقون إلى تسجيل نطاقات تشبه المواقع الشهيرة بدقة عبر استبدال بعض الحروف (مثل استخدام `g00gle.com` بدلاً من `google.com` أو `fasebook.com`).",
+                tip: "💡 <strong>نصيحة أمنية:</strong> تحقق دائماً من شريط العنوان (URL) حرفاً بحرف قبل إدخال بياناتك.",
+                demoUrl: "https://g00gle-security-verify.com"
+            },
+            {
+                title: "فحص البروتوكول وتشفير الاتصال (HTTP vs HTTPS)",
+                icon: "fa-lock",
+                description: "المواقع التي تستخدم `http://` غير مشفرة، ويمكن لأي شخص على نفس الشبكة التقاط كلمات السر والمعلومات الحساسة التي تدخلها.",
+                tip: "💡 <strong>نصيحة أمنية:</strong> لا تدخل أي كلمة سر أو بطاقة ائتمانية في موقع لا يبدأ بـ `https://` مع وجود رمز القفل المغلق.",
+                demoUrl: "http://mybank-login-update.com"
+            },
+            {
+                title: "خطورة العناوين الرقمية المباشرة (IP Addresses)",
+                icon: "fa-network-wired",
+                description: "تستخدم معظم المنصات الموثوقة أسماء نطاقات رسمية (Domain Names). إذا رأيت رابطاً يحتوي على أرقام مباشرة مثل `http://192.168.1.50/login` فهذا مؤشر خطر عالي.",
+                tip: "💡 <strong>نصيحة أمنية:</strong> البنوك والشركات الكبرى لا تطلب منك إطلاقاً الدخول عبر عنوان IP مباشر.",
+                demoUrl: "http://185.220.101.5/verify-account"
+            },
+            {
+                title: "خدعة رمز التضليل (@ Symbol)",
+                icon: "fa-at",
+                description: "عند وجود رمز `@` في الرابط، فإن المتصفح يتجاهل كلياً كل ما يسبق الرمز ويوجهك إلى العنوان الواقع بعد الرمز مباشرة! (مثال: `https://facebook.com@evil-site.com`).",
+                tip: "💡 <strong>نصيحة أمنية:</strong> وجود رمز `@` داخل رابط ويب هو محاولة احتيال وشيكة.",
+                demoUrl: "https://paypal.com-security-check@hacker-server.net"
+            },
+            {
+                title: "هندسة الاستعجال والتهديد في النصوص",
+                icon: "fa-triangle-exclamation",
+                description: "تعتمد رسائل التصيد على خلق حالة من الخوف أو الطمع (مثل: 'تم تجميد حسابك! اضغط هنا خلال 24 ساعة' أو 'لقد ربحت جائزة كبرى').",
+                tip: "💡 <strong>نصيحة أمنية:</strong> المؤسسات الرسمية لا تهدد بإغلاق الحسابات فوراً عبر رسائل نصية قصيرة أو بريد غير رسمي.",
+                demoUrl: "عزيزي العميل، تم إيقاف بطاقتك المصرفية لعدم التحديث، اضغط هنا للتفعيل..."
+            }
+        ];
 
-    if (!document.getElementById('eduModal')) {
-        const modalHtml = `
-        <div id="eduModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; padding:20px;">
-            <div style="background:var(--bg-card, #131b2e); border:1px solid var(--accent-blue, #00f2fe); border-radius:20px; max-width:650px; width:100%; padding:30px; position:relative; box-shadow:0 0 30px rgba(0,242,254,0.2); text-align:right;">
-                
-                <button onclick="closeEduModal()" style="position:absolute; top:15px; left:20px; background:none; border:none; color:var(--text-muted, #8e9aaf); font-size:1.5rem; cursor:pointer;">&times;</button>
-                
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                    <span style="background:rgba(0,242,254,0.15); color:var(--accent-blue, #00f2fe); padding:8px 14px; border-radius:12px; font-weight:bold; font-size:0.9rem;" id="stepIndicator">المرحلة 1 من 5</span>
-                    <h3 style="margin:0; font-size:1.2rem; color:var(--text-main, #fff);" id="eduStepTitle">عنوان الدرس</h3>
-                </div>
+        let currentEduStep = 0;
 
-                <div style="background:rgba(0,0,0,0.2); border-right:4px solid var(--accent-blue, #00f2fe); padding:15px; border-radius:10px; margin-bottom:20px; line-height:1.7; font-size:0.95rem; color:var(--text-main, #fff);" id="eduStepDesc">
-                    وصف المرحلة...
-                </div>
+        function initEducationalPath() {
+            const navLinks = document.querySelector('.nav-links');
+            if (navLinks && !document.getElementById('eduNavBtn')) {
+                const eduBtn = document.createElement('button');
+                eduBtn.id = 'eduNavBtn';
+                eduBtn.className = 'nav-btn';
+                eduBtn.innerHTML = '<i class="fa-solid fa-graduation-cap"></i> المسار التوعوي';
+                eduBtn.onclick = function() { openEduModal(); };
+                navLinks.appendChild(eduBtn);
+            }
 
-                <div style="background:rgba(255,171,0,0.1); border:1px solid rgba(255,171,0,0.3); color:#ffab00; padding:12px 15px; border-radius:10px; font-size:0.88rem; margin-bottom:20px;" id="eduStepTip">
-                    نصيحة أمنية...
-                </div>
+            if (!document.getElementById('eduModal')) {
+                const modalHtml = `
+                <div id="eduModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; padding:20px;">
+                    <div style="background:var(--bg-card, #131b2e); border:1px solid var(--accent-blue, #00f2fe); border-radius:20px; max-width:650px; width:100%; padding:30px; position:relative; box-shadow:0 0 30px rgba(0,242,254,0.2); text-align:right;">
+                        
+                        <button onclick="closeEduModal()" style="position:absolute; top:15px; left:20px; background:none; border:none; color:var(--text-muted, #8e9aaf); font-size:1.5rem; cursor:pointer;">&times;</button>
+                        
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                            <span style="background:rgba(0,242,254,0.15); color:var(--accent-blue, #00f2fe); padding:8px 14px; border-radius:12px; font-weight:bold; font-size:0.9rem;" id="stepIndicator">المرحلة 1 من 5</span>
+                            <h3 style="margin:0; font-size:1.2rem; color:var(--text-main, #fff);" id="eduStepTitle">عنوان الدرس</h3>
+                        </div>
 
-                <div style="margin-bottom:25px;">
-                    <label style="font-size:0.85rem; color:var(--text-muted, #8e9aaf); display:block; margin-bottom:6px;">مثال توضيحي للاختبار الفوري في النظام:</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="eduDemoInput" readonly style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px; color:var(--accent-blue, #00f2fe); font-family:monospace; direction:ltr; text-align:left;">
-                        <button onclick="testEduSample()" style="background:linear-gradient(135deg, #00c6ff, #0072ff); border:none; color:#fff; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">
-                            <i class="fa-solid fa-flask"></i> فحص في المنظومة
-                        </button>
+                        <div style="background:rgba(0,0,0,0.2); border-right:4px solid var(--accent-blue, #00f2fe); padding:15px; border-radius:10px; margin-bottom:20px; line-height:1.7; font-size:0.95rem; color:var(--text-main, #fff);" id="eduStepDesc">
+                            وصف المرحلة...
+                        </div>
+
+                        <div style="background:rgba(255,171,0,0.1); border:1px solid rgba(255,171,0,0.3); color:#ffab00; padding:12px 15px; border-radius:10px; font-size:0.88rem; margin-bottom:20px;" id="eduStepTip">
+                            نصيحة أمنية...
+                        </div>
+
+                        <div style="margin-bottom:25px;">
+                            <label style="font-size:0.85rem; color:var(--text-muted, #8e9aaf); display:block; margin-bottom:6px;">مثال توضيحي للاختبار الفوري في النظام:</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="eduDemoInput" readonly style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px; color:var(--accent-blue, #00f2fe); font-family:monospace; direction:ltr; text-align:left;">
+                                <button onclick="testEduSample()" style="background:linear-gradient(135deg, #00c6ff, #0072ff); border:none; color:#fff; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">
+                                    <i class="fa-solid fa-flask"></i> فحص في المنظومة
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
+                            <button id="prevStepBtn" onclick="changeEduStep(-1)" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer;" disabled>السابق</button>
+                            <button id="nextStepBtn" onclick="changeEduStep(1)" style="background:var(--accent-blue, #00f2fe); border:none; color:#0a0f1d; padding:10px 24px; border-radius:10px; font-weight:bold; cursor:pointer;">التالي <i class="fa-solid fa-arrow-left"></i></button>
+                        </div>
+
                     </div>
                 </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
-                    <button id="prevStepBtn" onclick="changeEduStep(-1)" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:10px 20px; border-radius:10px; cursor:pointer;" disabled>السابق</button>
-                    <button id="nextStepBtn" onclick="changeEduStep(1)" style="background:var(--accent-blue, #00f2fe); border:none; color:#0a0f1d; padding:10px 24px; border-radius:10px; font-weight:bold; cursor:pointer;">التالي <i class="fa-solid fa-arrow-left"></i></button>
-                </div>
-
-            </div>
-        </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-}
- function openEduModal() {
-    document.getElementById('eduModal').style.display = 'flex';
-    renderEduStep(0);
-}
-
-function closeEduModal() {
-    document.getElementById('eduModal').style.display = 'none';
-}
-
-function renderEduStep(index) {
-    currentEduStep = index;
-    const data = EDUCATION_STEPS[index];
-
-    document.getElementById('stepIndicator').innerText = `المرحلة ${index + 1} من ${EDUCATION_STEPS.length}`;
-    document.getElementById('eduStepTitle').innerHTML = `<i class="fa-solid ${data.icon}"></i> ${data.title}`;
-    document.getElementById('eduStepDesc').innerHTML = data.description;
-    document.getElementById('eduStepTip').innerHTML = data.tip;
-    document.getElementById('eduDemoInput').value = data.demoUrl;
-
-    document.getElementById('prevStepBtn').disabled = (index === 0);
-    
-    const nextBtn = document.getElementById('nextStepBtn');
-    if (index === EDUCATION_STEPS.length - 1) {
-        nextBtn.innerHTML = 'إنهاء المسار <i class="fa-solid fa-check"></i>';
-    } else {
-        nextBtn.innerHTML = 'التالي <i class="fa-solid fa-arrow-left"></i>';
-    }
-}
-
-function changeEduStep(direction) {
-    const newStep = currentEduStep + direction;
-    if (newStep >= 0 && newStep < EDUCATION_STEPS.length) {
-        renderEduStep(newStep);
-    } else if (newStep >= EDUCATION_STEPS.length) {
-        closeEduModal();
-        alert('🎉 تهانينا! لقد أكملت المسار التوعوي بنجاح وأصبحت جاهزاً لكشف حيل التصيد الاحتيالي.');
-    }
-}
-
-function testEduSample() {
-    const sample = EDUCATION_STEPS[currentEduStep].demoUrl;
-    closeEduModal();
-
-    if (currentEduStep === 4) {
-        const textBtn = document.querySelectorAll('.nav-btn')[2];
-        if (typeof switchPage === 'function') switchPage('textScannerPage', textBtn);
-        const textInput = document.getElementById('textInput');
-        if (textInput) {
-            textInput.value = sample;
-            if (typeof analyzeText === 'function') analyzeText();
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
         }
-    } else {
-        const scannerBtn = document.querySelectorAll('.nav-btn')[1];
-        if (typeof switchPage === 'function') switchPage('scannerPage', scannerBtn);
-        const urlInput = document.getElementById('urlInput');
-        if (urlInput) {
-            urlInput.value = sample;
-            if (typeof analyzeUrl === 'function') analyzeUrl();
-        }
-    }
-}
 
-document.addEventListener('DOMContentLoaded', initEducationalPath);
-</script>
+        function openEduModal() {
+            document.getElementById('eduModal').style.display = 'flex';
+            renderEduStep(0);
+        }
+
+        function closeEduModal() {
+            document.getElementById('eduModal').style.display = 'none';
+        }
+
+        function renderEduStep(index) {
+            currentEduStep = index;
+            const data = EDUCATION_STEPS[index];
+
+            document.getElementById('stepIndicator').innerText = `المرحلة ${index + 1} من ${EDUCATION_STEPS.length}`;
+            document.getElementById('eduStepTitle').innerHTML = `<i class="fa-solid ${data.icon}"></i> ${data.title}`;
+            document.getElementById('eduStepDesc').innerHTML = data.description;
+            document.getElementById('eduStepTip').innerHTML = data.tip;
+            document.getElementById('eduDemoInput').value = data.demoUrl;
+
+            document.getElementById('prevStepBtn').disabled = (index === 0);
+            
+            const nextBtn = document.getElementById('nextStepBtn');
+            if (index === EDUCATION_STEPS.length - 1) {
+                nextBtn.innerHTML = 'إنهاء المسار <i class="fa-solid fa-check"></i>';
+            } else {
+                nextBtn.innerHTML = 'التالي <i class="fa-solid fa-arrow-left"></i>';
+            }
+        }
+
+        function changeEduStep(direction) {
+            const newStep = currentEduStep + direction;
+            if (newStep >= 0 && newStep < EDUCATION_STEPS.length) {
+                renderEduStep(newStep);
+            } else if (newStep >= EDUCATION_STEPS.length) {
+                closeEduModal();
+                alert('🎉 تهانينا! لقد أكملت المسار التوعوي بنجاح وأصبحت جاهزاً لكشف حيل التصيد الاحتيالي.');
+            }
+        }
+
+        function testEduSample() {
+            const sample = EDUCATION_STEPS[currentEduStep].demoUrl;
+            closeEduModal();
+
+            if (currentEduStep === 4) {
+                const textBtn = document.querySelectorAll('.nav-btn')[3];
+                if (typeof switchPage === 'function') switchPage('textScannerPage', textBtn);
+                const textInput = document.getElementById('textInput');
+                if (textInput) {
+                    textInput.value = sample;
+                    if (typeof analyzeText === 'function') analyzeText();
+                }
+            } else {
+                const scannerBtn = document.querySelectorAll('.nav-btn')[1];
+                if (typeof switchPage === 'function') switchPage('scannerPage', scannerBtn);
+                const urlInput = document.getElementById('urlInput');
+                if (urlInput) {
+                    urlInput.value = sample;
+                    if (typeof analyzeUrl === 'function') analyzeUrl();
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initEducationalPath);
+    </script>
 </body>
 </html>

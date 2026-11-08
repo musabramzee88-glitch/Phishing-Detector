@@ -15,8 +15,6 @@
         /* ==========================================
            تعريف المظاهر البصرية العشرة (10 Themes)
            ========================================== */
-        
-        /* 1. الداكن الكلاسيكي (Classic Dark - Default) */
         [data-theme="dark"] {
             --bg-primary: #0a0f1d;
             --bg-card: #131b2e;
@@ -32,7 +30,6 @@
             --nav-bg: rgba(255, 255, 255, 0.03);
         }
 
-        /* 2. المضيء النهاري (Clean Light) */
         [data-theme="light"] {
             --bg-primary: #f4f6f9;
             --bg-card: #ffffff;
@@ -48,7 +45,6 @@
             --nav-bg: rgba(0, 0, 0, 0.04);
         }
 
-        /* 3. سايبر بانك (Cyberpunk Neon) */
         [data-theme="cyberpunk"] {
             --bg-primary: #120418;
             --bg-card: #20072b;
@@ -64,7 +60,6 @@
             --nav-bg: rgba(255, 0, 127, 0.05);
         }
 
-        /* 4. ماتريكس الأخضر (Matrix Code) */
         [data-theme="matrix"] {
             --bg-primary: #021204;
             --bg-card: #05220a;
@@ -80,7 +75,6 @@
             --nav-bg: rgba(0, 255, 102, 0.05);
         }
 
-        /* 5. الزمرد الملكي (Royal Emerald) */
         [data-theme="emerald"] {
             --bg-primary: #021c17;
             --bg-card: #042f27;
@@ -96,7 +90,6 @@
             --nav-bg: rgba(16, 185, 129, 0.05);
         }
 
-        /* 6. غروب الشمس (Sunset Glow) */
         [data-theme="sunset"] {
             --bg-primary: #1a0f0a;
             --bg-card: #2d1810;
@@ -112,7 +105,6 @@
             --nav-bg: rgba(249, 115, 22, 0.05);
         }
 
-        /* 7. البنفسجي الغامض (Mystic Purple) */
         [data-theme="purple"] {
             --bg-primary: #0f071a;
             --bg-card: #1c1033;
@@ -128,7 +120,6 @@
             --nav-bg: rgba(168, 85, 247, 0.05);
         }
 
-        /* 8. أعماق المحيط (Deep Ocean) */
         [data-theme="ocean"] {
             --bg-primary: #031323;
             --bg-card: #08223c;
@@ -144,7 +135,6 @@
             --nav-bg: rgba(56, 189, 248, 0.05);
         }
 
-        /* 9. القهوة الدافئة (Warm Coffee) */
         [data-theme="coffee"] {
             --bg-primary: #18120e;
             --bg-card: #271e17;
@@ -160,7 +150,6 @@
             --nav-bg: rgba(217, 119, 6, 0.05);
         }
 
-        /* 10. القرمزي العنيف (Crimson Red) */
         [data-theme="crimson"] {
             --bg-primary: #180507;
             --bg-card: #2d0a0e;
@@ -193,16 +182,16 @@
             overflow-x: hidden;
         }
 
-        button, .nav-btn, .btn-scan, .btn-quick, .action-card-btn, .theme-dropdown-btn, .theme-option, .dev-tag, .awareness-card, .sim-tab-btn {
+        button, .nav-btn, .btn-scan, .btn-quick, .action-card-btn, .theme-dropdown-btn, .theme-option, .dev-tag, .awareness-card, .sim-tab-btn, .back-home-btn {
             transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease !important;
         }
 
-        button:hover, .nav-btn:hover, .btn-scan:hover, .btn-quick:hover, .action-card-btn:hover, .theme-dropdown-btn:hover, .dev-tag:hover, .sim-tab-btn:hover {
+        button:hover, .nav-btn:hover, .btn-scan:hover, .btn-quick:hover, .action-card-btn:hover, .theme-dropdown-btn:hover, .dev-tag:hover, .sim-tab-btn:hover, .back-home-btn:hover {
             transform: translateY(-2px) scale(1.03);
             box-shadow: 0 8px 25px var(--accent-glow);
         }
 
-        /* شريط التنقل العلوي الاحترافي للغاية */
+        /* شريط التنقل العلوي */
         header {
             background: var(--header-bg);
             backdrop-filter: blur(14px);
@@ -237,47 +226,41 @@
             box-shadow: 0 0 15px var(--accent-glow);
         }
 
-        .nav-links {
-            display: flex;
-            gap: 6px;
+        .current-tab-indicator {
             background: var(--nav-bg);
-            padding: 5px;
-            border-radius: 14px;
             border: 1px solid var(--border-color);
-            backdrop-filter: blur(5px);
-            justify-self: center;
-        }
-
-        .nav-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--accent-blue);
             display: flex;
             align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-        }
-
-        .nav-btn:hover {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-btn.active {
-            background: linear-gradient(135deg, var(--accent-blue) 0%, #0072ff 100%);
-            color: #ffffff !important;
+            gap: 10px;
+            justify-self: center;
             box-shadow: 0 4px 15px var(--accent-glow);
+            white-space: nowrap;
         }
 
         .nav-controls {
             display: flex;
             align-items: center;
+            gap: 12px;
             justify-self: end;
+        }
+
+        .back-home-header-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .theme-selector-container {
@@ -353,9 +336,6 @@
             }
 
             .logo {
-                order: 1;
-                justify-content: flex-start;
-                gap: 10px;
                 font-size: 1.05rem;
             }
 
@@ -364,52 +344,16 @@
                 width: 35px;
             }
 
-            .nav-controls {
-                order: 2;
-                justify-self: unset;
-            }
-
-            .nav-links {
+            .current-tab-indicator {
                 order: 3;
                 width: 100%;
-                overflow-x: auto;
-                white-space: nowrap;
-                justify-content: flex-start;
-                padding: 6px;
-                gap: 4px;
-                scroll-behavior: smooth;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .nav-links::-webkit-scrollbar {
-                display: none;
-            }
-
-            .nav-btn {
-                padding: 6px 12px;
-                font-size: 0.78rem;
-                flex-shrink: 0;
-            }
-
-            .main-hero h1 {
-                font-size: 1.6rem !important;
-            }
-
-            .main-actions-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .scanner-card {
-                padding: 1.2rem;
-            }
-
-            .input-group {
-                flex-direction: column;
-            }
-
-            .btn-scan {
-                width: 100%;
                 justify-content: center;
+                font-size: 0.85rem;
+                padding: 6px;
+            }
+
+            .nav-controls {
+                order: 2;
             }
         }
 
@@ -436,7 +380,7 @@
 
         .main-actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin: 2.2rem auto 1.5rem;
             max-width: 900px;
@@ -445,14 +389,14 @@
         .action-card-btn {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            padding: 1.2rem;
+            padding: 1.5rem;
             border-radius: 16px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             color: var(--text-main);
             font-size: 1rem;
             font-weight: 700;
@@ -461,7 +405,7 @@
         }
 
         .action-card-btn i {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: var(--accent-blue);
         }
 
@@ -542,6 +486,21 @@
             max-width: 950px;
             margin: 0 auto;
             padding: 0 1rem;
+        }
+
+        .back-home-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1.5rem;
         }
 
         .scanner-card {
@@ -718,7 +677,6 @@
             font-weight: 500;
         }
 
-        /* تنسيقات المسار التوعوي والأزرار التفاعلية للسيناريوهات */
         .awareness-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -822,27 +780,52 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-    </style>
+            .chat-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:12px; }
+        .chat-header-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .chat-action-button, .chat-settings-button { background:var(--nav-bg); border:1px solid var(--border-color); color:var(--text-main); padding:7px 11px; border-radius:9px; cursor:pointer; font:inherit; font-size:.82rem; font-weight:700; }
+        .chat-status { margin:8px 0 12px; color:var(--text-muted); font-size:.82rem; }
+        .chat-history { height:380px; overflow-y:auto; background:rgba(0,0,0,.25); border:1px solid var(--border-color); border-radius:10px; padding:15px; margin-bottom:15px; display:flex; flex-direction:column; gap:12px; direction:rtl; }
+        .chat-bubble { width:min(88%,760px); padding:12px; border-radius:10px; font-size:.96rem; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
+        .chat-bubble-user { align-self:flex-start; background:rgba(255,255,255,.08); border-left:3px solid #ff007f; }
+        .chat-bubble-assistant { align-self:flex-end; background:rgba(0,242,254,.1); border-right:3px solid #00f2fe; }
+        .chat-bubble-label { display:block; margin-bottom:4px; }
+        .chat-typing { color:var(--text-muted); }
+        .chat-form { display:flex; gap:10px; }
+        .chat-form input { flex:1; min-width:0; background:rgba(0,0,0,.2); border:1px solid var(--border-color); border-radius:8px; padding:12px; color:var(--text-main); font:inherit; direction:rtl; }
+        .chat-send-button { background:linear-gradient(135deg,#00f2fe,#4facfe); color:#000; border:0; padding:0 20px; border-radius:8px; font:inherit; font-weight:700; cursor:pointer; }
+        .chat-send-button:disabled, .chat-action-button:disabled { opacity:.6; cursor:wait; transform:none; }
+        .chat-settings { margin-top:14px; border-top:1px solid var(--border-color); padding-top:12px; color:var(--text-muted); font-size:.85rem; }
+        .chat-settings summary { cursor:pointer; color:var(--accent-blue); font-weight:700; }
+        .chat-settings-content { display:grid; gap:9px; margin-top:10px; }
+        .chat-settings-content input { width:100%; background:rgba(0,0,0,.2); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; color:var(--text-main); direction:ltr; font-family:monospace; }
+        .chat-settings-note { line-height:1.7; margin:0; }
+        @media (max-width:640px) {
+            #chatInterfaceCard { padding:1.1rem !important; }
+            .chat-header { align-items:flex-start; flex-direction:column; }
+            .chat-form { flex-direction:column; }
+            .chat-send-button { min-height:44px; }
+            .chat-bubble { width:96%; }
+        }
+</style>
 </head>
 <body data-theme="dark">
 
-    <!-- شريط التنقل العلوي المتناسق -->
+    <!-- شريط التنقل العلوي -->
     <header>
         <div class="logo">
             <img src="https://raw.githubusercontent.com/musabramzee88-glitch/Phishing-Detector/main/logo.png" alt="Logo">
             <span>Phishing Detector</span>
         </div>
 
-        <div class="nav-links">
-            <button class="nav-btn active" onclick="switchPage('homePage', this)"><i class="fa-solid fa-house"></i> الرئيسية</button>
-            <button class="nav-btn" onclick="switchPage('scannerPage', this)"><i class="fa-solid fa-link"></i> فحص الروابط</button>
-            <button class="nav-btn" onclick="switchPage('fileScannerPage', this)"><i class="fa-solid fa-file-shield"></i> فحص الملفات والبرمجيات</button>
-            <button class="nav-btn" onclick="switchPage('textScannerPage', this)"><i class="fa-solid fa-comment-sms"></i> فحص النصوص والرسائل</button>
-            <button class="nav-btn" onclick="switchPage('mediaScannerPage', this)"><i class="fa-solid fa-file-video"></i> فحص الصوت / الفيديو</button>
-            <button class="nav-btn" onclick="switchPage('awarenessPage', this)"><i class="fa-solid fa-graduation-cap"></i> المسار التوعوي</button>
+        <div class="current-tab-indicator" id="currentTabIndicator">
+            <i class="fa-solid fa-house"></i> الرئيسية
         </div>
 
         <div class="nav-controls">
+            <button class="back-home-header-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </button>
+
             <div class="theme-selector-container">
                 <button class="theme-dropdown-btn" onclick="toggleThemeMenu()">
                     <i class="fa-solid fa-palette"></i> <span>المظهر</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
@@ -876,44 +859,48 @@
             </p>
 
             <div class="main-actions-grid">
-                <button class="action-card-btn" onclick="switchPage('scannerPage', document.querySelectorAll('.nav-btn')[1])">
+                <button class="action-card-btn" onclick="switchPage('scannerPage', 'فحص الروابط', '<i class=\'fa-solid fa-link\'></i>')">
                     <i class="fa-solid fa-link"></i>
                     <span>فحص الروابط</span>
                 </button>
-                <button class="action-card-btn" onclick="switchPage('fileScannerPage', document.querySelectorAll('.nav-btn')[2])">
+                <button class="action-card-btn" onclick="switchPage('fileScannerPage', 'فحص الملفات والبرمجيات', '<i class=\'fa-solid fa-file-shield\'></i>')">
                     <i class="fa-solid fa-file-shield"></i>
                     <span>فحص الملفات والبرمجيات</span>
                 </button>
-                <button class="action-card-btn" onclick="switchPage('textScannerPage', document.querySelectorAll('.nav-btn')[3])">
+                <button class="action-card-btn" onclick="switchPage('textScannerPage', 'فحص النصوص والرسائل', '<i class=\'fa-solid fa-comment-sms\'></i>')">
                     <i class="fa-solid fa-comment-sms"></i>
                     <span>فحص النصوص والرسائل</span>
                 </button>
-                <button class="action-card-btn" onclick="switchPage('mediaScannerPage', document.querySelectorAll('.nav-btn')[4])">
+                <button class="action-card-btn" onclick="switchPage('mediaScannerPage', 'فحص الصوت / الفيديو', '<i class=\'fa-solid fa-file-video\'></i>')">
                     <i class="fa-solid fa-file-video"></i>
                     <span>فحص الصوت / الفيديو</span>
                 </button>
-                <button class="action-card-btn" onclick="switchPage('awarenessPage', document.querySelectorAll('.nav-btn')[5])">
+                <button class="action-card-btn" onclick="switchPage('awarenessPage', 'المسار التوعوي', '<i class=\'fa-solid fa-graduation-cap\'></i>')">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>المسار التوعوي</span>
+                </button>
+                <button class="action-card-btn" onclick="openCyberBot()">
+                    <i class="fa-solid fa-robot" style="color:var(--accent-blue);"></i>
+                    <span>CyberBot AI (المساعد الذكي)</span>
                 </button>
             </div>
 
             <div class="team-card">
                 <div class="institution-header">
-                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت</a></h3>
-                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
+                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت[cite: 3]</a></h3>
+                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني[cite: 3]</a></p>
                 </div>
                 <div class="developers-section">
-                    <h4>إعداد وتطوير المبرمجين:</h4>
+                    <h4>إعداد وتطوير المبرمجين[cite: 3]:</h4>
                     <div class="dev-names">
                         <div class="dev-tag">
                             <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي[cite: 3]
                             </a>
                         </div>
                         <div class="dev-tag">
                             <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت[cite: 3]
                             </a>
                         </div>
                     </div>
@@ -925,6 +912,10 @@
     <!-- 2. صفحة فحص الروابط -->
     <div id="scannerPage" class="page-section">
         <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
             <div style="text-align:center; margin-bottom: 1.5rem;">
                 <h2>منظومة التحليل الأمني المباشر وتقييم المخاطر</h2>
                 <p style="color:var(--text-muted); font-size:0.9rem;">أدخل أي رابط لحسابه وتحليله وعرض التقرير التقني المفصل وسجل التدقيق</p>
@@ -942,22 +933,22 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="academicDefenseToggle"> وضع الحماية الأكاديمية والحكومية المشددة (.edu.iq / .gov.iq)
                     </label>
-                    <span style="font-size: 0.75rem;">محرك Levenshtein نشط</span>
+                    <span style="font-size: 0.75rem;">محرك Levenshtein نشط[cite: 3]</span>
                 </div>
 
                 <div class="demo-triggers">
                     <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">تجربة سريعة:</span>
-                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت</button>
+                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت[cite: 3]</button>
                     <button class="btn-quick" onclick="testUrl('https://facebook.com')">فيسبوك الأصلي</button>
                     <button class="btn-quick" onclick="testUrl('https://fasebook.com')">تلاعب بفيسبوك</button>
-                    <button class="btn-quick" onclick="testUrl('https://g0ogle.com')">تلاعب بجوجل</button>
+                    <button class="btn-quick" onclick="testUrl('https://g0ogle.com')">تلاعب بجوجل[cite: 3]</button>
                 </div>
 
                 <div id="reportBox" class="report-box"></div>
             </div>
 
             <div class="history-card">
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)</h3>
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)[cite: 3]</h3>
                 <div style="overflow-x: auto;">
                     <table class="history-table">
                         <thead>
@@ -971,7 +962,7 @@
                         </thead>
                         <tbody id="historyTableBody">
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد.</td>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد[cite: 3].</td>
                             </tr>
                         </tbody>
                     </table>
@@ -983,9 +974,13 @@
     <!-- 3. صفحة فحص الملفات والبرمجيات الخبيثة -->
     <div id="fileScannerPage" class="page-section">
         <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
             <div style="text-align:center; margin-bottom: 1.5rem;">
                 <h2>منظومة فحص الملفات وكشف البرمجيات المفخخة</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة</p>
+                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة[cite: 3]</p>
             </div>
 
             <div class="scanner-card">
@@ -994,13 +989,13 @@
                     <div style="width: 100%;">
                         <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <div id="fileLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف للفحص</div>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)[cite: 3]</span>
                     </div>
                 </div>
                 
                 <div style="margin-top: 15px; text-align: left;">
                     <button class="btn-scan" onclick="analyzeFile()" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)
+                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)[cite: 3]
                     </button>
                 </div>
 
@@ -1012,9 +1007,13 @@
     <!-- 4. صفحة فحص النصوص والرسائل -->
     <div id="textScannerPage" class="page-section">
         <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية</p>
+                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)[cite: 3]</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية[cite: 3]</p>
             </div>
 
             <div class="scanner-card">
@@ -1035,9 +1034,13 @@
     <!-- 5. صفحة فحص الصوت والفيديو -->
     <div id="mediaScannerPage" class="page-section">
         <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>فحص ملفات الصوت والفيديو وكشف التزييف العميق (Deepfake Detector)</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">استخدام خوارزميات تحليل الترددات الطيفية (MFCC) والتشوهات البصرية (OpenCV) للتحقق من سلامة الوسائط</p>
+                <h2>فحص ملفات الصوت والفيديو وكشف التزييف العميق (Deepfake Detector)[cite: 3]</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">استخدام خوارزميات تحليل الترددات الطيفية (MFCC) والتشوهات البصرية (OpenCV) للتحقق من سلامة الوسائط[cite: 3]</p>
             </div>
 
             <div class="scanner-card">
@@ -1046,7 +1049,7 @@
                     <div style="width: 100%;">
                         <i class="fa-solid fa-file-video" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <div id="mediaLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف صوت أو فيديو</div>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم صيغ الوسائط المتعددة (MP3, WAV, MP4, AVI، وغيرها)</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم صيغ الوسائط المتعددة (MP3, WAV, MP4, AVI، وغيرها)[cite: 3]</span>
                     </div>
                 </div>
                 
@@ -1064,109 +1067,162 @@
     <!-- 6. صفحة المسار التوعوي الأمني الحصري -->
     <div id="awarenessPage" class="page-section">
         <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>المسار التوعوي والدليل الأمني الشامل</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية</p>
+                <h2>المسار التوعوي والدليل الأمني الشامل[cite: 3]</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية[cite: 3]</p>
             </div>
 
-            <!-- مركز محاكاة التصيد التفاعلي متعدد السيناريوهات -->
             <div class="scanner-card" style="border-color: var(--accent-blue);">
-                <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات:</p>
+                <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد[cite: 3]</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات[cite: 3]:</p>
                 
-                <!-- أزرار اختيار السيناريو -->
                 <div class="sim-tabs-row">
-                    <button class="sim-tab-btn active" onclick="loadSimulation(0)">السيناريو 1: بريد تزوير الحساب</button>
-                    <button class="sim-tab-btn" onclick="loadSimulation(1)">السيناريو 2: رسالة بنكية (Smishing)</button>
-                    <button class="sim-tab-btn" onclick="loadSimulation(2)">السيناريو 3: عرض عمل وهمي (Job Scam)</button>
+                    <button class="sim-tab-btn active" onclick="loadSimulation(0)">السيناريو 1: بريد تزوير الحساب[cite: 3]</button>
+                    <button class="sim-tab-btn" onclick="loadSimulation(1)">السيناريو 2: رسالة بنكية (Smishing)[cite: 3]</button>
+                    <button class="sim-tab-btn" onclick="loadSimulation(2)">السيناريو 3: عرض عمل وهمي (Job Scam)[cite: 3]</button>
                 </div>
 
-                <!-- محتوى السيناريو المعروض ديناميكياً -->
-                <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px; direction: rtl;">
-                    <!-- يتم تعبئته عبر الجافاسكريبت -->
-                </div>
+                <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px; direction: rtl;"></div>
 
-                <div id="simOptions">
-                    <!-- يتم تعبئة الخيارات عبر الجافاسكريبت -->
-                </div>
+                <div id="simOptions"></div>
 
                 <div id="simFeedback" class="report-box" style="margin-top: 15px;"></div>
             </div>
 
-            <!-- شبكة البطاقات التوعوية الشاملة -->
             <div class="awareness-grid">
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-link"></i> قواعد كشف الروابط الخبيثة</h3>
+                    <h3><i class="fa-solid fa-link"></i> قواعد كشف الروابط الخبيثة[cite: 3]</h3>
                     <p>
-                        • تحقق من كتابة اسم الموقع بدقة (إبدال الحروف مثل g0ogle بدلاً من google يُسمى Typosquatting).<br>
-                        • ابحث عن بروتوكول التشافير المشفر HTTPS ورمز القفل.<br>
-                        • تجنب النقر على الروابط المختصرة المجهولة قبل توسيعها وتدقيق نطاقها الأصلي.
+                        • تحقق من كتابة اسم الموقع بدقة (إبدال الحروف مثل g0ogle بدلاً من google يُسمى Typosquatting)[cite: 3].<br>
+                        • ابحث عن بروتوكول التشافير المشفر HTTPS ورمز القفل[cite: 3].<br>
+                        • تجنب النقر على الروابط المختصرة المجهولة قبل توسيعها وتدقيق نطاقها الأصلي[cite: 3].
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-key"></i> المصادقة الثنائية (MFA)</h3>
+                    <h3><i class="fa-solid fa-key"></i> المصادقة الثنائية (MFA)[cite: 3]</h3>
                     <p>
-                        • قم بتفعيل التوثيق بخطوتين على كافة حساباتك ومواقعك.<br>
-                        • لا تشارك رمز OTP الخاص بك مع أي شخص إطلاقاً تحت أي مسمى.<br>
-                        • استخدم تطبيقات المصادقة (Google Authenticator) بدلاً من الرسائل النصية القصيرة SMS.
+                        • قم بتفعيل التوثيق بخطوتين على كافة حساباتك ومواقعك[cite: 3].<br>
+                        • لا تشارك رمز OTP الخاص بك مع أي شخص إطلاقاً تحت أي مسمى[cite: 3].<br>
+                        • استخدم تطبيقات المصادقة (Google Authenticator) بدلاً من الرسائل النصية القصيرة SMS[cite: 3].
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-phone-slash"></i> التصيد الصوتي والهاتفي (Vishing)</h3>
+                    <h3><i class="fa-solid fa-phone-slash"></i> التصيد الصوتي والهاتفي (Vishing)[cite: 3]</h3>
                     <p>
-                        • البنوك والمؤسسات الرسمية لن تطلب كلمة سرك أو رمز بطاقتك عبر الهاتف.<br>
-                        • إذا وصلك اتصال يدعي أنه من جهة رسمية يطلب بياناتك، أغلق الخط واتصل بالرقم الرسمي المسجل خلف البطاقة.
+                        • البنوك والمؤسسات الرسمية لن تطلب كلمة سرك أو رمز بطاقتك عبر الهاتف[cite: 3].<br>
+                        • إذا وصلك اتصال يدعي أنه من جهة رسمية يطلب بياناتك، أغلق الخط واتصل بالرقم الرسمي المسجل خلف البطاقة[cite: 3].
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-user-ninja"></i> كشف التزييف العميق (Deepfake)</h3>
+                    <h3><i class="fa-solid fa-user-ninja"></i> كشف التزييف العميق (Deepfake)[cite: 3]</h3>
                     <p>
-                        • انتبه لرفرفة العين غير الطبيعية وحركة الشفاه المطابقة للصوت.<br>
-                        • استمع للترددات الصوتية الرتيبة الخالية من التأثيرات الطبيعية.<br>
-                        • اسأل الشخص المعني سؤالاً شخصياً لا يعلمه إلا هو للتحقق المباشر.
+                        • انتبه لرفرفة العين غير الطبيعية وحركة الشفاه المطابقة للصوت[cite: 3].<br>
+                        • استمع للترددات الصوتية الرتيبة الخالية من التأثيرات الطبيعية[cite: 3].<br>
+                        • اسأل الشخص المعني سؤالاً شخصياً لا يعلمه إلا هو للتحقق المباشر[cite: 3].
                     </p>
                 </div>
             </div>
 
-            <!-- دليل الاستجابة السريعة للحوادث -->
             <div class="history-card" style="margin-top: 2rem;">
-                <h3 style="color: var(--accent-red);"><i class="fa-solid fa-kit-medical"></i> خطة الاستجابة الطارئة عند التعرض للتصيد (Incident Response Protocol)</h3>
+                <h3 style="color: var(--accent-red);"><i class="fa-solid fa-kit-medical"></i> خطة الاستجابة الطارئة عند التعرض للتصيد (Incident Response Protocol)[cite: 3]</h3>
                 <div style="margin-top: 1rem;">
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>تغيير كلمات السر فوراً:</strong> قم بتغيير كلمة سر الحساب المتأثر وجميع الحسابات التي تشترك معها بنفس كلمة المرور.</div>
+                        <div><strong>تغيير كلمات السر فوراً[cite: 3]:</strong> قم بتغيير كلمة سر الحساب المتأثر وجميع الحسابات التي تشترك معها بنفس كلمة المرور[cite: 3].</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>إبلاغ الجهات المالية:</strong> إذا قمت بإدخال بيانات بطاقتك البنكية، تواصل مع المصرف فوراً لتجميد البطاقة المعنية.</div>
+                        <div><strong>إبلاغ الجهات المالية[cite: 3]:</strong> إذا قمت بإدخال بيانات بطاقتك البنكية، تواصل مع المصرف فوراً لتجميد البطاقة المعنية[cite: 3].</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>عزل الجهاز وإجراء فحص:</strong> قم بفصل الاتصال بالإنترنت واعمل فحص شامل عبر برنامج الحماية لمنع انتشار البرمجيات الخبيثة.</div>
+                        <div><strong>عزل الجهاز وإجراء فحص[cite: 3]:</strong> قم بفصل الاتصال بالإنترنت واعمل فحص شامل عبر برنامج الحماية لمنع انتشار البرمجيات الخبيثة[cite: 3].</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>تسجيل الجلسات والمراجعة:</strong> قم بإنهاء كافة الجلسات النشطة (Sign out of all devices) وتفعيل المصادقة الثنائية.</div>
+                        <div><strong>تسجيل الجلسات والمراجعة[cite: 3]:</strong> قم بإنهاء كافة الجلسات النشطة (Sign out of all devices) وتفعيل المصادقة الثنائية[cite: 3].</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 7. صفحة CyberBot AI (المساعد الأمني الذكي المتطور والمتحاور ببراعة بشرية كاملة) -->
+    <div id="cyberBotPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" onclick="switchPage('homePage', 'الرئيسية', '<i class=\'fa-solid fa-house\'></i>')">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <!-- نافذة إدخال الاسم إذا لم يكن محفوظاً -->
+            <div id="namePromptCard" class="scanner-card" style="text-align: center; padding: 3rem 2rem;">
+                <i class="fa-solid fa-id-card-clip" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 1rem;"></i>
+                <h3 style="font-size: 1.4rem; margin-bottom: 10px;">أهلاً بك في CyberBot AI</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">من فضلك، أدخل الاسم أو اللقب الذي تريد أن يناديك به المساعد الذكي[cite: 3]:</p>
+                <div style="max-width: 400px; margin: 0 auto; display: flex; gap: 10px;">
+                    <input type="text" id="userNameInput" placeholder="أدخل اسمك هنا..." onkeypress="if(event.key === 'Enter') saveUserName()" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: #fff; font-family: inherit; text-align: center;">
+                    <button onclick="saveUserName()" style="background: linear-gradient(135deg, var(--accent-blue), #0072ff); color: #0a0f1d; border: none; padding: 0 24px; border-radius: 10px; font-weight: 800; cursor: pointer;">
+                        بدء المحادثة
+                    </button>
+                </div>
+            </div>
+
+            <!-- واجهة المحادثة الفعلية (تظهر بعد إدخال الاسم) -->
+            <div id="chatInterfaceCard" class="scanner-card" style="display:none; margin-top:5px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:2rem;">
+                <div class="chat-header">
+                    <div>
+                        <h2><i class="fa-solid fa-robot" style="color:#00f2fe;"></i> CyberBot AI</h2>
+                        <p style="color:var(--text-muted); font-size:.85rem;" id="greetingSubtitle">مساعد محادثة يجيب بوضوح ويصرّح عندما لا يعرف.</p>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-action-button" type="button" onclick="clearCyberBotConversation()"><i class="fa-solid fa-rotate"></i> محادثة جديدة</button>
+                        <button class="chat-action-button" type="button" onclick="resetUserName()"><i class="fa-solid fa-pen"></i> تغيير الاسم</button>
+                    </div>
+                </div>
+                <div id="chatConnectionStatus" class="chat-status" role="status">جارٍ التحقق من إعداد الاتصال...</div>
+                <div id="chatHistory" class="chat-history" role="log" aria-live="polite" aria-relevant="additions"></div>
+                <form id="chatForm" class="chat-form" onsubmit="event.preventDefault(); sendCyberBotMessage()">
+                    <input type="text" id="userChatInput" maxlength="8000" autocomplete="off" placeholder="اكتب سؤالك أو تابع الحديث..." onkeydown="if(event.key === 'Enter'){event.preventDefault();sendCyberBotMessage()}">
+                    <button id="chatSendButton" class="chat-send-button" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+                </form>
+                <details class="chat-settings">
+                    <summary><i class="fa-solid fa-sliders"></i> إعدادات اتصال نموذج الذكاء الاصطناعي</summary>
+                    <div class="chat-settings-content">
+                        <p class="chat-settings-note">للإجابات العامة، شغّل <code>server.js</code> بعد إعداد مفتاح API واسم النموذج على الخادم. لا تضع المفتاح في هذه الصفحة أو في الرابط.</p>
+                        <label for="chatEndpointInput">رابط خادم المحادثة:</label>
+                        <input id="chatEndpointInput" type="url" value="/api/chat" placeholder="https://example.com/api/chat" autocomplete="url">
+                        <button class="chat-settings-button" type="button" onclick="saveCyberBotEndpoint()">حفظ الرابط</button>
+                        <p class="chat-settings-note">تُرسل الرسائل وسياق الحوار إلى الخادم ثم إلى مزوّد النموذج. لا ترسل كلمات مرور أو معلومات حساسة. للمعلومات الآنية، فعّل OPENAI_WEB_SEARCH=1 على الخادم؛ قد يترتب على البحث استخدام أو رسوم إضافية.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
+        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني[cite: 3]</p>
     </footer>
 
     <!-- سكريبت التشغيل الأساسي والتحليل -->
     <script>
-        function switchPage(pageId, btnElement) {
+        function switchPage(pageId, tabName, tabHtmlIcon) {
             document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
-            if (btnElement) btnElement.classList.add('active');
+            
+            document.getElementById('currentTabIndicator').innerHTML = tabHtmlIcon + ' ' + tabName;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openCyberBot() {
+            switchPage('cyberBotPage', 'CyberBot AI', '<i class=\'fa-solid fa-robot\'></i>');
+            checkUserSession();
         }
 
         function toggleThemeMenu() {
@@ -1183,7 +1239,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('selected_theme') || 'dark';
             document.body.setAttribute('data-theme', savedTheme);
-            loadSimulation(0); // تحميل السيناريو الأول افتراضياً
+            loadSimulation(0);
 
             window.addEventListener('click', (e) => {
                 if (!e.target.closest('.theme-selector-container')) {
@@ -1192,7 +1248,212 @@
             });
         });
 
-        /* مصفوفة السيناريوهات التوعوية المتعددة */
+        const cyberBotHistory = [];
+        let activeCyberBotUser = "";
+        let cyberBotSending = false;
+
+        function normalizeCyberBotText(value) {
+            return String(value || "").toLowerCase().normalize("NFKD")
+                .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+                .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+                .replace(/\s+/g, " ").trim();
+        }
+
+        function setCyberBotStatus(message, connected = false) {
+            const status = document.getElementById("chatConnectionStatus");
+            if (!status) return;
+            status.textContent = message;
+            status.style.color = connected ? "var(--accent-green)" : "var(--text-muted)";
+        }
+
+        function appendCyberBotMessage(role, content, options = {}) {
+            const history = document.getElementById("chatHistory");
+            const bubble = document.createElement("div");
+            bubble.className = "chat-bubble " + (role === "user" ? "chat-bubble-user" : "chat-bubble-assistant");
+            if (options.typing) bubble.classList.add("chat-typing");
+            const label = document.createElement("strong");
+            label.className = "chat-bubble-label";
+            label.textContent = options.typing ? "CyberBot AI:" : (role === "user" ? (localStorage.getItem("cyber_bot_username") || "أنت") + ":" : "CyberBot AI:");
+            bubble.appendChild(label);
+            const body = document.createElement("span");
+            body.textContent = String(content);
+            bubble.appendChild(body);
+            history.appendChild(bubble);
+            history.scrollTop = history.scrollHeight;
+            return bubble;
+        }
+
+        function initChatGreeting(userName) {
+            document.getElementById("chatHistory").replaceChildren();
+            cyberBotHistory.length = 0;
+            appendCyberBotMessage("assistant", "أهلًا " + userName + ". أنا CyberBot، أستطيع متابعة سياق حديثنا ومساعدتك في الأسئلة العامة والأمن السيبراني. عند عدم اتصال نموذج الذكاء الاصطناعي ستكون إجاباتي المحلية محدودة. كيف أساعدك؟");
+        }
+
+        function checkUserSession() {
+            const storedName = localStorage.getItem("cyber_bot_username");
+            const promptCard = document.getElementById("namePromptCard");
+            const chatCard = document.getElementById("chatInterfaceCard");
+            if (storedName) {
+                promptCard.style.display = "none";
+                chatCard.style.display = "block";
+                document.getElementById("greetingSubtitle").textContent = "المحادثة باسم: " + storedName;
+                if (activeCyberBotUser !== storedName) {
+                    activeCyberBotUser = storedName;
+                    initChatGreeting(storedName);
+                }
+                const endpointField = document.getElementById("chatEndpointInput");
+                endpointField.value = localStorage.getItem("cyber_bot_endpoint") ?? "/api/chat";
+                setCyberBotStatus(endpointField.value.trim()
+                    ? "عنوان الخادم محفوظ. سيُفحص الاتصال عند إرسال رسالة."
+                    : "الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
+            } else {
+                promptCard.style.display = "block";
+                chatCard.style.display = "none";
+                activeCyberBotUser = "";
+            }
+        }
+
+        function saveUserName() {
+            const nameInput = document.getElementById("userNameInput");
+            const name = nameInput.value.trim().slice(0, 50);
+            if (!name) {
+                alert("يرجى إدخال اسم صحيح للمتابعة");
+                return;
+            }
+            localStorage.setItem("cyber_bot_username", name);
+            nameInput.value = "";
+            checkUserSession();
+            document.getElementById("userChatInput").focus();
+        }
+
+        function resetUserName() {
+            localStorage.removeItem("cyber_bot_username");
+            checkUserSession();
+        }
+
+        function saveCyberBotEndpoint() {
+            const input = document.getElementById("chatEndpointInput");
+            const endpoint = input.value.trim();
+            if (!endpoint) {
+                localStorage.setItem("cyber_bot_endpoint", "");
+                setCyberBotStatus("الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
+                return;
+            }
+            try {
+                const parsed = new URL(endpoint, window.location.href);
+                const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
+                if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid protocol");
+                if (parsed.protocol === "http:" && !isLocalHost && window.location.protocol === "https:") throw new Error("insecure");
+                if (parsed.username || parsed.password || parsed.hash) throw new Error("invalid URL parts");
+                const savedValue = parsed.origin === window.location.origin ? parsed.pathname + parsed.search : parsed.href;
+                localStorage.setItem("cyber_bot_endpoint", savedValue);
+                input.value = savedValue;
+                setCyberBotStatus("تم حفظ عنوان الخادم. سيُفحص الاتصال عند إرسال رسالة.");
+            } catch {
+                alert("أدخل رابط HTTP أو HTTPS صحيحًا. لا تضع مفتاح API في الرابط.");
+            }
+        }
+
+        function clearCyberBotConversation() {
+            const userName = localStorage.getItem("cyber_bot_username") || "صديقي";
+            initChatGreeting(userName);
+            setCyberBotStatus(document.getElementById("chatEndpointInput").value.trim()
+                ? "عنوان الخادم محفوظ. سيُفحص الاتصال عند إرسال رسالة."
+                : "الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
+            document.getElementById("userChatInput").focus();
+        }
+
+        function buildOfflineCyberBotReply(userText, userName, disconnected = false) {
+            const text = normalizeCyberBotText(userText);
+            let answer = "";
+            if (/(^|\s)(هلو|هلا|مرحبا|السلام|صباح|مساء|حيّاك)(\s|$)/.test(text)) {
+                answer = "أهلًا " + userName + "، يسعدني الحديث معك. ما الموضوع الذي تريد أن نبدأ به؟";
+            } else if (/(شلونك|كيف حالك|اخبارك|شخبارك|شكو ماكو)/.test(text)) {
+                answer = "أنا جاهز لمساعدتك. أخبرني بما تحتاجه، وسأوضح لك ما أستطيع فعله.";
+            } else if (/(شكرا|مشكور|تسلم|عاشت ايدك|كفو)/.test(text)) {
+                answer = "العفو، أنا حاضر لمساعدتك.";
+            } else if (/(من انت|منو انت|شنو انت|اسمك|ما هو اسمك)/.test(text)) {
+                answer = "أنا CyberBot، مساعد المحادثة في هذا الموقع. عند ربط خادم نموذج لغوي أستطيع متابعة الحوار والإجابة عن نطاق أوسع من المواضيع.";
+            } else if (/(من صمم|من برمج|من كتب الكود|المطور|مصعب|محمود|جامعه تكريت|كلية)/.test(text)) {
+                answer = "بحسب المعلومات المعروضة في الموقع، أُعدّ المشروع في قسم الأمن السيبراني بكلية علوم الحاسوب والرياضيات في جامعة تكريت، ويظهر اسما مصعب رمزي ومحمود حكمت ضمن فريق التطوير.";
+            } else if (/(رابط|url|http|www|موقع)/.test(text)) {
+                answer = "لفحص رابط، افتح قسم «فحص الروابط» وأدخل العنوان كاملًا. النتيجة الحالية تحليل أولي قائم على قواعد داخل الصفحة؛ لا تثبت أن الرابط آمن، لذا لا تدخل بياناتك في موقع مشبوه.";
+            } else if (/(رساله|رسائل|نص|تصيد|احتيال|بريد)/.test(text)) {
+                answer = "يمكنك استخدام قسم «فحص النصوص والرسائل». التحليل يعتمد على مؤشرات وكلمات محددة، لذلك قد يفوّت أساليب احتيال جديدة أو يعطي إنذارًا خاطئًا.";
+            } else if (/(ملف|فيروس|malware|exe|برنامج)/.test(text)) {
+                answer = "فحص الملفات في الصفحة يعتمد على اسم الملف وبعض البصمات الأولية، وليس على مضاد فيروسات أو تحليل سلوكي. لا تشغّل ملفًا مجهولًا اعتمادًا على نتيجة هذه الصفحة وحدها.";
+            } else if (/(صوت|فيديو|deepfake|تزييف|وسائط)/.test(text)) {
+                answer = "قسم الصوت والفيديو في هذه الصفحة لا يشغّل نموذج كشف تزييف حقيقيًا؛ نتيجته الحالية تقديرية وبسيطة. لا تعتمد عليها لإثبات أصالة التسجيل.";
+            } else if (/(كيف استخدم|كيف ابدأ|ماذا تستطيع|شنو تقدر|مساعده|مساعدة)/.test(text)) {
+                answer = "يمكنني شرح صفحات الموقع وإرشادات الأمن الأساسية محليًا. للإجابة عن الأسئلة العامة ومواصلة حوار أوسع، شغّل خادم المحادثة واضبط بيانات مزود النموذج من جهة الخادم.";
+            } else {
+                answer = "لا أملك اتصالًا حاليًا بنموذج محادثة، لذلك لا أستطيع الإجابة بثقة عن هذا السؤال في الوضع المحلي. اربط خادم الذكاء الاصطناعي من الإعدادات، أو أعد صياغة السؤال حول وظائف الموقع.";
+            }
+            answer += disconnected
+                ? "\n\nتعذر الاتصال بالخادم الآن؛ هذه إجابة محلية محدودة وليست إجابة نموذج لغوي."
+                : "\n\nأعمل حاليًا بإجابات محلية محدودة. اربط خادم النموذج من إعدادات المحادثة للأسئلة العامة.";
+            return answer;
+        }
+
+        async function sendCyberBotMessage() {
+            if (cyberBotSending) return;
+            const inputField = document.getElementById("userChatInput");
+            const sendButton = document.getElementById("chatSendButton");
+            const userText = inputField.value.trim();
+            const userName = localStorage.getItem("cyber_bot_username") || "صديقي";
+            if (!userText) return;
+
+            appendCyberBotMessage("user", userText);
+            cyberBotHistory.push({ role: "user", content: userText });
+            inputField.value = "";
+            cyberBotSending = true;
+            inputField.disabled = true;
+            sendButton.disabled = true;
+            const typingBubble = appendCyberBotMessage("assistant", "يكتب الآن...", { typing: true });
+            let answer = "";
+            const endpoint = (localStorage.getItem("cyber_bot_endpoint") ?? "/api/chat").trim();
+
+            try {
+                if (!endpoint) {
+                    answer = buildOfflineCyberBotReply(userText, userName, false);
+                    setCyberBotStatus("الوضع المحلي محدود؛ لم يُضبط خادم ذكاء اصطناعي.");
+                } else {
+                    const url = new URL(endpoint, window.location.href);
+                    const controller = new AbortController();
+                    const timeout = window.setTimeout(() => controller.abort(), 45000);
+                    let response;
+                    try {
+                        response = await fetch(url.href, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ message: userText, history: cyberBotHistory.slice(-9, -1).map(item => ({ role: item.role, content: item.content.slice(-1500) })), userName }),
+                            signal: controller.signal
+                        });
+                    } finally {
+                        window.clearTimeout(timeout);
+                    }
+                    let payload = {};
+                    try { payload = await response.json(); } catch {}
+                    if (!response.ok) throw new Error("server error");
+                    const reply = typeof payload.reply === "string" ? payload.reply.trim() : "";
+                    if (!reply) throw new Error("empty reply");
+                    answer = reply;
+                    setCyberBotStatus("متصل بخادم نموذج الذكاء الاصطناعي.", true);
+                }
+            } catch {
+                answer = buildOfflineCyberBotReply(userText, userName, true);
+                setCyberBotStatus("تعذر الاتصال بالخادم؛ يعمل المساعد بإجابات محلية محدودة.");
+            } finally {
+                typingBubble.remove();
+                appendCyberBotMessage("assistant", answer);
+                cyberBotHistory.push({ role: "assistant", content: answer });
+                if (cyberBotHistory.length > 24) cyberBotHistory.splice(0, cyberBotHistory.length - 24);
+                cyberBotSending = false;
+                inputField.disabled = false;
+                sendButton.disabled = false;
+                inputField.focus();
+            }
+        }
         const phishingScenarios = [
             {
                 id: 0,
@@ -1236,7 +1497,6 @@
         ];
 
         function loadSimulation(index) {
-            // تحديث الأزرار النشطة
             const buttons = document.querySelectorAll('.sim-tab-btn');
             buttons.forEach((btn, idx) => {
                 if(idx === index) {

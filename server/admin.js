@@ -32,7 +32,8 @@ function sha256(value) {
     return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-function createAdmin(config, stats) {
+// extras: { visitors, health } لإظهارها بلوحة الأدمن (اختياري)
+function createAdmin(config, stats, extras = {}) {
     const enabled = config.admins.size > 0;
     const sessions = new Map();   // sha256(sid) -> { user, created, last }
     const failures = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.loginFailuresPerWindow });
@@ -202,6 +203,8 @@ function createAdmin(config, stats) {
                 totpEnabled: Boolean(admin && admin.totpSecret),
                 activeSessions: sessions.size
             },
+            visitors: extras.visitors ? extras.visitors.snapshot() : null,
+            health: extras.health ? extras.health() : null,
             ...stats.snapshot(100)
         };
     }

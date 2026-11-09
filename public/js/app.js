@@ -797,9 +797,25 @@ const ACTIONS = {
     updateFileName, updateMediaFileName
 };
 
+// يبلّغ حارس الأخطاء (error-guard.js) ويبقي الصفحة تعمل
+function reportError(label, error) {
+    if (window.PDGuard) window.PDGuard.captureError(label, error);
+    else console.error(label, error);
+}
+
+// ينفّذ أي أمر داخل try/catch (متزامن أو async): فشل أمر واحد لا يعطّل بقية الصفحة
+function guarded(label, fn) {
+    try {
+        const result = fn();
+        if (result && typeof result.catch === 'function') result.catch(error => reportError(label, error));
+    } catch (error) {
+        reportError(label, error);
+    }
+}
+
 function runAction(name, ...args) {
     const action = Object.prototype.hasOwnProperty.call(ACTIONS, name) ? ACTIONS[name] : null;
-    if (action) action(...args);
+    if (action) guarded(name, () => action(...args));
 }
 
 function actionArg(value) {
@@ -810,9 +826,9 @@ document.addEventListener('click', event => {
     const el = event.target.closest('[data-page],[data-theme],[data-action],[data-click-target]');
     if (!el) return;
     if (el.dataset.page) {
-        switchPage(el.dataset.page, el.dataset.title || '', el.dataset.icon || '');
+        guarded('switchPage', () => switchPage(el.dataset.page, el.dataset.title || '', el.dataset.icon || ''));
     } else if (el.dataset.theme) {
-        setTheme(el.dataset.theme);
+        guarded('setTheme', () => setTheme(el.dataset.theme));
     } else if (el.dataset.action) {
         runAction(el.dataset.action, actionArg(el.dataset.arg), actionArg(el.dataset.arg2));
     } else if (el.dataset.clickTarget) {

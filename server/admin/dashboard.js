@@ -9,8 +9,12 @@ const EVENT_LABELS = {
     login_failed: ["دخول فاشل", "bad"],
     login_throttled: ["سقف محاولات الدخول", "warn"],
     blocked_origin: ["طلب من موقع غير مسموح", "bad"],
-    logout: ["تسجيل خروج", ""]
+    logout: ["تسجيل خروج", ""],
+    client_error: ["خطأ بمتصفح زائر", "warn"],
+    server_error: ["خطأ بالخادم", "bad"],
+    process_crash: ["انهيار العملية (تُعاد تلقائياً)", "bad"]
 };
+const HEALTH_LABELS = { ok: ["سليم", "ok"], degraded: ["متدهور (تحذير)", "warn"], critical: ["حرج (ستُعاد الخدمة تلقائياً)", "bad"] };
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -32,9 +36,15 @@ function formatDuration(totalSeconds) {
 
 function renderCards(data) {
     const c = data.counters;
+    const v = data.visitors || { uniqueToday: 0, activeNow: 0, viewsToday: 0 };
     const cards = [
         ["مدة التشغيل", formatDuration(data.uptimeSeconds), "ok"],
+        ["زوار اليوم (تقريبي)", v.uniqueToday, ""],
+        ["نشطون الآن (آخر 5 دقائق)", v.activeNow, "ok"],
+        ["مشاهدات الصفحة اليوم", v.viewsToday, ""],
         ["كل الطلبات", c.requests, ""],
+        ["أخطاء متصفحات الزوار", c.clientErrors, c.clientErrors ? "warn" : ""],
+        ["أخطاء الخادم", c.serverErrors, c.serverErrors ? "bad" : ""],
         ["رسائل CyberBot الناجحة", c.chatOk, "ok"],
         ["أخطاء CyberBot", c.chatErrors, c.chatErrors ? "warn" : ""],
         ["طلبات رُفضت بالحد", c.rateLimited, c.rateLimited ? "warn" : ""],
@@ -48,6 +58,50 @@ function renderCards(data) {
         card.append(el("div", "value", value), el("div", "label", label));
         return card;
     }));
+}
+
+function renderHealth(data) {
+    const box = document.getElementById("health");
+    const health = data.health;
+    if (!health) {
+        box.replaceChildren(el("p", "muted", "مراقب الصحة غير مفعّل."));
+        return;
+    }
+    const [label, tone] = HEALTH_LABELS[health.status] || [health.status, ""];
+    const status = el("div", "stat " + tone);
+    status.append(el("div", "value", label), el("div", "label", "الحالة العامة"));
+    const metrics = [
+        ["ذاكرة العملية", health.rssMb + " MB"],
+        ["تأخر المعالجة (p99)", health.eventLoopP99Ms + " ms"]
+    ].map(([title, value]) => {
+        const card = el("div", "stat");
+        card.append(el("div", "value ltr", value), el("div", "label", title));
+        return card;
+    });
+    const wrap = el("div", "cards");
+    wrap.append(status, ...metrics);
+    const nodes = [wrap];
+    if (health.reasons.length) {
+        const list = el("ul", "reasons");
+        for (const reason of health.reasons) list.append(el("li", "", reason));
+        nodes.push(list);
+    }
+    box.replaceChildren(...nodes);
+}
+
+function renderVisitors(data) {
+    const table = document.getElementById("visitors");
+    const series = (data.visitors && data.visitors.series) || [];
+    const head = el("tr");
+    for (const title of ["اليوم (UTC)", "زوار فريدون تقريباً", "مشاهدات الصفحة"]) head.append(el("th", "", title));
+    const rows = series.slice().reverse().map(day => {
+        const tr = el("tr");
+        tr.append(el("td", "ltr", day.day), el("td", "num", day.unique), el("td", "num", day.views));
+        return tr;
+    });
+    table.replaceChildren(el("thead"), el("tbody"));
+    table.firstChild.append(head);
+    table.lastChild.append(...rows);
 }
 
 function renderScans(data) {
@@ -130,6 +184,8 @@ async function refresh() {
         const data = await response.json();
         document.getElementById("user").textContent = "المستخدم: " + data.user;
         renderCards(data);
+        renderHealth(data);
+        renderVisitors(data);
         renderScans(data);
         renderInfo(data);
         renderEvents(data);

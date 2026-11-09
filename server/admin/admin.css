@@ -135,3 +135,6 @@ td.num { font-variant-numeric: tabular-nums; }
 
 .empty { padding: 18px; text-align: center; color: var(--muted); }
 .note { margin-top: 28px; color: var(--muted); font-size: 0.8rem; }
+
+.reasons { margin: 12px 0 0; padding: 12px 28px; background: var(--card); border: 1px solid var(--yellow); border-radius: 12px; color: var(--yellow); }
+.health .cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }

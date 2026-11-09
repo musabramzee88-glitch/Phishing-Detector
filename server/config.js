@@ -52,10 +52,15 @@ function loadConfig(env = process.env) {
             baseUrl: (env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "")
         },
         admins: parseAdmins(env.ADMINS),
+        // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)
+        auditStdout: env.AUDIT_STDOUT === "1" || (onRender && env.AUDIT_STDOUT !== "0"),
+        health: {},   // عتبات مراقب الصحة (انظر server/health.js)، تُعدَّل بالاختبارات فقط
         limits: {
             chatPerMinute: 20,
             globalChatPerMinute: Number(env.CYBERBOT_GLOBAL_LIMIT || 120),
             eventPerMinute: 120,
+            clientErrorPerMinute: 10,
+            globalClientErrorPerMinute: 100,
             loginFailuresPerWindow: 5,
             loginWindowMs: 15 * 60_000,
             loginAttemptsPerMinute: 30,

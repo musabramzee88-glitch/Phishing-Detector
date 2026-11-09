@@ -1,0 +1,226 @@
+"use strict";
+
+/*
+  واجهات الفحص على الخادم (تتطلب حساباً، وتُحسب من حصة اليوم حسب الخطة):
+    POST /api/scan/url     { url, strict }      رابط: المحرك + قوائم التهديدات + عمر النطاق (Pro)
+    POST /api/scan/text    { text }             رسالة: المحرك + فحص روابطها بقوائم التهديدات
+    POST /api/scan/file    { name, size }       يحجز فحص ملف (الملف نفسه يُحلَّل داخل المتصفح ولا يُرفع)
+    POST /api/scan/record  { kind, label, score, level }   يحفظ نتيجة فحص الملف بالسجل (Pro)
+    POST /api/scan/bulk    { urls: [...] }      فحص جماعي (Pro)
+  واجهة API لمشتركي Pro (بمفتاح API بدل الكوكي، من أي برنامج):
+    POST /api/v1/scan-url  Authorization: Bearer pd_...   { url }  أو  { urls: [...] }
+    POST /api/v1/scan-text Authorization: Bearer pd_...   { text }
+
+  لا نحفظ الروابط أو النصوص إلا بسجل مشتركي Pro (ويمكنهم إيقافه أو مسحه من حسابهم).
+*/
+
+const h = require("./http");
+const engine = require("../public/js/detection-engine.js");
+const { createRateLimiter, createFailureLimiter } = require("./rate-limit");
+const { limitsFor } = require("./plans");
+
+const MAX_URL = 2048;
+const MAX_TEXT = 10_000;
+const LEVELS = new Set(["safe", "warning", "danger"]);
+
+// يدمج إشارات إضافية مع نتيجة المحرك بنفس طريقة noisy-OR التي يستخدمها المحرك
+function merge(result, extra, thresholds) {
+    if (!extra.length) return result;
+    let keep = 1 - result.score / 100;
+    for (const s of extra) if (s.weight > 0) keep *= 1 - Math.min(s.weight, 0.99);
+    const score = Math.round((1 - keep) * 100);
+    const level = score >= thresholds.danger ? "danger" : score >= thresholds.warning ? "warning" : "safe";
+    const order = { danger: 0, warning: 1, info: 2, safe: 3 };
+    const reasons = [...extra.map(s => ({ type: s.type, text: s.text, w: s.weight })), ...result.reasons.map(r => ({ ...r, w: 0.5 }))]
+        // إذا صار الحكم خطراً أو تنبيهاً، تسقط عبارة "لم تُرصد مؤشرات"
+        .filter(r => !(level !== "safe" && r.type === "safe"))
+        .sort((a, b) => (order[a.type] - order[b.type]) || (b.w - a.w))
+        .map(({ w, ...r }) => r);
+    return { ...result, score, level, reasons };
+}
+
+function createScan({ config, users, auth, intel, stats }) {
+    const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.scanPerMinute });
+    const badKeys = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.badApiKeysPerWindow });
+
+    async function scanUrl(rawUrl, { strict = false, deep = false } = {}) {
+        const url = String(rawUrl || "").trim().slice(0, MAX_URL);
+        const result = engine.analyzeUrl(url, { strict });
+        if (result.error) return result;
+        const thresholds = strict ? engine.STRICT_THRESHOLDS : engine.THRESHOLDS;
+        const extra = [];
+        const feedHits = result.host ? intel.lookup(result.input, result.host) : [];
+        // النطاقات الرسمية المعروفة لا نحكم عليها من قوائم التهديدات إلا بتطابق الرابط كاملاً
+        extra.push(...(result.official ? feedHits.filter(s => s.weight >= 0.9) : feedHits));
+        let age = null;
+        if (deep && result.registrable && !result.official && !/^\d+\.\d+\.\d+\.\d+$/.test(result.host)) {
+            age = await intel.domainAge(result.registrable);
+            extra.push(...intel.ageSignals(age));
+        }
+        const merged = merge(result, extra, thresholds);
+        merged.checks = { feeds: intel.status().enabled, deep, domainAge: age };
+        return merged;
+    }
+
+    function scanText(rawText) {
+        const text = String(rawText || "").trim().slice(0, MAX_TEXT);
+        const result = engine.analyzeText(text);
+        if (result.error) return result;
+        const extra = [];
+        for (const u of result.urls || []) {
+            const analysis = engine.analyzeUrl(u.url);
+            if (analysis.error) continue;
+            const hits = intel.lookup(analysis.input, analysis.host).filter(s => !analysis.official || s.weight >= 0.9);
+            if (hits.length) extra.push({ weight: 0.9, type: "danger", text: `الرابط ${u.url} داخل الرسالة: ${hits[0].text}` });
+        }
+        return merge(result, extra, engine.THRESHOLDS);
+    }
+
+    // يرجع المستخدم من الكوكي، أو من مفتاح API (لمسارات /api/v1)
+    async function who(req, res, viaApi) {
+        if (!viaApi) return auth.requireUser(req, res);
+        const ip = h.getClientIp(req, config);
+        if (badKeys.isBlocked(ip)) {
+            h.sendJson(res, 429, { error: "Too many invalid API keys" }, { "Retry-After": String(badKeys.retryAfterSeconds(ip)) });
+            return null;
+        }
+        const bearer = /^Bearer\s+(\S+)$/i.exec(String(req.headers.authorization || ""));
+        const user = bearer ? await users.userFromApiKey(bearer[1]).catch(() => null) : null;
+        if (!user || !limitsFor(user).api) {
+            badKeys.fail(ip);
+            h.sendJson(res, 401, { error: "Invalid API key or plan does not include API access" });
+            return null;
+        }
+        return user;
+    }
+
+    async function body(req, res, viaApi, maxBytes) {
+        if (req.method !== "POST") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "POST" }), undefined;
+        if (!viaApi) return auth.jsonBody(req, res, maxBytes);
+        if (!h.isJsonRequest(req)) return h.sendJson(res, 415, { error: "Content-Type must be application/json" }), undefined;
+        try {
+            const parsed = await h.readJsonBody(req, maxBytes);
+            if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad");
+            return parsed;
+        } catch {
+            return h.sendJson(res, 400, { error: "Bad request" }), undefined;
+        }
+    }
+
+    async function quota(res, user, kind, amount = 1) {
+        const q = await users.consume(user, kind, amount);
+        if (!q.ok) {
+            stats.count("quotaExceeded");
+            const pro = limitsFor(user).api;
+            h.sendJson(res, 429, {
+                error: pro ? `وصلت للحد اليومي (${q.limit}). يتجدد غداً.` : `وصلت لحد الخطة المجانية اليوم (${q.limit} فحصاً). اشترك بـ Pro بـ ${config.plans.priceUsd}$ شهرياً للفحص بلا حدود.`,
+                code: "quota", used: q.used, limit: q.limit
+            });
+            return null;
+        }
+        return q;
+    }
+
+    const publicResult = r => ({
+        score: r.score, level: r.level, reasons: r.reasons, input: r.input, host: r.host, unicodeHost: r.unicodeHost,
+        registrable: r.registrable, official: r.official, brand: r.brand, checks: r.checks,
+        categories: r.categories, urls: r.urls, advice: r.advice
+    });
+
+    async function handle(req, res, url) {
+        const p = url.pathname;
+        const viaApi = p.startsWith("/api/v1/");
+        const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/v1/scan-url", "/api/v1/scan-text"];
+        if (!routes.includes(p)) return false;
+        if (viaApi && req.method === "OPTIONS") {
+            res.writeHead(204, { Allow: "POST" });
+            res.end();
+            return true;
+        }
+
+        const user = await who(req, res, viaApi);
+        if (!user) return true;
+        if (!perMinute.take(user.id)) {
+            h.sendJson(res, 429, { error: "طلبات كثيرة بالدقيقة. تمهّل قليلاً." }, { "Retry-After": "60" });
+            return true;
+        }
+        const limits = limitsFor(user);
+        const input = await body(req, res, viaApi, (p.endsWith("bulk") || p === "/api/v1/scan-url") ? 256 * 1024 : 32 * 1024);
+        if (input === undefined) return true;
+
+        try {
+            if (p === "/api/scan/url" || (p === "/api/v1/scan-url" && !Array.isArray(input.urls))) {
+                if (typeof input.url !== "string" || !input.url.trim()) return h.sendJson(res, 400, { error: "أرسل الرابط بالحقل url." }), true;
+                if (!(await quota(res, user, "scan"))) return true;
+                const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks });
+                if (result.error) return h.sendJson(res, 400, { error: "الرابط غير صالح هيكلياً.", code: result.error }), true;
+                stats.scan("url", result.level);
+                await users.addHistory(user, { kind: "url", label: result.input.slice(0, 200), score: result.score, level: result.level }).catch(() => {});
+                h.sendJson(res, 200, { result: publicResult(result) });
+                return true;
+            }
+            if (p === "/api/scan/text" || p === "/api/v1/scan-text") {
+                if (typeof input.text !== "string" || !input.text.trim()) return h.sendJson(res, 400, { error: "أرسل النص بالحقل text." }), true;
+                if (!(await quota(res, user, "scan"))) return true;
+                const result = scanText(input.text);
+                stats.scan("text", result.level);
+                const preview = input.text.trim().slice(0, 60) + (input.text.trim().length > 60 ? "…" : "");
+                await users.addHistory(user, { kind: "text", label: preview, score: result.score, level: result.level }).catch(() => {});
+                h.sendJson(res, 200, { result: publicResult(result) });
+                return true;
+            }
+            if (p === "/api/scan/file") {
+                const q = await quota(res, user, "scan");
+                if (!q) return true;
+                h.sendJson(res, 200, { ok: true, used: q.used, limit: q.limit });
+                return true;
+            }
+            if (p === "/api/scan/record") {
+                const kind = ["file", "media"].includes(input.kind) ? input.kind : "";
+                const score = Number(input.score);
+                if (!kind || !LEVELS.has(input.level) || !Number.isFinite(score) || score < 0 || score > 100) return h.sendJson(res, 400, { error: "Bad request" }), true;
+                stats.scan(kind === "file" ? "file" : "media", input.level);
+                await users.addHistory(user, { kind, label: String(input.label || "").replace(/[\u0000-\u001f<>]/g, "").slice(0, 120), score: Math.round(score), level: input.level }).catch(() => {});
+                res.writeHead(204, { "Cache-Control": "no-store" });
+                res.end();
+                return true;
+            }
+            // الفحص الجماعي: من الصفحة (/api/scan/bulk) أو API بقائمة urls
+            if (p === "/api/scan/bulk" || p === "/api/v1/scan-url") {
+                if (!limits.bulkMaxUrls) return h.sendJson(res, 403, { error: "الفحص الجماعي متاح لمشتركي Pro.", code: "pro_only" }), true;
+                if (!Array.isArray(input.urls)) return h.sendJson(res, 400, { error: "أرسل قائمة روابط بالحقل urls." }), true;
+                const unique = [...new Set(input.urls.filter(u => typeof u === "string").map(u => u.trim().slice(0, MAX_URL)).filter(Boolean))];
+                if (!unique.length) return h.sendJson(res, 400, { error: "لا توجد روابط صالحة بالقائمة." }), true;
+                if (unique.length > limits.bulkMaxUrls) return h.sendJson(res, 413, { error: `الحد الأقصى ${limits.bulkMaxUrls} رابطاً بالطلب الواحد.`, limit: limits.bulkMaxUrls }), true;
+                if (!(await quota(res, user, "scan", unique.length))) return true;
+                const results = [];
+                // عمر النطاق نطلبه مرة لكل نطاق (المحرك يخزّنه مؤقتاً)، وبحد 6 طلبات متوازية
+                const queue = unique.map((u, i) => ({ u, i }));
+                const workers = Array.from({ length: 6 }, async () => {
+                    while (queue.length) {
+                        const { u, i } = queue.shift();
+                        try {
+                            const r = await scanUrl(u, { deep: limits.deepChecks });
+                            results[i] = r.error ? { url: u.slice(0, 200), error: r.error }
+                                : { url: u.slice(0, 200), level: r.level, score: r.score, host: r.host, registrable: r.registrable || "", brand: r.brand || r.official || "", reasons: r.reasons.filter(x => x.type !== "info").slice(0, 4) };
+                        } catch {
+                            results[i] = { url: u.slice(0, 200), error: "analysis_failed" };
+                        }
+                    }
+                });
+                await Promise.all(workers);
+                stats.count("bulkScans");
+                h.sendJson(res, 200, { count: results.length, limit: limits.bulkMaxUrls, results });
+                return true;
+            }
+        } catch (error) {
+            auth.sendError(res, error);
+            return true;
+        }
+        return false;
+    }
+
+    return { handle, scanUrl, scanText };
+}
+
+module.exports = { createScan, merge };

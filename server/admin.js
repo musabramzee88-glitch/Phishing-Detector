@@ -17,6 +17,8 @@ const { promisify } = require("node:util");
 const totp = require("./totp");
 const { createRateLimiter, createFailureLimiter } = require("./rate-limit");
 const http = require("./http");
+const { planOf } = require("./plans");
+const { UserError } = require("./users");
 
 const scrypt = promisify(crypto.scrypt);
 const DUMMY_SALT = crypto.randomBytes(16).toString("hex");
@@ -26,14 +28,14 @@ const ASSETS = {
     "admin.css": { type: "text/css; charset=utf-8", publicAsset: true },
     "login.js": { type: "text/javascript; charset=utf-8", publicAsset: true },
     "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
-    "licenses.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
+    "manage.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
 };
 
 function sha256(value) {
     return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-// extras: { visitors, health } لإظهارها بلوحة الأدمن (اختياري)
+// extras: { visitors, health, users, db, intel, chat } لإظهارها وإدارتها بلوحة الأدمن (اختياري)
 function createAdmin(config, stats, extras = {}) {
     const enabled = config.admins.size > 0;
     const sessions = new Map();   // sha256(sid) -> { user, created, last }
@@ -197,6 +199,12 @@ function createAdmin(config, stats, extras = {}) {
             },
             config: {
                 chatConfigured: Boolean(config.openai.apiKey && config.openai.model),
+                chat: extras.chat ? extras.chat() : null,
+                database: extras.db ? { backend: extras.db.backend, persistent: extras.db.persistent, warning: extras.db.persistent ? "" : (config.onRender ? "الحسابات محفوظة بالذاكرة فقط وستضيع عند أي نشر أو إعادة تشغيل! أضف UPSTASH_REDIS_REST_URL و UPSTASH_REDIS_REST_TOKEN." : "ذاكرة فقط (تشغيل محلي).") } : null,
+                intel: extras.intel ? extras.intel.status() : null,
+                oauth: Object.keys(config.oauth).filter(k => config.oauth[k]),
+                appUrl: config.appUrl,
+                plans: config.plans,
                 webSearch: config.openai.webSearch,
                 chatPerMinute: config.limits.chatPerMinute,
                 globalChatPerMinute: config.limits.globalChatPerMinute,
@@ -262,9 +270,9 @@ function createAdmin(config, stats, extras = {}) {
             return true;
         }
 
-        // ---------- الاشتراكات والإيرادات (تتطلب جلسة أدمن) ----------
-        if (p.startsWith("/api/admin/licenses") || p.startsWith("/api/admin/export/")) {
-            return await billingRoutes(req, res, p), true;
+        // ---------- المستخدمون والمدفوعات والإيرادات (تتطلب جلسة أدمن) ----------
+        if (p.startsWith("/api/admin/users") || p.startsWith("/api/admin/payments") || p === "/api/admin/revenue" || p.startsWith("/api/admin/export/")) {
+            return await manageRoutes(req, res, p, url), true;
         }
 
         http.sendJson(res, 404, { error: "Not found" });
@@ -294,38 +302,99 @@ function createAdmin(config, stats, extras = {}) {
         res.end(body);
     }
 
-    async function billingRoutes(req, res, p) {
-        const billing = extras.billing;
+    function adminUserView(u) {
+        const plan = planOf(u);
+        return {
+            id: u.id, email: u.email, name: u.name, providers: Object.keys(u.providers || {}), hasPassword: Boolean(u.pw),
+            emailVerified: Boolean(u.emailVerified), disabled: Boolean(u.disabled),
+            createdAt: new Date(u.createdAt).toISOString(), lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
+            plan: plan.id, planSource: plan.source, planUntil: plan.until ? new Date(plan.until).toISOString() : null,
+            paidUntil: u.paidUntil ? new Date(u.paidUntil).toISOString() : null
+        };
+    }
+
+    const csvCell = value => {
+        let text = String(value === undefined || value === null ? "" : value);
+        // يمنع حقن الصيغ عند فتح الملف بـ Excel
+        if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g, '""') + '"';
+    };
+    const toCsv = (header, rows) => "\ufeff" + [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
+
+    async function manageRoutes(req, res, p, url) {
+        const users = extras.users;
         const session = currentSession(req);
-        if (!billing) return http.sendJson(res, 404, { error: "Not found" });
+        if (!users) return http.sendJson(res, 404, { error: "Not found" });
         if (!session) return http.sendJson(res, 401, { error: "Unauthorized" });
         const ip = http.getClientIp(req, config);
-
-        if (p === "/api/admin/licenses") {
-            if (req.method === "GET") return http.sendJson(res, 200, billing.overview());
-            if (req.method !== "POST") return methodNotAllowed(res, "GET, POST");
-            const body = await adminPostBody(req, res);
-            if (body === undefined) return;
-            const result = await billing.create(body, ip);
-            if (result.error) return http.sendJson(res, result.status, { error: result.error });
-            return http.sendJson(res, 201, { license: result.license, key: result.key });
+        try {
+            if (p === "/api/admin/users" && req.method === "GET") {
+                const offset = Math.max(0, Math.min(1e6, Number(url.searchParams.get("offset")) || 0));
+                const result = await users.listUsers({ offset, limit: 50, query: String(url.searchParams.get("q") || "").slice(0, 254) });
+                return http.sendJson(res, 200, { total: result.total, offset, users: result.users.map(adminUserView) });
+            }
+            if (p === "/api/admin/users/action") {
+                if (req.method !== "POST") return methodNotAllowed(res, "POST");
+                const body = await adminPostBody(req, res);
+                if (body === undefined) return;
+                const id = String(body.id || "");
+                if (body.action === "disable" || body.action === "enable") {
+                    const user = await users.setDisabled(id, body.action === "disable");
+                    stats.event("admin_user", `${body.action === "disable" ? "إيقاف" : "تفعيل"} حساب`, ip);
+                    return http.sendJson(res, 200, { user: adminUserView(user) });
+                }
+                if (body.action === "grant") {
+                    const months = Number(body.months);
+                    if (![1, 3, 6, 12].includes(months)) return http.sendJson(res, 400, { error: "مدة غير صالحة." });
+                    const user = await users.extend(id, months);
+                    stats.event("admin_user", `منح اشتراك Pro يدوياً (${months} شهر)`, ip);
+                    return http.sendJson(res, 200, { user: adminUserView(user) });
+                }
+                if (body.action === "reset-link") {
+                    const token = await users.createResetLink(id);
+                    stats.event("admin_user", "إصدار رابط إعادة تعيين كلمة السر", ip);
+                    return http.sendJson(res, 200, { link: `${config.appUrl}/login?reset=${token}`, expiresInMinutes: 60 });
+                }
+                return http.sendJson(res, 400, { error: "إجراء غير معروف." });
+            }
+            if (p === "/api/admin/payments" && req.method === "GET") {
+                const status = url.searchParams.get("status") === "pending" ? "pending" : "all";
+                return http.sendJson(res, 200, { payments: await users.listPayments({ status, limit: 300 }), methods: config.payment.methods });
+            }
+            if (p === "/api/admin/payments/decide") {
+                if (req.method !== "POST") return methodNotAllowed(res, "POST");
+                const body = await adminPostBody(req, res);
+                if (body === undefined) return;
+                const result = await users.decidePayment(String(body.id || ""), { approve: body.approve === true, admin: session.user, reason: body.reason });
+                stats.event("payment_decision", `${result.payment.status === "approved" ? "موافقة" : "رفض"} طلب دفع (${result.payment.months} شهر)`, ip);
+                return http.sendJson(res, 200, { payment: result.payment, user: result.user ? adminUserView(result.user) : null });
+            }
+            if (p === "/api/admin/revenue" && req.method === "GET") {
+                return http.sendJson(res, 200, await users.revenue());
+            }
+            if (p === "/api/admin/export/users.csv" && req.method === "GET") {
+                const all = [];
+                for (let offset = 0; offset < 20000; offset += 500) {
+                    const page = await users.listUsers({ offset, limit: 500 });
+                    all.push(...page.users);
+                    if (page.users.length < 500) break;
+                }
+                stats.event("export", "تصدير المستخدمين CSV", ip);
+                const rows = all.map(adminUserView).map(u => [u.email, u.name, u.plan, u.planSource, u.planUntil || "", u.providers.join(" "), u.createdAt, u.lastLoginAt || "", u.disabled ? "yes" : ""]);
+                return sendDownload(res, "text/csv; charset=utf-8", "users.csv", toCsv(["email", "name", "plan", "source", "until", "providers", "created", "last_login", "disabled"], rows));
+            }
+            if (p === "/api/admin/export/payments.csv" && req.method === "GET") {
+                const list = await users.listPayments({ limit: 5000 });
+                stats.event("export", "تصدير المدفوعات CSV", ip);
+                const rows = list.map(x => [x.id, x.email, x.method, x.months, x.amountUsd, x.amountIqd, x.reference, x.status, new Date(x.createdAt).toISOString(), x.decidedAt ? new Date(x.decidedAt).toISOString() : "", x.decidedBy, x.reason]);
+                return sendDownload(res, "text/csv; charset=utf-8", "payments.csv", toCsv(["id", "email", "method", "months", "usd", "iqd", "reference", "status", "created", "decided", "by", "reason"], rows));
+            }
+            return http.sendJson(res, 404, { error: "Not found" });
+        } catch (error) {
+            if (error instanceof UserError) return http.sendJson(res, error.status, { error: error.message });
+            if (error && error.name === "UpstashError") return http.sendJson(res, 503, { error: "تعذر الوصول لقاعدة البيانات." });
+            throw error;
         }
-        if (p === "/api/admin/licenses/revoke") {
-            if (req.method !== "POST") return methodNotAllowed(res, "POST");
-            const body = await adminPostBody(req, res);
-            if (body === undefined) return;
-            const result = await billing.revoke(body.id, ip);
-            return http.sendJson(res, result.status, result.error ? { error: result.error } : { ok: true });
-        }
-        if (p === "/api/admin/export/sales.csv" && req.method === "GET") {
-            stats.event("export", "تصدير سجل المبيعات CSV", ip);
-            return sendDownload(res, "text/csv; charset=utf-8", "sales.csv", billing.csv());
-        }
-        if (p === "/api/admin/export/backup.json" && req.method === "GET") {
-            stats.event("export", "تصدير نسخة احتياطية JSON", ip);
-            return sendDownload(res, "application/json; charset=utf-8", "billing-backup.json", JSON.stringify(billing.backup(), null, 2));
-        }
-        return http.sendJson(res, 404, { error: "Not found" });
     }
 
     return { handle, enabled };

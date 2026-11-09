@@ -12,7 +12,20 @@ const EVENT_LABELS = {
     logout: ["تسجيل خروج", ""],
     client_error: ["خطأ بمتصفح زائر", "warn"],
     server_error: ["خطأ بالخادم", "bad"],
-    process_crash: ["انهيار العملية (تُعاد تلقائياً)", "bad"]
+    process_crash: ["انهيار العملية (تُعاد تلقائياً)", "bad"],
+    register: ["حساب جديد", "ok"],
+    register_throttled: ["حد إنشاء الحسابات", "warn"],
+    password_reset: ["إعادة تعيين كلمة سر", ""],
+    password_change: ["تغيير كلمة سر", ""],
+    account_deleted: ["حذف حساب", "warn"],
+    payment_request: ["طلب دفع جديد", "ok"],
+    payment_decision: ["قرار على طلب دفع", ""],
+    admin_user: ["إجراء أدمن على مستخدم", ""],
+    oauth_failed: ["فشل دخول خارجي", "warn"],
+    chat_error: ["عطل مزوّد CyberBot", "bad"],
+    db_error: ["عطل قاعدة البيانات", "bad"],
+    intel: ["قوائم التهديدات", "warn"],
+    export: ["تصدير بيانات", ""]
 };
 const HEALTH_LABELS = { ok: ["سليم", "ok"], degraded: ["متدهور (تحذير)", "warn"], critical: ["حرج (ستُعاد الخدمة تلقائياً)", "bad"] };
 
@@ -45,12 +58,17 @@ function renderCards(data) {
         ["كل الطلبات", c.requests, ""],
         ["أخطاء متصفحات الزوار", c.clientErrors, c.clientErrors ? "warn" : ""],
         ["أخطاء الخادم", c.serverErrors, c.serverErrors ? "bad" : ""],
+        ["حسابات جديدة (منذ التشغيل)", c.registrations, "ok"],
+        ["تسجيلات دخول المستخدمين", c.userLogins, ""],
+        ["طلبات دفع جديدة", c.paymentRequests, c.paymentRequests ? "ok" : ""],
+        ["مرات الوصول للحد اليومي", c.quotaExceeded, ""],
         ["رسائل CyberBot الناجحة", c.chatOk, "ok"],
         ["أخطاء CyberBot", c.chatErrors, c.chatErrors ? "warn" : ""],
         ["طلبات رُفضت بالحد", c.rateLimited, c.rateLimited ? "warn" : ""],
         ["طلبات حُجبت (مصدر غير مسموح)", c.blockedRequests, c.blockedRequests ? "bad" : ""],
-        ["دخول ناجح", c.loginOk, "ok"],
-        ["دخول فاشل", c.loginFailed, c.loginFailed ? "bad" : ""]
+        ["دخول أدمن ناجح", c.loginOk, "ok"],
+        ["دخول أدمن فاشل", c.loginFailed, c.loginFailed ? "bad" : ""],
+        ["دخول مستخدم فاشل", c.userLoginFailed, c.userLoginFailed ? "warn" : ""]
     ];
     const box = document.getElementById("cards");
     box.replaceChildren(...cards.map(([label, value, tone]) => {
@@ -127,7 +145,13 @@ function renderInfo(data) {
         ["إصدار Node.js", data.server.node],
         ["ذاكرة الخادم", data.server.memoryMb + " MB"],
         ["بدأ التشغيل", new Date(data.startedAt).toLocaleString("ar-IQ")],
-        ["CyberBot مربوط بنموذج ذكاء اصطناعي", yesNo(data.config.chatConfigured)],
+        ["عنوان الموقع (APP_URL)", data.config.appUrl],
+        ["قاعدة البيانات", data.config.database ? (data.config.database.backend === "upstash" ? "Upstash (دائمة)" : "ذاكرة فقط") + (data.config.database.warning ? " ⚠ " + data.config.database.warning : "") : "—"],
+        ["الدخول الخارجي المفعّل", (data.config.oauth || []).join("، ") || "لا شيء (بريد فقط)"],
+        ["السعر الشهري / التجربة", data.config.plans ? `${data.config.plans.priceUsd}$ ≈ ${data.config.plans.priceIqd} د.ع / ${data.config.plans.trialDays} يوماً` : "—"],
+        ["قوائم التهديدات", data.config.intel ? (data.config.intel.enabled ? `${data.config.intel.urls} رابط محمّل` + Object.values(data.config.intel.feeds).map(f => ` | ${f.label}: ${f.count}${f.error ? " (خطأ: " + f.error + ")" : ""}`).join("") : "معطّلة") : "—"],
+        ["CyberBot مربوط بنموذج ذكاء اصطناعي", yesNo(data.config.chatConfigured) + (data.config.chat && data.config.chat.model ? ` (${data.config.chat.model}, ${data.config.chat.style})` : "")],
+        ["آخر عطل بمزوّد CyberBot", data.config.chat && data.config.chat.lastError ? data.config.chat.lastError : "لا يوجد"],
         ["البحث على الإنترنت بـ CyberBot", yesNo(data.config.webSearch)],
         ["حد CyberBot لكل زائر بالدقيقة", data.config.chatPerMinute],
         ["الحد العام لـ CyberBot بالدقيقة", data.config.globalChatPerMinute],

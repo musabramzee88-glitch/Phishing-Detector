@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول | Phishing Detector</title>
+    <meta name="description" content="Phishing Detector من فريق ApexSec: افحص الروابط والرسائل والملفات واحمِ نفسك من التصيد الإلكتروني.">
+    <link rel="icon" type="image/png" href="/img/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body data-theme="dark" class="auth-body">
+    <main class="auth-shell">
+        <section class="auth-brand" aria-label="عن الموقع">
+            <div class="auth-brand-top">
+                <img src="/img/logo.png" alt="" class="auth-logo">
+                <div>
+                    <strong>Phishing Detector</strong>
+                    <span>by ApexSec</span>
+                </div>
+            </div>
+            <h1>اكشف التصيد قبل ما يكشفك.</h1>
+            <p class="auth-lead">افحص أي رابط أو رسالة أو ملف بثواني، بمحرك متعدد الطبقات وقوائم تهديدات محدّثة ومساعد ذكي يفهم لهجتك.</p>
+            <ul class="auth-points">
+                <li><i class="fa-solid fa-shield-halved"></i> كشف انتحال المواقع والأحرف المتشابهة والروابط المختصرة</li>
+                <li><i class="fa-solid fa-comment-sms"></i> تحليل رسائل الاحتيال بالعربية والعراقية والإنكليزية</li>
+                <li><i class="fa-solid fa-robot"></i> CyberBot يفحص الروابط ويشرح لك النتيجة</li>
+                <li><i class="fa-solid fa-lock"></i> ملفاتك تُفحص داخل جهازك ولا تُرفع</li>
+            </ul>
+            <div class="auth-offer" id="trialOffer">
+                <i class="fa-solid fa-gift"></i>
+                <div>
+                    <strong>أول شهر Pro مجاناً</strong>
+                    <span id="trialOfferText">لكل حساب جديد، وبعدها 2$ شهرياً أو الخطة المجانية.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="auth-card" aria-label="الدخول">
+            <div id="authNotice" class="auth-notice" role="alert" hidden></div>
+
+            <div id="authMain">
+                <div class="auth-tabs" role="tablist">
+                    <button type="button" class="auth-tab active" data-mode="login" role="tab" aria-selected="true">تسجيل الدخول</button>
+                    <button type="button" class="auth-tab" data-mode="register" role="tab" aria-selected="false">حساب جديد</button>
+                </div>
+
+                <div id="providerButtons" class="provider-list" hidden></div>
+                <div id="providerDivider" class="auth-divider" hidden><span>أو بالبريد الإلكتروني</span></div>
+
+                <form id="authForm" class="auth-form" novalidate>
+                    <label id="nameField" class="auth-field" hidden>
+                        <span>الاسم</span>
+                        <input type="text" id="authName" name="name" maxlength="60" autocomplete="name" placeholder="اسمك أو اسم مؤسستك">
+                    </label>
+                    <label class="auth-field">
+                        <span>البريد الإلكتروني</span>
+                        <input type="email" id="authEmail" name="email" maxlength="254" autocomplete="email" inputmode="email" dir="ltr" placeholder="name@example.com" required>
+                    </label>
+                    <label class="auth-field">
+                        <span>كلمة السر</span>
+                        <div class="password-wrap">
+                            <input type="password" id="authPassword" name="password" minlength="8" maxlength="200" autocomplete="current-password" dir="ltr" required>
+                            <button type="button" class="password-toggle" id="togglePassword" aria-label="إظهار كلمة السر"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                        <small id="passwordHint" class="auth-hint" hidden>8 أحرف على الأقل. استخدم جملة يصعب تخمينها.</small>
+                    </label>
+                    <button type="submit" class="auth-submit" id="authSubmit">
+                        <span id="authSubmitText">دخول</span>
+                    </button>
+                    <p class="auth-small" id="registerTerms" hidden>بإنشاء الحساب توافق على استخدام الموقع لأغراض الحماية والتوعية فقط.</p>
+                    <p class="auth-small" id="forgotHint">نسيت كلمة السر؟ تواصل مع الدعم ليرسل لك رابط إعادة تعيين.</p>
+                </form>
+            </div>
+
+            <form id="resetForm" class="auth-form" hidden novalidate>
+                <h2 class="auth-title">تعيين كلمة سر جديدة</h2>
+                <label class="auth-field">
+                    <span>كلمة السر الجديدة</span>
+                    <input type="password" id="resetPassword" minlength="8" maxlength="200" autocomplete="new-password" dir="ltr" required>
+                </label>
+                <button type="submit" class="auth-submit">حفظ والدخول</button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="auth-footer">
+        فريق ApexSec — جامعة تكريت، كلية علوم الحاسوب والرياضيات، قسم الأمن السيبراني
+    </footer>
+
+    <script src="/js/login.js"></script>
+</body>
+</html>

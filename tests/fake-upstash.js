@@ -1,48 +1,32 @@
 'use strict';
 
 /*
-  خادم يقلّد واجهة REST الخاصة بـ Upstash Redis (الأوامر التي نستخدمها فقط) لاختبار التخزين بدون حساب حقيقي.
-  يدعم: POST / بأمر واحد، POST /pipeline بعدة أوامر، توثيق Bearer، ومحاكاة الانقطاع (stop/start بنفس المنفذ والبيانات).
+  خادم يقلّد واجهة REST الخاصة بـ Upstash Redis لاختبار القاعدة بدون حساب حقيقي.
+  الأوامر نفسها تُنفَّذ بنسخة الذاكرة (server/db.js)، والخادم يضيف: POST / لأمر واحد، POST /pipeline لعدة أوامر،
+  توثيق Bearer، ومحاكاة الانقطاع (stop/start بنفس المنفذ والبيانات).
   الوثائق: https://upstash.com/docs/redis/features/restapi
 */
 
 const http = require('node:http');
+const { createMemoryDb } = require('../server/db');
 
 function createFakeUpstash({ token }) {
-    const hashes = new Map();
-    const sets = new Map();
+    const memory = createMemoryDb();
     const authHeaders = [];
     const commands = [];
-    let objectHashes = false;     // HGETALL يرجع كائناً بدل مصفوفة مسطحة
+    let objectHashes = false;     // HGETALL يرجع كائناً بدل مصفوفة مسطحة (كلا الشكلين ممكن)
     let server = null;
     let port = 0;
 
     function exec(args) {
-        const [name, key, ...rest] = args;
-        commands.push([String(name).toUpperCase(), key, ...rest]);
-        switch (String(name).toUpperCase()) {
-            case 'PING': return 'PONG';
-            case 'HSETNX': {
-                const hash = hashes.get(key) || new Map();
-                hashes.set(key, hash);
-                if (hash.has(rest[0])) return 0;
-                hash.set(rest[0], rest[1]);
-                return 1;
-            }
-            case 'HGETALL': {
-                const hash = hashes.get(key) || new Map();
-                return objectHashes ? Object.fromEntries(hash) : [...hash].flat();
-            }
-            case 'SADD': {
-                const set = sets.get(key) || new Set();
-                sets.set(key, set);
-                let added = 0;
-                for (const member of rest) if (!set.has(member)) { set.add(member); added += 1; }
-                return added;
-            }
-            case 'SMEMBERS': return [...(sets.get(key) || [])];
-            default: throw new Error('ERR unknown command ' + name);
+        commands.push(args.map(String));
+        const result = memory.runSync(args);
+        if (objectHashes && String(args[0]).toUpperCase() === 'HGETALL') {
+            const out = {};
+            for (let i = 0; i + 1 < result.length; i += 2) out[result[i]] = result[i + 1];
+            return out;
         }
+        return result;
     }
 
     function handler(req, res) {
@@ -61,10 +45,10 @@ function createFakeUpstash({ token }) {
             try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(400, { error: 'ERR invalid JSON' }); }
             if (req.url === '/pipeline') {
                 if (!Array.isArray(body) || !body.every(Array.isArray)) return send(400, { error: 'ERR invalid pipeline' });
-                return send(200, body.map(cmd => { try { return { result: exec(cmd) }; } catch (e) { return { error: e.message }; } }));
+                return send(200, body.map(cmd => { try { return { result: exec(cmd) }; } catch (e) { return { error: 'ERR ' + e.message }; } }));
             }
             if (req.url === '/' && Array.isArray(body)) {
-                try { return send(200, { result: exec(body) }); } catch (e) { return send(400, { error: e.message }); }
+                try { return send(200, { result: exec(body) }); } catch (e) { return send(400, { error: 'ERR ' + e.message }); }
             }
             return send(400, { error: 'ERR bad request' });
         });
@@ -83,7 +67,7 @@ function createFakeUpstash({ token }) {
             server = null;
             await new Promise(resolve => { closing.closeAllConnections(); closing.close(resolve); });
         },
-        hashes, sets, authHeaders, commands,
+        memory, authHeaders, commands,
         setObjectHashes(value) { objectHashes = value; }
     };
 }

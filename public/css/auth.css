@@ -1,0 +1,189 @@
+/* ==========================================
+   صفحة الدخول + عناصر الحساب والخطط داخل التطبيق
+   تعتمد على متغيرات المظاهر في style.css
+   ========================================== */
+
+/* الخاصية hidden تتغلب دائماً على display الخاص بالأصناف */
+[hidden] { display: none !important; }
+
+.auth-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+        radial-gradient(1200px 600px at 85% -10%, var(--accent-glow), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, var(--accent-glow), transparent 55%),
+        var(--bg-primary);
+}
+
+.auth-shell {
+    flex: 1;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 20px 24px;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    align-items: center;
+}
+
+.auth-brand-top { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.auth-brand-top strong { display: block; font-size: 1.15rem; }
+.auth-brand-top span { color: var(--text-muted); font-size: .8rem; letter-spacing: .04em; }
+.auth-logo { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; border: 1px solid var(--border-color); box-shadow: 0 0 24px var(--accent-glow); }
+.auth-brand h1 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); font-weight: 800; line-height: 1.3; margin-bottom: 14px; }
+.auth-lead { color: var(--text-muted); font-size: 1.02rem; line-height: 1.9; max-width: 520px; }
+.auth-points { list-style: none; padding: 0; margin: 26px 0; display: grid; gap: 12px; }
+.auth-points li { display: flex; gap: 12px; align-items: center; font-size: .95rem; }
+.auth-points i { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--nav-bg); color: var(--accent-blue); border: 1px solid var(--border-color); flex-shrink: 0; }
+
+.auth-offer {
+    display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px;
+    border: 1px solid var(--accent-blue); background: linear-gradient(135deg, var(--nav-bg), transparent);
+    max-width: 520px;
+}
+.auth-offer i { font-size: 1.4rem; color: var(--accent-blue); }
+.auth-offer strong { display: block; }
+.auth-offer span { color: var(--text-muted); font-size: .85rem; }
+
+.auth-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 30px 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+}
+.auth-title { font-size: 1.3rem; margin-bottom: 8px; }
+
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--nav-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 4px; margin-bottom: 22px; }
+.auth-tab { background: none; border: 0; color: var(--text-muted); font: inherit; font-weight: 700; padding: 10px; border-radius: 9px; cursor: pointer; transition: .2s; }
+.auth-tab.active { background: var(--bg-primary); color: var(--text-main); box-shadow: 0 2px 10px rgba(0, 0, 0, .2); }
+
+.provider-list { display: grid; gap: 10px; }
+.provider-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
+    background: var(--nav-bg); color: var(--text-main); text-decoration: none; font-weight: 700; transition: .2s;
+}
+.provider-btn:hover { border-color: var(--accent-blue); transform: translateY(-1px); }
+.provider-btn i { font-size: 1.1rem; }
+.provider-google i { color: #ea4335; }
+.provider-microsoft i { color: #00a4ef; }
+
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: .82rem; margin: 20px 0 6px; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-color); }
+
+.auth-form { display: grid; gap: 14px; margin-top: 12px; }
+.auth-form.busy { opacity: .7; }
+.auth-field { display: grid; gap: 6px; font-size: .9rem; font-weight: 700; }
+.auth-field input, .app-input, .app-select {
+    width: 100%; padding: 12px 14px; border-radius: 11px; border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, .18); color: var(--text-main); font: inherit; font-weight: 500; outline: none; transition: border-color .2s, box-shadow .2s;
+}
+[data-theme="light"] .auth-field input, [data-theme="light"] .app-input, [data-theme="light"] .app-select { background: #f8fafc; }
+.auth-field input:focus, .app-input:focus, .app-select:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
+.app-select option { color: #111; }
+.password-wrap { position: relative; }
+.password-wrap input { padding-left: 44px; }
+.password-toggle { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--text-muted); cursor: pointer; padding: 8px; }
+.auth-hint, .auth-small { color: var(--text-muted); font-size: .78rem; font-weight: 500; }
+.auth-small { text-align: center; }
+
+.auth-submit, .app-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 18px; border-radius: 12px; border: 0; cursor: pointer; font: inherit; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent-blue), #0072ff); color: #06101f; transition: transform .15s, opacity .2s;
+}
+.auth-submit:hover, .app-btn:hover { transform: translateY(-1px); }
+.auth-submit:disabled, .app-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.app-btn.secondary { background: var(--nav-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+.app-btn.danger { background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); }
+.app-btn.small { padding: 8px 12px; font-size: .85rem; border-radius: 10px; }
+
+.auth-notice { padding: 11px 14px; border-radius: 11px; font-size: .9rem; margin-bottom: 14px; }
+.auth-notice.error { background: rgba(255, 23, 68, .12); border: 1px solid rgba(255, 23, 68, .4); color: var(--accent-red); }
+.auth-notice.success { background: rgba(0, 230, 118, .12); border: 1px solid rgba(0, 230, 118, .4); color: var(--accent-green); }
+
+.auth-footer { text-align: center; color: var(--text-muted); font-size: .78rem; padding: 18px; }
+
+@media (max-width: 860px) {
+    .auth-shell { grid-template-columns: 1fr; gap: 28px; padding-top: 28px; }
+    .auth-points { display: none; }
+    .auth-brand h1 { font-size: 1.7rem; }
+}
+
+/* ---------- داخل التطبيق: المستخدم والخطة ---------- */
+
+.user-menu { position: relative; }
+.user-chip {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 999px;
+    border: 1px solid var(--border-color); background: var(--nav-bg); color: var(--text-main); cursor: pointer; font: inherit;
+}
+.user-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: linear-gradient(135deg, var(--accent-blue), #0072ff); color: #06101f; }
+.user-chip-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: .88rem; }
+.plan-badge { font-size: .7rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--nav-bg); color: var(--text-muted); border: 1px solid var(--border-color); white-space: nowrap; }
+.plan-badge.pro { color: #06101f; background: linear-gradient(135deg, #ffd166, #ffab00); border-color: transparent; }
+.user-dropdown {
+    position: absolute; left: 0; top: calc(100% + 8px); min-width: 230px; z-index: 50; display: none;
+    background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 8px; box-shadow: 0 16px 40px rgba(0, 0, 0, .35);
+}
+.user-dropdown.show { display: block; }
+.user-dropdown .dd-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; }
+.user-dropdown .dd-head small { color: var(--text-muted); display: block; direction: ltr; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+.user-dropdown button { display: flex; gap: 10px; align-items: center; width: 100%; background: none; border: 0; color: var(--text-main); padding: 10px; border-radius: 9px; cursor: pointer; font: inherit; text-align: right; }
+.user-dropdown button:hover { background: var(--nav-bg); }
+
+.plan-banner {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    max-width: 1100px; margin: 14px auto 0; padding: 12px 16px; border-radius: 14px;
+    border: 1px solid var(--border-color); background: var(--bg-card); font-size: .9rem;
+}
+.plan-banner[hidden] { display: none; }
+.plan-banner .usage { display: flex; gap: 16px; flex-wrap: wrap; color: var(--text-muted); }
+.meter { width: 120px; height: 6px; border-radius: 99px; background: var(--nav-bg); overflow: hidden; display: inline-block; vertical-align: middle; margin-inline-start: 6px; }
+.meter > span { display: block; height: 100%; background: var(--accent-blue); }
+
+/* ---------- صفحة الحساب والخطط ---------- */
+
+.account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.plan-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 18px; }
+.plan-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 22px; position: relative; }
+.plan-card.featured { border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue), 0 12px 40px var(--accent-glow); }
+.plan-card h3 { font-size: 1.2rem; margin-bottom: 6px; }
+.plan-price { font-size: 2rem; font-weight: 800; margin: 6px 0; }
+.plan-price small { font-size: .9rem; color: var(--text-muted); font-weight: 500; }
+.plan-card ul { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; font-size: .9rem; }
+.plan-card li::before { content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; color: var(--accent-green); margin-inline-end: 8px; }
+.plan-ribbon { position: absolute; top: 14px; left: 14px; font-size: .72rem; font-weight: 800; padding: 4px 10px; border-radius: 99px; background: var(--accent-blue); color: #06101f; }
+.current-tag { display: inline-block; margin-top: 14px; font-size: .8rem; color: var(--accent-green); font-weight: 700; }
+
+.pay-methods { display: grid; gap: 10px; margin: 12px 0; }
+.pay-method { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--nav-bg); }
+.pay-method code { direction: ltr; font-size: .95rem; user-select: all; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0; }
+.form-row label { display: grid; gap: 6px; font-size: .85rem; font-weight: 700; }
+
+.status-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .75rem; font-weight: 800; }
+.status-pending { background: rgba(255, 171, 0, .15); color: var(--accent-yellow); }
+.status-approved { background: rgba(0, 230, 118, .15); color: var(--accent-green); }
+.status-rejected { background: rgba(255, 23, 68, .15); color: var(--accent-red); }
+
+.simple-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.simple-table th, .simple-table td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); text-align: right; vertical-align: top; }
+.simple-table th { color: var(--text-muted); font-weight: 700; }
+
+.api-key-box { direction: ltr; text-align: left; font-family: ui-monospace, Consolas, monospace; padding: 12px; border-radius: 10px; background: rgba(0, 0, 0, .25); border: 1px dashed var(--accent-blue); word-break: break-all; margin: 10px 0; }
+.muted { color: var(--text-muted); }
+.inline-msg { font-size: .85rem; margin-top: 8px; min-height: 1.2em; }
+.inline-msg.ok { color: var(--accent-green); }
+.inline-msg.err { color: var(--accent-red); }
+
+.upgrade-callout { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px dashed var(--accent-blue); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+
+.chat-mode-note { font-size: .78rem; color: var(--text-muted); margin-top: 6px; }
+
+@media (max-width: 640px) {
+    .user-chip-name { display: none; }
+    .plan-banner { margin: 10px 12px 0; }
+}

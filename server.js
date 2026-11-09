@@ -1,56 +1,77 @@
 "use strict";
 
 /*
-  خادم Phishing Detector. بدون أي مكتبات خارجية (Node.js 20 أو أحدث).
+  خادم Phishing Detector (ApexSec). بدون أي مكتبات خارجية (Node.js 20 أو أحدث).
 
-  المسارات:
-    /                 الموقع (ملفات مجلد public/)
-    /healthz          فحص الصحة لـ Render ولأدوات المراقبة (503 إذا كان النظام بحالة حرجة)
-    /api/chat         جسر CyberBot (المفتاح يبقى على الخادم)
-    /api/event        إحصاءات مجهولة من الصفحة (نوع الفحص ونتيجته فقط)
-    /api/client-error تقارير أخطاء متصفحات الزوار (للمراقبة فقط)
-    /api/pricing      الباقات (عام)،  /api/license/check  التحقق من مفتاح،  /api/pro/scan-urls  فحص جماعي (مفتاح)
+  الصفحات:
+    /login            تسجيل الدخول وإنشاء الحساب (أول صفحة يراها الزائر)
+    /                 التطبيق (يتطلب تسجيل الدخول، وإلا يحوَّل إلى /login)
     /admin            لوحة الأدمن (مغلقة إلا إذا ضُبط ADMINS)
+  الواجهات:
+    /api/auth/*, /auth/<provider>/*   الحسابات والدخول (server/auth.js)
+    /api/account/*, /api/billing/*    الحساب والاشتراك
+    /api/scan/*, /api/v1/*            الفحص (server/scan.js)
+    /api/chat                         CyberBot (server/chat.js)
+    /api/event, /api/client-error     إحصاءات مجهولة وتقارير أخطاء المتصفح
+    /healthz                          فحص الصحة لـ Render
 
-  الإعدادات: انظر server/config.js. الأدمن: npm run make-admin
+  الإعدادات: server/config.js و README.md
 */
 
 const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
 const { loadConfig } = require("./server/config");
 const h = require("./server/http");
 const { createRateLimiter } = require("./server/rate-limit");
 const { createStats, cleanText } = require("./server/stats");
 const { createHealthMonitor } = require("./server/health");
 const { createVisitorCounter } = require("./server/visitors");
+const { openDb } = require("./server/db");
+const { createUsers } = require("./server/users");
+const { createOAuth } = require("./server/oauth");
+const { createAuth } = require("./server/auth");
+const { createIntel } = require("./server/intel");
+const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
-const { createLicenseManager } = require("./server/license");
-const { createStore, openStore } = require("./server/store");
-const { createBilling } = require("./server/billing");
-const { createPro } = require("./server/pro");
 const { createAdmin } = require("./server/admin");
 const { serveStatic } = require("./server/static");
 
 const CLIENT_ERROR_KINDS = new Set(["error", "promise", "action"]);
 
-function createApp(config = loadConfig()) {
+function createApp(config = loadConfig(), overrides = {}) {
     const audit = config.auditStdout ? entry => console.log(JSON.stringify({ audit: true, ...entry })) : undefined;
     const stats = createStats({ audit });
     const visitors = createVisitorCounter();
     const health = createHealthMonitor(config.health);
-    const chatLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.chatPerMinute, globalMax: config.limits.globalChatPerMinute });
     const eventLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.eventPerMinute });
     const errorLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.clientErrorPerMinute, globalMax: config.limits.globalClientErrorPerMinute });
     const currentHealth = () => health.evaluate(stats.recent("client_error", 5 * 60_000));
-    // الاشتراكات: بدون LICENSE_SECRET تبقى مغلقة، ولا يُنشأ أي ملف بيانات
-    const license = createLicenseManager(config.billing.licenseSecret);
-    const store = license.enabled ? openStore(config.billing) : createStore(null);
-    const billing = createBilling({ store, license, stats, onRender: config.onRender });
-    const pro = createPro({ config, license, store, stats });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, billing, license });
-    const chat = createChatHandler(config, chatLimiter, stats);
 
-    // نقاط الاستقبال الصغيرة (POST/JSON من صفحاتنا فقط). كل واحدة تقبل بيانات محددة وتتجاهل أي شيء آخر.
-    // يرجع كائن JSON صالحاً، أو undefined بعد أن يكون ردّ بالخطأ المناسب (فعلى المنادي أن يتوقف)
+    const db = overrides.db || openDb(config);
+    const users = createUsers({ db, config, now: overrides.now });
+    const oauth = createOAuth({ config, db, fetchImpl: overrides.fetch || fetch });
+    const intel = overrides.intel || createIntel({ enabled: config.intel.enabled, log: message => stats.event("intel", message, "") });
+    const auth = createAuth({ config, users, oauth, stats });
+    const scan = createScan({ config, users, auth, intel, stats });
+    const chat = createChatHandler({ config, users, auth, scan, stats });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status });
+
+    const pages = {
+        app: fs.readFileSync(path.join(config.publicDir, "index.html")),
+        login: fs.readFileSync(path.join(config.publicDir, "login.html"))
+    };
+
+    function sendPage(req, res, body) {
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store" });
+        res.end(req.method === "HEAD" ? undefined : body);
+    }
+
+    function redirect(res, location) {
+        res.writeHead(302, { Location: location, "Cache-Control": "no-store" });
+        res.end();
+    }
+
     async function readClientJson(req, res, limiter, maxBytes) {
         const reject = (status, error, headers) => { h.sendJson(res, status, { error }, headers); return undefined; };
         if (req.method !== "POST") return reject(405, "Method not allowed", { Allow: "POST" });
@@ -66,7 +87,7 @@ function createApp(config = loadConfig()) {
         return body;
     }
 
-    // إحصاءات الفحص المجهولة: نقبل فقط نوعاً ونتيجة من قائمة محددة، ولا نخزّن أي شيء آخر
+    // إحصاءات مجهولة لفحوصات تتم داخل المتصفح (الوسائط): نوع ونتيجة فقط
     async function handleEvent(req, res) {
         const body = await readClientJson(req, res, eventLimiter, 512);
         if (body === undefined) return;
@@ -75,7 +96,6 @@ function createApp(config = loadConfig()) {
         res.end();
     }
 
-    // تقارير أخطاء المتصفح: نص قصير منظَّف + اسم الملف فقط (بدون روابط كاملة)
     async function handleClientError(req, res) {
         const body = await readClientJson(req, res, errorLimiter, 1024);
         if (body === undefined) return;
@@ -102,24 +122,35 @@ function createApp(config = loadConfig()) {
 
             if (pathname === "/healthz") {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
-                // حالة حرجة متواصلة => 503 => Render تعيد تشغيل الخدمة تلقائياً
                 const critical = currentHealth().status === "critical";
                 return h.sendText(res, critical ? 503 : 200, critical ? "unhealthy" : "ok");
             }
-            if (pathname === "/api/chat") return await chat(req, res);
+
+            // الصفحات: الدخول أولاً، والتطبيق للمسجّلين فقط
+            if (pathname === "/" || pathname === "/index.html" || pathname === "/login" || pathname === "/login.html") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                const user = await auth.currentUser(req);
+                const wantsLogin = pathname.startsWith("/login");
+                if (wantsLogin) {
+                    // رابط إعادة تعيين كلمة السر يُعرض حتى لو كان المستخدم داخلاً
+                    if (user && !url.searchParams.has("reset")) return redirect(res, "/");
+                    if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
+                    return sendPage(req, res, pages.login);
+                }
+                if (!user) return redirect(res, "/login");
+                if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
+                return sendPage(req, res, pages.app);
+            }
+
+            if (await auth.handle(req, res, url)) return;
+            if (await scan.handle(req, res, url)) return;
+            if (pathname === "/api/chat") return await chat.handle(req, res);
             if (pathname === "/api/event") return await handleEvent(req, res);
             if (pathname === "/api/client-error") return await handleClientError(req, res);
-            if (pathname === "/api/pricing") return pro.pricing(req, res);
-            if (pathname === "/api/license/check") return await pro.check(req, res);
-            if (pathname === "/api/pro/scan-urls") return await pro.scanUrls(req, res);
             if (await admin.handle(req, res, url)) return;
 
-            if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
-                visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
-            }
             serveStatic(req, res, pathname, config);
         } catch (error) {
-            // لا نكشف تفاصيل الخطأ للزائر أبداً
             console.error("Unhandled request error:", error && error.message);
             stats.count("serverErrors");
             stats.event("server_error", error && error.message, "");
@@ -128,34 +159,34 @@ function createApp(config = loadConfig()) {
         }
     });
 
-    // مهلات تحمي من الاتصالات البطيئة التي تستهلك موارد الخادم (Slowloris)
     server.headersTimeout = 15_000;
     server.requestTimeout = 60_000;
     server.keepAliveTimeout = 5_000;
     server.maxHeadersCount = 50;
-    server.on("close", () => { health.stop(); store.close(); });
+    server.on("close", () => { health.stop(); intel.stop(); });
 
-    // ready: انتهت أول محاولة لتحميل السجل (نجحت أو فشلت). الخادم لا يبدأ الاستماع قبلها.
-    return { server, stats, config, admin, visitors, store, ready: store.ready };
+    // نتأكد أن القاعدة تعمل قبل الاستماع (ونكمل حتى لو فشلت، مع تحذير)
+    const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }));
+
+    return { server, stats, config, admin, visitors, db, users, intel, scan, ready };
 }
 
 async function main() {
-    const { server, stats, config, admin, store, ready } = createApp();
-    await ready;
+    const { server, config, admin, db, intel, ready } = createApp();
+    const dbState = await ready;
 
     server.listen(config.port, config.host, () => {
-        console.log(`Phishing Detector listening at http://${config.host}:${config.port}`);
-        if (!config.openai.apiKey || !config.openai.model) console.log("CyberBot: set OPENAI_API_KEY and OPENAI_MODEL to enable AI replies.");
-        console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
-        if (config.billing.licenseSecret) {
-            console.log(`Billing store: ${store.state.backend}${store.state.persistent ? " (persistent)" : " (NOT persistent)"}.${store.state.error ? " " + store.state.error : ""}`);
-        } else {
-            console.log("Subscriptions disabled: set LICENSE_SECRET (run: npm run make-secret).");
-        }
+        console.log(`Phishing Detector listening at http://${config.host}:${config.port} (public URL: ${config.appUrl})`);
+        if (db.backend === "upstash") console.log(dbState.ok ? "Database: Upstash (persistent)." : `Database: Upstash UNREACHABLE (${dbState.error}). Logins will fail until it is back.`);
+        else console.log(config.onRender ? "WARNING: no UPSTASH_REDIS_REST_URL/TOKEN. Accounts live in memory and are LOST on every deploy." : "Database: in-memory (local development).");
         if (config.billing.upstashError) console.log(config.billing.upstashError);
+        const providers = Object.keys(config.oauth).filter(k => config.oauth[k]);
+        console.log(`Sign-in providers: email${providers.length ? ", " + providers.join(", ") : ""}.`);
+        console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
+        console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
+        intel.start();
     });
 
-    // Render يرسل SIGTERM عند كل نشر جديد: نُنهي الاتصالات الجارية بهدوء
     const shutdown = signal => {
         console.log(`${signal} received, shutting down.`);
         server.close(() => process.exit(0));
@@ -163,21 +194,11 @@ async function main() {
     };
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
-
-    // الوعد المرفوض (Promise) عادة يخص طلباً واحداً: نسجّله ونكمل.
     process.on("unhandledRejection", reason => {
-        const message = reason && reason.message ? reason.message : String(reason);
-        console.error("Unhandled rejection:", message);
-        stats.count("serverErrors");
-        stats.event("server_error", "unhandledRejection: " + message, "");
+        console.error("Unhandled rejection:", reason && reason.message ? reason.message : String(reason));
     });
-
-    // الاستثناء غير الملتقط يعني أن حالة العملية قد تكون تالفة. الأسلم: نسجّل ونخرج، وRender تعيد التشغيل تلقائياً.
-    // (إكمال العمل بعد استثناء مجهول قد يكمل بحالة فاسدة أو يسرّب بيانات بين الطلبات.)
     process.on("uncaughtException", error => {
         console.error("Fatal uncaught exception:", error && error.stack ? error.stack : error);
-        stats.count("serverErrors");
-        stats.event("process_crash", error && error.message, "");
         setTimeout(() => process.exit(1), 200);
     });
 }

@@ -60,8 +60,9 @@ test('/healthz يرد 503 عندما تكون الحالة حرجة بشكل م�
 test('لوحة الأدمن تعرض الزوار وصحة النظام، والزيارة تُحسب لصفحة الموقع فقط', async () => {
     const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
     await withServer(env, async app => {
-        await request(app, 'GET', '/', { headers: { 'User-Agent': 'TestBrowser/1' } });
-        await request(app, 'GET', '/', { headers: { 'User-Agent': 'TestBrowser/1' } });
+        await request(app, 'GET', '/login', { headers: { 'User-Agent': 'TestBrowser/1' } });
+        await request(app, 'GET', '/login', { headers: { 'User-Agent': 'TestBrowser/1' } });
+        await request(app, 'GET', '/', { headers: { 'User-Agent': 'TestBrowser/1' } });   // تحويل للدخول: لا يُحسب
         await request(app, 'GET', '/js/app.js');                      // ملف ثابت: لا يُحسب زيارة
         await request(app, 'GET', '/admin');                          // الأدمن: لا يُحسب
         await request(app, 'GET', '/healthz');

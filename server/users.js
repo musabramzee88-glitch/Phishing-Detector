@@ -1,0 +1,483 @@
+"use strict";
+
+/*
+  الحسابات والجلسات والاستهلاك وطلبات الدفع. منطق فقط (بدون HTTP)، فيسهل اختباره.
+
+  مفاتيح القاعدة (كلها تبدأ ببادئة STORE_PREFIX، الافتراضي pd):
+    u:<id>                 بيانات المستخدم (JSON)
+    email:<email>          -> id
+    oauth:<provider>:<sub> -> id
+    users                  ZSET بكل المستخدمين (الدرجة = وقت الإنشاء)
+    sess:<sha256(token)>   جلسة (JSON) تنتهي تلقائياً
+    use:<id>:<yyyymmdd>    عدّاد الاستهلاك اليومي (HASH: scan / chat)
+    hist:<id>              سجل الفحوصات (ZSET، لمشتركي Pro فقط)
+    apikey:<sha256(key)>   -> id
+    pay:<id>               طلب دفع (JSON)،  pays (ZSET الكل)،  pays:pending (SET)،  upays:<uid> (ZSET)
+    reset:<sha256(token)>  رابط إعادة تعيين كلمة السر (يصدره الأدمن) ينتهي بعد ساعة
+  الرموز السرية (الجلسات، مفاتيح API، روابط إعادة التعيين) لا تُخزَّن أبداً كما هي، بل بصمتها SHA-256.
+*/
+
+const crypto = require("node:crypto");
+const { promisify } = require("node:util");
+const { planOf, LIMITS, DAY_MS, PAYMENT_MONTHS } = require("./plans");
+
+const scrypt = promisify(crypto.scrypt);
+const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+const SESSION_DAYS = 30;
+const MAX_HISTORY = 100;
+const USER_CACHE_MS = 60_000;
+const COMMON_PASSWORDS = new Set([
+    "12345678", "123456789", "1234567890", "password", "password1", "qwertyui", "qwerty123", "11111111",
+    "00000000", "iloveyou", "abcd1234", "abc12345", "admin123", "welcome1", "87654321", "12341234",
+    "11223344", "1q2w3e4r", "q1w2e3r4", "asdfghjk", "zxcvbnm1", "baghdad1", "iraq1234"
+]);
+
+class UserError extends Error {
+    constructor(code, message, status = 400) {
+        super(message);
+        this.code = code;
+        this.status = status;
+    }
+}
+
+const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
+const randomId = (bytes = 8) => crypto.randomBytes(bytes).toString("hex");
+const token = () => crypto.randomBytes(32).toString("base64url");
+const dayKey = (now = Date.now()) => new Date(now).toISOString().slice(0, 10).replace(/-/g, "");
+
+// يمنع محارف التحكم واتجاه النص المخفية (تُستخدم لتزوير الأسماء بالعرض)
+function cleanName(value, max = 60) {
+    return String(value || "").replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩<>]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function normalizeEmail(value) {
+    const email = String(value || "").trim().toLowerCase();
+    if (email.length > 254 || !/^[^\s@"<>()[\],;:]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(email)) return "";
+    return email;
+}
+
+function passwordProblem(password, email) {
+    if (typeof password !== "string" || password.length < 8) return "كلمة السر يجب أن تكون 8 أحرف على الأقل.";
+    if (password.length > 200) return "كلمة السر طويلة جداً.";
+    const lower = password.toLowerCase();
+    if (COMMON_PASSWORDS.has(lower) || /^(.)\1+$/.test(password)) return "كلمة السر هذه شائعة جداً وسهلة التخمين. اختر غيرها.";
+    if (email && lower === email.split("@")[0]) return "لا تستخدم اسم بريدك ككلمة سر.";
+    return "";
+}
+
+async function hashPassword(password) {
+    const salt = crypto.randomBytes(16);
+    const hash = await scrypt(password, salt, 32, SCRYPT);
+    return `s1$${salt.toString("hex")}$${hash.toString("hex")}`;
+}
+
+const DUMMY_HASH = "s1$" + "00".repeat(16) + "$" + "00".repeat(32);
+async function verifyPassword(password, stored) {
+    const [version, saltHex, hashHex] = String(stored || DUMMY_HASH).split("$");
+    if (version !== "s1" || !saltHex || !hashHex) return false;
+    const expected = Buffer.from(hashHex, "hex");
+    const actual = await scrypt(String(password).slice(0, 200), Buffer.from(saltHex, "hex"), expected.length, SCRYPT);
+    return crypto.timingSafeEqual(actual, expected);
+}
+
+// ما يُرسل للمتصفح عن المستخدم (بدون أي سر)
+function publicUser(user, now = Date.now()) {
+    const plan = planOf(user, now);
+    return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerified: Boolean(user.emailVerified),
+        hasPassword: Boolean(user.pw),
+        providers: Object.keys(user.providers || {}),
+        createdAt: new Date(user.createdAt).toISOString(),
+        plan: plan.id,
+        planSource: plan.source,
+        planUntil: plan.until ? new Date(plan.until).toISOString() : null,
+        trialUsed: Boolean(user.trialEndsAt),
+        apiKeyHint: user.apiKeyHint || "",
+        historyEnabled: !user.historyOff,
+        limits: LIMITS[plan.id]
+    };
+}
+
+function createUsers({ db, config, now: clock = () => Date.now() }) {
+    const k = (...parts) => db.key(...parts);
+    const cache = new Map();          // id -> { user, at }
+    const sessionCache = new Map();   // sha -> { uid, exp, at }
+    const trialMs = config.plans.trialDays * DAY_MS;
+
+    function remember(user) {
+        if (cache.size > 5000) cache.delete(cache.keys().next().value);
+        cache.set(user.id, { user, at: clock() });
+        return user;
+    }
+
+    async function get(id) {
+        if (typeof id !== "string" || !/^[0-9a-f]{16}$/.test(id)) return null;
+        const hit = cache.get(id);
+        if (hit && clock() - hit.at < USER_CACHE_MS) return hit.user;
+        const raw = await db.cmd(["GET", k("u", id)]);
+        if (!raw) { cache.delete(id); return null; }
+        try { return remember(JSON.parse(raw)); } catch { return null; }
+    }
+
+    async function save(user) {
+        await db.cmd(["SET", k("u", user.id), JSON.stringify(user)]);
+        return remember(user);
+    }
+
+    async function update(id, change) {
+        const user = await get(id);
+        if (!user) throw new UserError("not_found", "الحساب غير موجود.", 404);
+        const next = { ...user };
+        change(next);
+        return save(next);
+    }
+
+    async function findByEmail(email) {
+        const id = await db.cmd(["GET", k("email", email)]);
+        return id ? get(id) : null;
+    }
+
+    // إنشاء حساب. البريد يُحجز أولاً بـ SET NX فلا ينشأ حسابان بنفس البريد حتى لو وصل طلبان معاً.
+    async function create({ email, name, password, provider, sub, emailVerified }) {
+        const id = randomId();
+        const reserved = await db.cmd(["SET", k("email", email), id, "NX"]);
+        if (reserved !== "OK") throw new UserError("email_taken", "هذا البريد مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.", 409);
+        const now = clock();
+        const user = {
+            id, email, name: cleanName(name) || email.split("@")[0],
+            emailVerified: Boolean(emailVerified),
+            pw: password ? await hashPassword(password) : "",
+            providers: provider ? { [provider]: sub } : {},
+            createdAt: now,
+            // أول شهر مجاني لكل حساب جديد (مرة واحدة)
+            trialEndsAt: trialMs > 0 ? now + trialMs : 0,
+            paidUntil: 0,
+            disabled: false,
+            lastLoginAt: now
+        };
+        const commands = [["SET", k("u", id), JSON.stringify(user)], ["ZADD", k("users"), String(now), id]];
+        if (provider) commands.push(["SET", k("oauth", provider, sub), id]);
+        await db.pipe(commands);
+        return remember(user);
+    }
+
+    async function register({ email: rawEmail, password, name }) {
+        const email = normalizeEmail(rawEmail);
+        if (!email) throw new UserError("bad_email", "اكتب بريداً إلكترونياً صحيحاً.");
+        const problem = passwordProblem(password, email);
+        if (problem) throw new UserError("weak_password", problem);
+        return create({ email, name, password, emailVerified: false });
+    }
+
+    // كلمة السر الخاطئة والحساب غير الموجود يرجعان نفس الخطأ وبنفس الزمن تقريباً
+    async function login({ email: rawEmail, password }) {
+        const email = normalizeEmail(rawEmail);
+        const user = email ? await findByEmail(email) : null;
+        const ok = await verifyPassword(String(password || ""), user && user.pw ? user.pw : DUMMY_HASH);
+        if (!user || !user.pw || !ok) throw new UserError("bad_login", "البريد أو كلمة السر غير صحيحة.", 401);
+        if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+        return update(user.id, u => { u.lastLoginAt = clock(); });
+    }
+
+    /*
+      الدخول عبر Google / Microsoft / Apple.
+      - إن كان هذا الحساب الخارجي مربوطاً سابقاً: ندخل مباشرة.
+      - إن كان البريد مسجّلاً بحساب آخر: نربط فقط إذا أكّد المزوّد أن البريد موثّق (emailVerified)،
+        وإلا نرفض (يمنع الاستيلاء على حساب عبر مزوّد يسمح ببريد غير موثّق).
+      - غير ذلك: حساب جديد.
+    */
+    async function loginWithProvider({ provider, sub, email: rawEmail, emailVerified, name }) {
+        const linkedId = await db.cmd(["GET", k("oauth", provider, sub)]);
+        if (linkedId) {
+            const user = await get(linkedId);
+            if (user) {
+                if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+                return { user: await update(user.id, u => { u.lastLoginAt = clock(); }), created: false };
+            }
+        }
+        const email = normalizeEmail(rawEmail);
+        if (!email) throw new UserError("no_email", "لم يرسل المزوّد بريداً إلكترونياً. اسمح بمشاركة البريد وحاول مرة أخرى.");
+        const existing = await findByEmail(email);
+        if (existing) {
+            if (!emailVerified) throw new UserError("link_unverified", "هذا البريد مسجّل مسبقاً. سجّل الدخول بطريقتك المعتادة.", 409);
+            if (existing.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+            await db.cmd(["SET", k("oauth", provider, sub), existing.id]);
+            const user = await update(existing.id, u => {
+                u.providers = { ...(u.providers || {}), [provider]: sub };
+                u.emailVerified = true;
+                u.lastLoginAt = clock();
+            });
+            return { user, created: false };
+        }
+        const user = await create({ email, name, provider, sub, emailVerified });
+        return { user, created: true };
+    }
+
+    // ---------- الجلسات ----------
+    async function createSession(userId, meta = {}) {
+        const raw = token();
+        const sha = sha256(raw);
+        const exp = clock() + SESSION_DAYS * DAY_MS;
+        await db.cmd(["SET", k("sess", sha), JSON.stringify({ uid: userId, exp, ua: String(meta.ua || "").slice(0, 120) }), "EX", String(SESSION_DAYS * 86400)]);
+        sessionCache.set(sha, { uid: userId, exp, at: clock() });
+        return { token: raw, maxAge: SESSION_DAYS * 86400 };
+    }
+
+    async function userFromSession(raw) {
+        if (typeof raw !== "string" || raw.length < 20 || raw.length > 100) return null;
+        const sha = sha256(raw);
+        let entry = sessionCache.get(sha);
+        if (!entry || clock() - entry.at > USER_CACHE_MS) {
+            const stored = await db.cmd(["GET", k("sess", sha)]);
+            if (!stored) { sessionCache.delete(sha); return null; }
+            try {
+                const parsed = JSON.parse(stored);
+                entry = { uid: parsed.uid, exp: parsed.exp, at: clock() };
+            } catch { return null; }
+            if (sessionCache.size > 20000) sessionCache.delete(sessionCache.keys().next().value);
+            sessionCache.set(sha, entry);
+        }
+        if (entry.exp <= clock()) return null;
+        const user = await get(entry.uid);
+        if (!user || user.disabled) return null;
+        return user;
+    }
+
+    async function destroySession(raw) {
+        if (typeof raw !== "string" || raw.length > 100) return;
+        const sha = sha256(raw);
+        sessionCache.delete(sha);
+        await db.cmd(["DEL", k("sess", sha)]);
+    }
+
+    // ---------- الاستهلاك اليومي ----------
+    // يحجز وحدة (أو أكثر) من حصة اليوم. يرجع { ok, used, limit }
+    async function consume(user, kind, amount = 1) {
+        const limits = LIMITS[planOf(user, clock()).id];
+        const limit = kind === "chat" ? limits.chatPerDay : limits.scansPerDay;
+        const key = k("use", user.id, dayKey(clock()));
+        const [used] = await db.pipe([["HINCRBY", key, kind, String(amount)], ["EXPIRE", key, String(3 * 86400)]]);
+        if (Number(used) > limit) {
+            await db.cmd(["HINCRBY", key, kind, String(-amount)]);
+            return { ok: false, used: Number(used) - amount, limit };
+        }
+        return { ok: true, used: Number(used), limit };
+    }
+
+    async function usage(user) {
+        const raw = await db.cmd(["HGETALL", k("use", user.id, dayKey(clock()))]);
+        const out = { scan: 0, chat: 0 };
+        const list = Array.isArray(raw) ? raw : Object.entries(raw || {}).flat();
+        for (let i = 0; i + 1 < list.length; i += 2) if (list[i] in out) out[list[i]] = Number(list[i + 1]) || 0;
+        const limits = LIMITS[planOf(user, clock()).id];
+        return { scan: out.scan, chat: out.chat, scanLimit: limits.scansPerDay, chatLimit: limits.chatPerDay };
+    }
+
+    // ---------- سجل الفحوصات (Pro) ----------
+    async function addHistory(user, item) {
+        if (!LIMITS[planOf(user, clock()).id].history || user.historyOff) return;
+        const key = k("hist", user.id);
+        const entry = JSON.stringify({ ...item, at: clock(), r: randomId(3) });
+        await db.pipe([["ZADD", key, String(clock()), entry], ["ZREMRANGEBYRANK", key, "0", String(-(MAX_HISTORY + 1))]]);
+    }
+
+    async function history(user) {
+        const raw = await db.cmd(["ZREVRANGE", k("hist", user.id), "0", String(MAX_HISTORY - 1)]);
+        return (Array.isArray(raw) ? raw : []).map(r => { try { const v = JSON.parse(r); delete v.r; return v; } catch { return null; } }).filter(Boolean);
+    }
+
+    async function clearHistory(user) {
+        await db.cmd(["DEL", k("hist", user.id)]);
+    }
+
+    // ---------- مفتاح API (Pro) ----------
+    async function rotateApiKey(user) {
+        if (!LIMITS[planOf(user, clock()).id].api) throw new UserError("pro_only", "مفتاح API متاح لمشتركي Pro فقط.", 403);
+        const raw = "pd_" + crypto.randomBytes(24).toString("base64url");
+        const commands = [["SET", k("apikey", sha256(raw)), user.id]];
+        if (user.apiKeySha) commands.push(["DEL", k("apikey", user.apiKeySha)]);
+        await db.pipe(commands);
+        await update(user.id, u => { u.apiKeySha = sha256(raw); u.apiKeyHint = raw.slice(0, 7) + "…" + raw.slice(-4); });
+        return raw;
+    }
+
+    async function userFromApiKey(raw) {
+        if (typeof raw !== "string" || !/^pd_[A-Za-z0-9_-]{32}$/.test(raw)) return null;
+        const id = await db.cmd(["GET", k("apikey", sha256(raw))]);
+        const user = id ? await get(id) : null;
+        if (!user || user.disabled || user.apiKeySha !== sha256(raw)) return null;
+        return user;
+    }
+
+    // ---------- الملف الشخصي ----------
+    async function rename(user, name) {
+        const clean = cleanName(name);
+        if (!clean) throw new UserError("bad_name", "اكتب اسماً صحيحاً.");
+        return update(user.id, u => { u.name = clean; });
+    }
+
+    async function changePassword(user, { current, next }) {
+        if (user.pw && !(await verifyPassword(String(current || ""), user.pw))) throw new UserError("bad_password", "كلمة السر الحالية غير صحيحة.", 401);
+        const problem = passwordProblem(next, user.email);
+        if (problem) throw new UserError("weak_password", problem);
+        const pw = await hashPassword(next);
+        return update(user.id, u => { u.pw = pw; });
+    }
+
+    async function setHistoryEnabled(user, enabled) {
+        if (!enabled) await clearHistory(user);
+        return update(user.id, u => { u.historyOff = !enabled; });
+    }
+
+    // حذف الحساب نهائياً (طلبات الدفع تبقى بسجل الإيرادات بدون اسم)
+    async function remove(user) {
+        const commands = [
+            ["DEL", k("u", user.id)], ["DEL", k("email", user.email)], ["ZREM", k("users"), user.id],
+            ["DEL", k("hist", user.id)], ["DEL", k("upays", user.id)]
+        ];
+        for (const [provider, sub] of Object.entries(user.providers || {})) commands.push(["DEL", k("oauth", provider, sub)]);
+        if (user.apiKeySha) commands.push(["DEL", k("apikey", user.apiKeySha)]);
+        await db.pipe(commands);
+        cache.delete(user.id);
+        for (const [sha, entry] of sessionCache) if (entry.uid === user.id) sessionCache.delete(sha);
+    }
+
+    // ---------- إعادة تعيين كلمة السر (رابط يصدره الأدمن، صالح ساعة ولمرة واحدة) ----------
+    async function createResetLink(userId) {
+        const user = await get(userId);
+        if (!user) throw new UserError("not_found", "الحساب غير موجود.", 404);
+        const raw = token();
+        await db.cmd(["SET", k("reset", sha256(raw)), user.id, "EX", "3600"]);
+        return raw;
+    }
+
+    async function useResetLink(raw, password) {
+        if (typeof raw !== "string" || raw.length > 100) throw new UserError("bad_link", "الرابط غير صالح أو منتهي.", 400);
+        const key = k("reset", sha256(raw));
+        const id = await db.cmd(["GET", key]);
+        const user = id ? await get(id) : null;
+        if (!user) throw new UserError("bad_link", "الرابط غير صالح أو منتهي.", 400);
+        const problem = passwordProblem(password, user.email);
+        if (problem) throw new UserError("weak_password", problem);
+        await db.cmd(["DEL", key]);
+        const pw = await hashPassword(password);
+        return update(user.id, u => { u.pw = pw; });
+    }
+
+    // ---------- طلبات الدفع ----------
+    async function createPayment(user, { method, months, reference, note }) {
+        const methods = config.payment.methods.map(m => m.id);
+        if (!methods.includes(method)) throw new UserError("bad_method", "اختر طريقة دفع من القائمة.");
+        const m = Number(months);
+        if (!PAYMENT_MONTHS.includes(m)) throw new UserError("bad_months", "اختر مدة صحيحة.");
+        const ref = cleanName(reference, 80);
+        if (ref.length < 4) throw new UserError("bad_reference", "اكتب رقم العملية أو الحوالة كما يظهر بإشعار الدفع.");
+        const pending = await paymentsOf(user);
+        if (pending.filter(p => p.status === "pending").length >= 3) throw new UserError("too_many", "عندك طلبات قيد المراجعة. انتظر حتى نراجعها.", 429);
+        const payment = {
+            id: randomId(6), uid: user.id, email: user.email, method, months: m, reference: ref,
+            note: cleanName(note, 300),
+            amountUsd: m * config.plans.priceUsd, amountIqd: m * config.plans.priceIqd,
+            status: "pending", createdAt: clock(), decidedAt: 0, decidedBy: "", reason: ""
+        };
+        await db.pipe([
+            ["SET", k("pay", payment.id), JSON.stringify(payment)],
+            ["ZADD", k("pays"), String(payment.createdAt), payment.id],
+            ["ZADD", k("upays", user.id), String(payment.createdAt), payment.id],
+            ["SADD", k("pays", "pending"), payment.id]
+        ]);
+        return payment;
+    }
+
+    async function loadPayments(ids) {
+        if (!ids.length) return [];
+        const raw = await db.pipe(ids.map(id => ["GET", k("pay", id)]));
+        return raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+    }
+
+    async function paymentsOf(user) {
+        const ids = await db.cmd(["ZREVRANGE", k("upays", user.id), "0", "49"]);
+        return loadPayments(Array.isArray(ids) ? ids : []);
+    }
+
+    async function listPayments({ status, limit = 200 } = {}) {
+        const ids = status === "pending"
+            ? await db.cmd(["SMEMBERS", k("pays", "pending")])
+            : await db.cmd(["ZREVRANGE", k("pays"), "0", String(limit - 1)]);
+        const list = await loadPayments(Array.isArray(ids) ? ids : []);
+        return list.sort((a, b) => b.createdAt - a.createdAt);
+    }
+
+    // الموافقة تمدد الاشتراك من تاريخ انتهائه الحالي (أو من الآن إن كان منتهياً)
+    async function decidePayment(id, { approve, admin, reason }) {
+        const raw = await db.cmd(["GET", k("pay", id)]);
+        if (!raw) throw new UserError("not_found", "الطلب غير موجود.", 404);
+        const payment = JSON.parse(raw);
+        if (payment.status !== "pending") throw new UserError("decided", "تمت مراجعة هذا الطلب مسبقاً.", 409);
+        payment.status = approve ? "approved" : "rejected";
+        payment.decidedAt = clock();
+        payment.decidedBy = cleanName(admin, 40);
+        payment.reason = cleanName(reason, 200);
+        await db.pipe([["SET", k("pay", id), JSON.stringify(payment)], ["SREM", k("pays", "pending"), id]]);
+        let user = null;
+        if (approve) user = await extend(payment.uid, payment.months).catch(() => null);
+        return { payment, user };
+    }
+
+    async function extend(userId, months) {
+        return update(userId, u => {
+            const base = Math.max(Number(u.paidUntil || 0), clock());
+            u.paidUntil = base + months * 30 * DAY_MS;
+        });
+    }
+
+    // ---------- للأدمن ----------
+    async function listUsers({ offset = 0, limit = 50, query = "" } = {}) {
+        const total = Number(await db.cmd(["ZCARD", k("users")])) || 0;
+        if (query) {
+            const email = String(query).trim().toLowerCase();
+            const user = await findByEmail(email);
+            return { total, users: user ? [user] : [] };
+        }
+        const ids = await db.cmd(["ZREVRANGE", k("users"), String(offset), String(offset + limit - 1)]);
+        const raw = (Array.isArray(ids) && ids.length) ? await db.pipe(ids.map(id => ["GET", k("u", id)])) : [];
+        const users = raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+        return { total, users };
+    }
+
+    async function setDisabled(userId, disabled) {
+        const user = await update(userId, u => { u.disabled = Boolean(disabled); });
+        if (disabled) for (const [sha, entry] of sessionCache) if (entry.uid === userId) sessionCache.delete(sha);
+        return user;
+    }
+
+    async function revenue() {
+        const all = await listPayments({ limit: 5000 });
+        const approved = all.filter(p => p.status === "approved");
+        const now = clock();
+        const monthStart = new Date(new Date(now).getFullYear(), new Date(now).getMonth(), 1).getTime();
+        const sum = (list, field) => list.reduce((s, p) => s + (Number(p[field]) || 0), 0);
+        const thisMonth = approved.filter(p => p.decidedAt >= monthStart);
+        const last30 = approved.filter(p => now - p.decidedAt <= 30 * DAY_MS);
+        return {
+            approvedCount: approved.length,
+            pendingCount: all.filter(p => p.status === "pending").length,
+            totalUsd: sum(approved, "amountUsd"), totalIqd: sum(approved, "amountIqd"),
+            monthUsd: sum(thisMonth, "amountUsd"), monthIqd: sum(thisMonth, "amountIqd"),
+            last30Usd: sum(last30, "amountUsd"), last30Iqd: sum(last30, "amountIqd")
+        };
+    }
+
+    return {
+        get, register, login, loginWithProvider, createSession, userFromSession, destroySession,
+        consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
+        rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
+        createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, setDisabled, revenue,
+        publicUser: user => publicUser(user, clock())
+    };
+}
+
+module.exports = { createUsers, UserError, normalizeEmail, passwordProblem, hashPassword, verifyPassword, cleanName, publicUser };

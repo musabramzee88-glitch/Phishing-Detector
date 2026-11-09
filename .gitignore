@@ -20,3 +20,15 @@ uploads/
 
 # سجل المبيعات (بيانات زبائن): لا يُرفع أبداً
 data/
+
+# ملفات قديمة وحزم لا تُرفع
+*.zip
+*.jar
+*.url
+PhishingDetectorServer.java
+app.py
+debug.bat
+run.vbs
+manifest.txt
+config.yml
+logo.jpg

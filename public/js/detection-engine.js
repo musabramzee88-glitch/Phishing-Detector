@@ -191,6 +191,14 @@
         { name: 'ستيم', keys: ['steamcommunity', 'steampowered'], domains: ['steamcommunity.com', 'steampowered.com'] },
         { name: 'زين كاش', keys: ['zaincash'], domains: ['zaincash.iq'] },
         { name: 'آسياسيل', keys: ['asiacell'], domains: ['asiacell.com'] },
+        { name: 'أدوبي', keys: ['adobe'], domains: ['adobe.com', 'adobe.io', 'adobelogin.com'] },
+        { name: 'DocuSign', keys: ['docusign'], domains: ['docusign.com', 'docusign.net'] },
+        { name: 'ديسكورد', keys: ['discord'], domains: ['discord.com', 'discord.gg', 'discordapp.com', 'discordapp.net', 'discord.media'] },
+        { name: 'سبوتيفاي', keys: ['spotify'], domains: ['spotify.com', 'spotify.link', 'scdn.co'] },
+        { name: 'روبلوكس', keys: ['roblox'], domains: ['roblox.com', 'rbxcdn.com'] },
+        { name: 'Coinbase', keys: ['coinbase'], domains: ['coinbase.com'] },
+        { name: 'MetaMask', keys: ['metamask'], domains: ['metamask.io'] },
+        { name: 'Trust Wallet', keys: ['trustwallet'], domains: ['trustwallet.com', 'link.trustwallet.com'] },
         { name: 'جامعة تكريت', keys: [], domains: ['tu.edu.iq'] },
         { name: 'وزارة التعليم العالي والبحث العلمي', keys: ['mohesr'], domains: ['mohesr.gov.iq'] }
     ];
@@ -246,6 +254,25 @@
     // لا نضع js و com هنا: node.js اسم وسم/مكتبة، و amazon.com قد يظهر في نهاية مسار عادي، فيعطيان إنذارات كاذبة
     const DANGEROUS_DOWNLOADS = ['exe', 'scr', 'pif', 'msi', 'bat', 'cmd', 'vbs', 'vbe', 'wsf', 'hta', 'ps1', 'jar', 'apk', 'lnk', 'iso', 'img', 'dll'];
     const ARCHIVE_DOWNLOADS = ['zip', 'rar', '7z', 'gz', 'tar', 'cab'];
+
+    // يكشف الأسماء العشوائية (DGA): عشوائية عالية + سلاسل حروف ساكنة طويلة + خلط أرقام وحروف
+    function looksRandom(label) {
+        const clean = String(label || '').toLowerCase().replace(/-/g, '');
+        if (clean.length < 10 || !/^[a-z0-9]+$/.test(clean)) return false;
+        const counts = {};
+        for (const ch of clean) counts[ch] = (counts[ch] || 0) + 1;
+        let entropy = 0;
+        for (const n of Object.values(counts)) { const p = n / clean.length; entropy -= p * Math.log2(p); }
+        const vowels = (clean.match(/[aeiou]/g) || []).length / clean.length;
+        const longestConsonants = Math.max(0, ...(clean.match(/[bcdfghjklmnpqrstvwxz]+/g) || ['']).map(r => r.length));
+        const digitSwitches = (clean.match(/[a-z][0-9]|[0-9][a-z]/g) || []).length;
+        let points = 0;
+        if (entropy >= 3.5) points++;
+        if (vowels < 0.22) points++;
+        if (longestConsonants >= 5) points++;
+        if (digitSwitches >= 3) points++;
+        return points >= 3;
+    }
 
     function splitDomain(host) {
         const labels = host.split('.').filter(Boolean);
@@ -542,6 +569,8 @@
         if (hyphens >= 2) add(hyphens >= 3 ? 0.2 : 0.12, 'warning', `اسم النطاق فيه ${hyphens} شرطات (-)، وهذا شائع في نطاقات التصيد.`);
         if ((parts.label.match(/\d/g) || []).length >= 4) add(0.1, 'warning', 'اسم النطاق يحتوي أرقاماً كثيرة.');
         if (host.length > 45) add(0.1, 'warning', `اسم المضيف طويل بشكل غير معتاد (${host.length} حرفاً).`);
+        // اسم عشوائي المظهر (مولَّد آلياً): شائع في نطاقات الحملات المؤقتة والبرمجيات الخبيثة
+        if (!isIPv4(host) && looksRandom(parts.label)) add(0.2, 'warning', `اسم النطاق "${parts.label}" يبدو عشوائياً ومولَّداً آلياً، وهذا شائع في النطاقات المؤقتة للحملات الخبيثة.`);
         if (url.href.length > 120) add(0.1, 'warning', `الرابط طويل جداً (${url.href.length} حرفاً)، وقد يكون لإخفاء الجزء المهم.`);
         if (/\/\//.test(url.pathname)) add(0.1, 'warning', 'المسار يحتوي "//" إضافية، وتُستخدم أحياناً لإعادة التوجيه.');
         if ((url.pathname.match(/%[0-9a-f]{2}/gi) || []).length >= 6) add(0.1, 'warning', 'المسار مليء بالترميز (%xx)، وقد يكون لإخفاء محتواه.');
@@ -659,6 +688,15 @@
             ]
         },
         {
+            id: 'grant', label: 'منحة أو سلفة أو قرض عبر رابط', weight: 0.3, patterns: [
+                rx('(منحه|منح)\\s*(ماليه|نقديه|حكوميه|الطلبه|للطلبه|العاطلين|الشباب)'),
+                rx('(سلفه|سلف|قرض|قروض)\\s*(بدون|بلا)\\s*(فوايد|فوائد|كفيل|ضمان)'),
+                rx(`(رابط|استماره)\\s*${W}{0,1}?(التقديم|التسجيل)\\s*${W}{0,2}?(على|ب)?\\s*(ال)?(منحه|سلفه|قرض|وظايف|وظائف|التعيين)`),
+                rx('(التقديم|التسجيل)\\s*على\\s*(ال)?(منحه|سلفه|القرض)'),
+                rx('government grant|free grant|loan without (interest|guarantor)')
+            ]
+        },
+        {
             id: 'secrecy', label: 'طلب السرية أو العزل', weight: 0.25, patterns: [
                 rx(`لا\\s*(تخبر|تقول|تكول|تحجي|تشارك)\\s*${W}{0,1}?(احد|اي شخص|لاحد|هذه|هاي)`),
                 rx('سري\\s*(للغايه|جدا)|بيني وبينك'),
@@ -678,7 +716,8 @@
         { all: 'prize', any: ['payment', 'credentials', 'action'], weight: 0.35, text: 'وعد بجائزة يتطلب دفع رسوم أو إدخال بيانات: أسلوب احتيال معروف.' },
         { all: 'threat', any: ['action'], weight: 0.3, text: 'تهديد بإيقاف الحساب مع دفعك للضغط على رابط أو تسجيل الدخول.' },
         { all: 'job', any: ['payment'], weight: 0.35, text: 'عرض عمل أو استثمار يطلب دفع مبلغ مقدماً (Advance-fee scam).' },
-        { all: 'impersonation', any: ['payment'], weight: 0.25, text: 'جهة تدّعي أنها رسمية وتطلب تحويل أموال.' }
+        { all: 'impersonation', any: ['payment'], weight: 0.25, text: 'جهة تدّعي أنها رسمية وتطلب تحويل أموال.' },
+        { all: 'grant', any: ['action', 'credentials', 'payment', 'link'], weight: 0.35, text: 'منحة أو قرض يُطلب التقديم عليه عبر رابط أو بإدخال بيانات: من أكثر أساليب الاحتيال انتشاراً بالعراق.' }
     ];
 
     const TEXT_ADVICE = {
@@ -724,10 +763,6 @@
             }
         }
 
-        for (const combo of TEXT_COMBOS) {
-            if (hits.has(combo.all) && combo.any.some(id => hits.has(id))) add(combo.weight, 'danger', combo.text);
-        }
-
         // الروابط داخل الرسالة تُفحص بمحرك الروابط
         const urls = extractUrls(original).map(url => ({ url, result: analyzeUrl(url) })).filter(u => !u.result.error);
         if (urls.length) {
@@ -740,6 +775,11 @@
             } else if (worst.result.level === 'warning') {
                 add(0.25, 'warning', `الرابط ${worst.url} عليه مؤشرات مخاطرة (${worst.result.score}%).`);
             }
+        }
+
+        // الأنماط المركّبة (بعد فحص الروابط حتى تدخل الروابط ضمنها)
+        for (const combo of TEXT_COMBOS) {
+            if (hits.has(combo.all) && combo.any.some(id => hits.has(id))) add(combo.weight, 'danger', combo.text);
         }
 
         const compact = normalized.replace(/(\d)[\s-](?=\d)/g, '$1');
@@ -1129,6 +1169,9 @@
         asciiSkeleton,
         shannonEntropy,
         splitDomain,
+        looksRandom,
+        THRESHOLDS,
+        STRICT_THRESHOLDS,
         BRANDS
     };
 });

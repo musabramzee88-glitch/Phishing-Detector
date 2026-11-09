@@ -22,10 +22,10 @@ async function adminEntry(user, password, secret) {
     return `${user}:${salt}:${hash}${secret ? ':' + secret : ''}`;
 }
 
-async function startServer(env = {}, tweak) {
-    const config = loadConfig({ HOST: '127.0.0.1', ...env });
+async function startServer(env = {}, tweak, overrides) {
+    const config = loadConfig({ HOST: '127.0.0.1', THREAT_FEEDS: '0', ...env });
     if (tweak) tweak(config);
-    const app = createApp(config);
+    const app = createApp(config, overrides);
     await app.ready;
     await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
     app.base = { port: app.server.address().port };
@@ -71,12 +71,25 @@ async function login(app, { username = 'musab', password = TEST_PASSWORD, code, 
     });
 }
 
-async function withServer(env, fn, tweak) {
-    const app = await startServer(env, tweak);
+async function withServer(env, fn, tweak, overrides) {
+    const app = await startServer(env, tweak, overrides);
     try { await fn(app); } finally { await app.close(); }
 }
 
+// حساب مستخدم عادي للاختبارات. يرجع { cookie, json, res }
+let userCounter = 0;
+async function registerUser(app, { email, password = 'a long safe passphrase', name = 'Tester', headers = {} } = {}) {
+    const res = await request(app, 'POST', '/api/auth/register', {
+        headers: { ...sameOrigin(app), ...headers },
+        body: { email: email || `user${++userCounter}-${Date.now()}@example.com`, password, name }
+    });
+    return { res, json: res.json, cookie: cookieFrom(res) };
+}
+
+const authed = (app, cookie) => ({ ...sameOrigin(app), Cookie: cookie });
+
 module.exports = {
+    registerUser, authed,
     TEST_PASSWORD, TEST_TOTP, FAKE_OPENAI_KEY, adminEntry, startServer, request,
     JSON_HEADERS, sameOrigin, cookieFrom, login, withServer, totp
 };

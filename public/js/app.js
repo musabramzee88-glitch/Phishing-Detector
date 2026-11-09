@@ -43,22 +43,60 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-const cyberBotHistory = [];
-let activeCyberBotUser = "";
-let cyberBotSending = false;
-
-function normalizeCyberBotText(value) {
-    return String(value || "").toLowerCase().normalize("NFKD")
-        .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
-        .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
-        .replace(/\s+/g, " ").trim();
+// ==========================================================
+// اتصال بالخادم (مشترك مع account.js)
+// ==========================================================
+async function api(url, body, options = {}) {
+    const init = { method: body === undefined ? (options.method || 'GET') : 'POST', credentials: 'same-origin', headers: {} };
+    if (body !== undefined) {
+        init.headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(body);
+    }
+    if (options.signal) init.signal = options.signal;
+    const response = await fetch(url, init);
+    let data = {};
+    try { data = await response.json(); } catch { /* رد بدون JSON */ }
+    // الجلسة انتهت: نرجع لصفحة الدخول
+    if (response.status === 401 && data.code === 'login_required') {
+        window.location.replace('/login');
+        throw new Error('login required');
+    }
+    if (window.PDAccount && data && typeof data.used === 'number' && typeof data.limit === 'number') {
+        window.PDAccount.noteUsage(url.includes('/chat') ? 'chat' : 'scan', data.used, data.limit);
+    }
+    return { ok: response.ok, status: response.status, data };
 }
+
+// رسالة الحد اليومي مع زر الترقية
+function quotaHtml(message) {
+    return `<div class="upgrade-callout"><span><i class="fa-solid fa-gauge-high"></i> ${escapeHtml(message)}</span>
+        <button class="app-btn small" type="button" data-action="openUpgrade"><i class="fa-solid fa-crown"></i> الترقية إلى Pro</button></div>`;
+}
+
+function errorHtml(message) {
+    return `<div style="color:var(--accent-red);"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(message)}</div>`;
+}
+
+function loadingHtml(text) {
+    return `<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>${escapeHtml(text)}</div>`;
+}
+
+// ==========================================================
+// CyberBot
+// ==========================================================
+const cyberBotHistory = [];
+let cyberBotSending = false;
+let cyberBotGreeted = false;
 
 function setCyberBotStatus(message, connected = false) {
     const status = document.getElementById("chatConnectionStatus");
     if (!status) return;
     status.textContent = message;
     status.style.color = connected ? "var(--accent-green)" : "var(--text-muted)";
+}
+
+function currentUserName() {
+    return (window.PDAccount && window.PDAccount.user && window.PDAccount.user.name) || "صديقي";
 }
 
 function appendCyberBotMessage(role, content, options = {}) {
@@ -68,7 +106,7 @@ function appendCyberBotMessage(role, content, options = {}) {
     if (options.typing) bubble.classList.add("chat-typing");
     const label = document.createElement("strong");
     label.className = "chat-bubble-label";
-    label.textContent = options.typing ? "CyberBot AI:" : (role === "user" ? (localStorage.getItem("cyber_bot_username") || "أنت") + ":" : "CyberBot AI:");
+    label.textContent = role === "user" ? currentUserName() + ":" : "CyberBot AI:";
     bubble.appendChild(label);
     const body = document.createElement("span");
     body.textContent = String(content);
@@ -78,116 +116,26 @@ function appendCyberBotMessage(role, content, options = {}) {
     return bubble;
 }
 
-function initChatGreeting(userName) {
+function initChatGreeting() {
     document.getElementById("chatHistory").replaceChildren();
     cyberBotHistory.length = 0;
-    appendCyberBotMessage("assistant", "أهلًا " + userName + ". أنا CyberBot، أستطيع متابعة سياق حديثنا ومساعدتك في الأسئلة العامة والأمن السيبراني. عند عدم اتصال نموذج الذكاء الاصطناعي ستكون إجاباتي المحلية محدودة. كيف أساعدك؟");
+    appendCyberBotMessage("assistant", "أهلاً " + currentUserName() + "! أنا CyberBot. ألصق أي رابط أو رسالة مشكوك بيها وأفحصها لك فوراً، أو اسألني عن أي شي بالأمن السيبراني.");
+    setCyberBotStatus("جاهز.", true);
 }
 
-function checkUserSession() {
-    const storedName = localStorage.getItem("cyber_bot_username");
-    const promptCard = document.getElementById("namePromptCard");
-    const chatCard = document.getElementById("chatInterfaceCard");
-    if (storedName) {
-        promptCard.style.display = "none";
-        chatCard.style.display = "block";
-        document.getElementById("greetingSubtitle").textContent = "المحادثة باسم: " + storedName;
-        if (activeCyberBotUser !== storedName) {
-            activeCyberBotUser = storedName;
-            initChatGreeting(storedName);
-        }
-        const endpointField = document.getElementById("chatEndpointInput");
-        endpointField.value = localStorage.getItem("cyber_bot_endpoint") ?? "/api/chat";
-        setCyberBotStatus(endpointField.value.trim()
-            ? "عنوان الخادم محفوظ. سيُفحص الاتصال عند إرسال رسالة."
-            : "الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
-    } else {
-        promptCard.style.display = "block";
-        chatCard.style.display = "none";
-        activeCyberBotUser = "";
+function openCyberBot() {
+    switchPage('cyberBotPage', 'CyberBot AI', 'fa-solid fa-robot');
+    if (!cyberBotGreeted) {
+        cyberBotGreeted = true;
+        initChatGreeting();
     }
-}
-
-function saveUserName() {
-    const nameInput = document.getElementById("userNameInput");
-    const name = nameInput.value.trim().slice(0, 50);
-    if (!name) {
-        alert("يرجى إدخال اسم صحيح للمتابعة");
-        return;
-    }
-    localStorage.setItem("cyber_bot_username", name);
-    nameInput.value = "";
-    checkUserSession();
-    document.getElementById("userChatInput").focus();
-}
-
-function resetUserName() {
-    localStorage.removeItem("cyber_bot_username");
-    checkUserSession();
-}
-
-function saveCyberBotEndpoint() {
-    const input = document.getElementById("chatEndpointInput");
-    const endpoint = input.value.trim();
-    if (!endpoint) {
-        localStorage.setItem("cyber_bot_endpoint", "");
-        setCyberBotStatus("الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
-        return;
-    }
-    try {
-        const parsed = new URL(endpoint, window.location.href);
-        const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
-        if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid protocol");
-        if (parsed.protocol === "http:" && !isLocalHost && window.location.protocol === "https:") throw new Error("insecure");
-        if (parsed.username || parsed.password || parsed.hash) throw new Error("invalid URL parts");
-        const savedValue = parsed.origin === window.location.origin ? parsed.pathname + parsed.search : parsed.href;
-        localStorage.setItem("cyber_bot_endpoint", savedValue);
-        input.value = savedValue;
-        setCyberBotStatus("تم حفظ عنوان الخادم. سيُفحص الاتصال عند إرسال رسالة.");
-    } catch {
-        alert("أدخل رابط HTTP أو HTTPS صحيحًا. لا تضع مفتاح API في الرابط.");
-    }
+    const input = document.getElementById("userChatInput");
+    if (input) input.focus();
 }
 
 function clearCyberBotConversation() {
-    const userName = localStorage.getItem("cyber_bot_username") || "صديقي";
-    initChatGreeting(userName);
-    setCyberBotStatus(document.getElementById("chatEndpointInput").value.trim()
-        ? "عنوان الخادم محفوظ. سيُفحص الاتصال عند إرسال رسالة."
-        : "الوضع المحلي محدود؛ اربط خادمًا للحصول على إجابات عامة.");
+    initChatGreeting();
     document.getElementById("userChatInput").focus();
-}
-
-function buildOfflineCyberBotReply(userText, userName, disconnected = false) {
-    const text = normalizeCyberBotText(userText);
-    let answer = "";
-    if (/(^|\s)(هلو|هلا|مرحبا|السلام|صباح|مساء|حيّاك)(\s|$)/.test(text)) {
-        answer = "أهلًا " + userName + "، يسعدني الحديث معك. ما الموضوع الذي تريد أن نبدأ به؟";
-    } else if (/(شلونك|كيف حالك|اخبارك|شخبارك|شكو ماكو)/.test(text)) {
-        answer = "أنا جاهز لمساعدتك. أخبرني بما تحتاجه، وسأوضح لك ما أستطيع فعله.";
-    } else if (/(شكرا|مشكور|تسلم|عاشت ايدك|كفو)/.test(text)) {
-        answer = "العفو، أنا حاضر لمساعدتك.";
-    } else if (/(من انت|منو انت|شنو انت|اسمك|ما هو اسمك)/.test(text)) {
-        answer = "أنا CyberBot، مساعد المحادثة في هذا الموقع. عند ربط خادم نموذج لغوي أستطيع متابعة الحوار والإجابة عن نطاق أوسع من المواضيع.";
-    } else if (/(من صمم|من برمج|من كتب الكود|المطور|مصعب|محمود|جامعه تكريت|كلية)/.test(text)) {
-        answer = "بحسب المعلومات المعروضة في الموقع، أُعدّ المشروع في قسم الأمن السيبراني بكلية علوم الحاسوب والرياضيات في جامعة تكريت، ويظهر اسما مصعب رمزي ومحمود حكمت ضمن فريق التطوير.";
-    } else if (/(رابط|url|http|www|موقع)/.test(text)) {
-        answer = "لفحص رابط، افتح قسم «فحص الروابط» وأدخل العنوان كاملًا. النتيجة الحالية تحليل أولي قائم على قواعد داخل الصفحة؛ لا تثبت أن الرابط آمن، لذا لا تدخل بياناتك في موقع مشبوه.";
-    } else if (/(رساله|رسائل|نص|تصيد|احتيال|بريد)/.test(text)) {
-        answer = "يمكنك استخدام قسم «فحص النصوص والرسائل». يحلل أنماط الاحتيال (التهديد والاستعجال وطلب الرموز والدفع) بالعربية والإنكليزية، ويفحص الروابط داخل الرسالة. لكنه يعتمد على قواعد محددة، لذلك قد يفوّت أساليب جديدة أو يعطي إنذارًا خاطئًا.";
-    } else if (/(ملف|فيروس|malware|exe|برنامج)/.test(text)) {
-        answer = "فحص الملفات في الصفحة يقرأ النوع الحقيقي للملف من بصمته الثنائية ويفحص ترويسة الملفات التنفيذية (التوقيع الرقمي والتغليف) ومحتوى السكربتات والماكرو، ويعرض بصمة SHA-256. لكنه ليس مضاد فيروسات ولا تحليلًا سلوكيًا، فلا تشغّل ملفًا مجهولًا اعتمادًا على نتيجة هذه الصفحة وحدها.";
-    } else if (/(صوت|فيديو|deepfake|تزييف|وسائط)/.test(text)) {
-        answer = "قسم الصوت والفيديو في هذه الصفحة لا يشغّل نموذج كشف تزييف حقيقيًا؛ نتيجته الحالية تقديرية وبسيطة. لا تعتمد عليها لإثبات أصالة التسجيل.";
-    } else if (/(كيف استخدم|كيف ابدأ|ماذا تستطيع|شنو تقدر|مساعده|مساعدة)/.test(text)) {
-        answer = "يمكنني شرح صفحات الموقع وإرشادات الأمن الأساسية محليًا. للإجابة عن الأسئلة العامة ومواصلة حوار أوسع، شغّل خادم المحادثة واضبط بيانات مزود النموذج من جهة الخادم.";
-    } else {
-        answer = "لا أملك اتصالًا حاليًا بنموذج محادثة، لذلك لا أستطيع الإجابة بثقة عن هذا السؤال في الوضع المحلي. اربط خادم الذكاء الاصطناعي من الإعدادات، أو أعد صياغة السؤال حول وظائف الموقع.";
-    }
-    answer += disconnected
-        ? "\n\nتعذر الاتصال بالخادم الآن؛ هذه إجابة محلية محدودة وليست إجابة نموذج لغوي."
-        : "\n\nأعمل حاليًا بإجابات محلية محدودة. اربط خادم النموذج من إعدادات المحادثة للأسئلة العامة.";
-    return answer;
 }
 
 async function sendCyberBotMessage() {
@@ -195,10 +143,10 @@ async function sendCyberBotMessage() {
     const inputField = document.getElementById("userChatInput");
     const sendButton = document.getElementById("chatSendButton");
     const userText = inputField.value.trim();
-    const userName = localStorage.getItem("cyber_bot_username") || "صديقي";
     if (!userText) return;
 
     appendCyberBotMessage("user", userText);
+    const previous = cyberBotHistory.slice(-10).map(item => ({ role: item.role, content: item.content.slice(-1500) }));
     cyberBotHistory.push({ role: "user", content: userText });
     inputField.value = "";
     cyberBotSending = true;
@@ -206,42 +154,33 @@ async function sendCyberBotMessage() {
     sendButton.disabled = true;
     const typingBubble = appendCyberBotMessage("assistant", "يكتب الآن...", { typing: true });
     let answer = "";
-    const endpoint = (localStorage.getItem("cyber_bot_endpoint") ?? "/api/chat").trim();
+    let failed = false;
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60000);
     try {
-        if (!endpoint) {
-            answer = buildOfflineCyberBotReply(userText, userName, false);
-            setCyberBotStatus("الوضع المحلي محدود؛ لم يُضبط خادم ذكاء اصطناعي.");
+        const { ok, data } = await api("/api/chat", { message: userText, history: previous }, { signal: controller.signal });
+        if (!ok) {
+            failed = true;
+            answer = data.error || "تعذر الحصول على رد. حاول مرة أخرى.";
+            if (data.code === "quota") setCyberBotStatus("وصلت للحد اليومي. الترقية إلى Pro ترفع الحد.");
         } else {
-            const url = new URL(endpoint, window.location.href);
-            const controller = new AbortController();
-            const timeout = window.setTimeout(() => controller.abort(), 45000);
-            let response;
-            try {
-                response = await fetch(url.href, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: userText, history: cyberBotHistory.slice(-9, -1).map(item => ({ role: item.role, content: item.content.slice(-1500) })), userName }),
-                    signal: controller.signal
-                });
-            } finally {
-                window.clearTimeout(timeout);
-            }
-            let payload = {};
-            try { payload = await response.json(); } catch {}
-            if (!response.ok) throw new Error("server error");
-            const reply = typeof payload.reply === "string" ? payload.reply.trim() : "";
-            if (!reply) throw new Error("empty reply");
-            answer = reply;
-            setCyberBotStatus("متصل بخادم نموذج الذكاء الاصطناعي.", true);
+            answer = String(data.reply || "").trim() || "لم يصل رد. حاول مرة أخرى.";
+            if (data.mode === "ai") setCyberBotStatus("متصل بالذكاء الاصطناعي.", true);
+            else if (data.mode === "fallback") setCyberBotStatus("المزوّد لم يرد الآن؛ هذه إجابة محلية مختصرة. حاول بعد قليل.");
+            else setCyberBotStatus("يعمل بإجابات محلية (الذكاء الاصطناعي غير مفعّل على الخادم).");
         }
-    } catch {
-        answer = buildOfflineCyberBotReply(userText, userName, true);
-        setCyberBotStatus("تعذر الاتصال بالخادم؛ يعمل المساعد بإجابات محلية محدودة.");
+    } catch (error) {
+        failed = true;
+        answer = error && error.name === "AbortError" ? "استغرق الرد وقتاً طويلاً. حاول مرة أخرى." : "تعذر الاتصال بالخادم. تأكد من الإنترنت وحاول مرة أخرى.";
+        setCyberBotStatus("غير متصل.");
     } finally {
+        window.clearTimeout(timeout);
         typingBubble.remove();
         appendCyberBotMessage("assistant", answer);
-        cyberBotHistory.push({ role: "assistant", content: answer });
+        // ردود الأخطاء لا تدخل سياق المحادثة
+        if (failed) cyberBotHistory.pop();
+        else cyberBotHistory.push({ role: "assistant", content: answer });
         if (cyberBotHistory.length > 24) cyberBotHistory.splice(0, cyberBotHistory.length - 24);
         cyberBotSending = false;
         inputField.disabled = false;
@@ -393,22 +332,13 @@ const LEVEL_TITLES = {
     text: { safe: 'لم تُرصد أساليب احتيال معروفة في النص (Low Risk)', warning: 'تنبيه: في الرسالة مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير: رسالة احتيال وهندسة اجتماعية محتملة (High Risk)' },
     file: { safe: 'لم تُرصد مؤشرات خطر في الملف (Low Risk)', warning: 'تنبيه: الملف فيه مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: ملف مشبوه أو خبيث محتمل (High Risk)' }
 };
-// يرسل للخادم نوع الفحص ونتيجته فقط (بدون الرابط أو النص أو الملف) لإحصاءات صفحة الأدمن
-function reportScan(kind, level) {
-    try {
-        fetch('/api/event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kind, level }),
-            keepalive: true
-        }).catch(() => {});
-    } catch {
-        // الإحصاءات اختيارية ولا يجوز أن تعطّل الفحص
-    }
+// يحفظ نتيجة فحص تم داخل المتصفح (ملف/وسائط) بسجل الحساب لمشتركي Pro
+function recordScan(kind, label, score, level) {
+    api('/api/scan/record', { kind, label: String(label).slice(0, 120), score, level }).catch(() => {});
 }
 
 const LEVEL_STATUS = { safe: 'لا مؤشرات', warning: 'تنبيه', danger: 'خطر' };
-const SCAN_DISCLAIMER = 'هذا فحص بقواعد وخوارزميات محلية يعمل داخل متصفحك. غياب المؤشرات لا يثبت أن الهدف آمن، ووجودها لا يثبت أنه خبيث.';
+const SCAN_DISCLAIMER = 'الفحص يعتمد على قواعد وخوارزميات وقوائم تهديدات عامة. غياب المؤشرات لا يثبت أن الهدف آمن، ووجودها لا يثبت أنه خبيث.';
 
 // يرسم تقرير الفحص. كل نص قادم من المستخدم أو من المحرك يمر عبر escapeHtml.
 function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
@@ -433,22 +363,37 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
     `;
 }
 
-function analyzeUrl() {
+let urlScanBusy = false;
+async function analyzeUrl() {
     const input = document.getElementById('urlInput').value.trim();
     const reportBox = document.getElementById('reportBox');
     const strict = document.getElementById('academicDefenseToggle').checked;
 
     if (!input) {
-        alert('يرجى إدخال رابط للفحص');
-        return;
-    }
-
-    const result = PhishingEngine.analyzeUrl(input, { strict });
-    if (result.error) {
         reportBox.style.display = 'block';
-        reportBox.innerHTML = '<div style="color:var(--accent-red);">عذراً، الرابط المدخل غير صالح هيكلياً. تأكد من كتابته بشكل صحيح.</div>';
+        reportBox.innerHTML = errorHtml('اكتب الرابط أولاً.');
         return;
     }
+    if (urlScanBusy) return;
+    urlScanBusy = true;
+    reportBox.style.display = 'block';
+    reportBox.innerHTML = loadingHtml('جارٍ فحص الرابط بالمحرك وقوائم التهديدات...');
+
+    let response;
+    try {
+        response = await api('/api/scan/url', { url: input, strict });
+    } catch {
+        reportBox.innerHTML = errorHtml('تعذر الاتصال بالخادم. حاول مرة أخرى.');
+        return;
+    } finally {
+        urlScanBusy = false;
+    }
+    const { ok, data } = response;
+    if (!ok) {
+        reportBox.innerHTML = data.code === 'quota' ? quotaHtml(data.error) : errorHtml(data.error || 'تعذر الفحص.');
+        return;
+    }
+    const result = data.result;
 
     let meta = `<strong>الرابط المحلل:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.input)}</code>`;
     if (result.host) {
@@ -457,23 +402,48 @@ function analyzeUrl() {
             meta += ` &nbsp;<strong>يظهر بالأحرف:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.unicodeHost)}</code>`;
         }
     }
+    const checks = result.checks || {};
+    const layers = ['محرك القواعد'];
+    if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / URLhaus)');
+    if (checks.deep) layers.push('عمر النطاق (RDAP)');
+    meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
-    renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta);
+    const extra = checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>';
+    renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta, extra);
 
     addToHistory(input, 'رابط URL', result.score, LEVEL_STATUS[result.level]);
-    reportScan('url', result.level);
 }
 
-function analyzeText() {
+let textScanBusy = false;
+async function analyzeText() {
     const textInput = document.getElementById('textInput').value.trim();
     const textReportBox = document.getElementById('textReportBox');
 
     if (!textInput) {
-        alert('يرجى إدخال النص أو محتوى الرسالة المراد فحصها');
+        textReportBox.style.display = 'block';
+        textReportBox.innerHTML = errorHtml('الصق نص الرسالة أولاً.');
         return;
     }
+    if (textScanBusy) return;
+    textScanBusy = true;
+    textReportBox.style.display = 'block';
+    textReportBox.innerHTML = loadingHtml('جارٍ تحليل الرسالة وروابطها...');
 
-    const result = PhishingEngine.analyzeText(textInput);
+    let response;
+    try {
+        response = await api('/api/scan/text', { text: textInput.slice(0, 10000) });
+    } catch {
+        textReportBox.innerHTML = errorHtml('تعذر الاتصال بالخادم. حاول مرة أخرى.');
+        return;
+    } finally {
+        textScanBusy = false;
+    }
+    const { ok, data } = response;
+    if (!ok) {
+        textReportBox.innerHTML = data.code === 'quota' ? quotaHtml(data.error) : errorHtml(data.error || 'تعذر الفحص.');
+        return;
+    }
+    const result = data.result;
     const preview = textInput.length > 140 ? textInput.substring(0, 140) + '…' : textInput;
     const meta = `<strong>النص المحلل:</strong> <p style="margin-top:4px; color:var(--text-main); font-style:italic;">"${escapeHtml(preview)}"</p>`;
 
@@ -488,7 +458,6 @@ function analyzeText() {
     renderReport(textReportBox, 'text', 'مؤشر المخاطر', result, meta, extra);
 
     addToHistory(textInput.substring(0, 30) + (textInput.length > 30 ? '…' : ''), 'نص رسالة', result.score, LEVEL_STATUS[result.level]);
-    reportScan('text', result.level);
 }
 
 function updateFileName(input) {
@@ -524,7 +493,18 @@ async function analyzeFile() {
 
     const file = fileInput.files[0];
     reportBox.style.display = 'block';
-    reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري قراءة البصمة الثنائية وترويسة الملف وفحص محتواه...</div>';
+    // نحجز الفحص من حصة اليوم (الملف نفسه لا يُرسل للخادم)
+    try {
+        const { ok, data } = await api('/api/scan/file', { size: file.size });
+        if (!ok) {
+            reportBox.innerHTML = data.code === 'quota' ? quotaHtml(data.error) : errorHtml(data.error || 'تعذر بدء الفحص.');
+            return;
+        }
+    } catch {
+        reportBox.innerHTML = errorHtml('تعذر الاتصال بالخادم. حاول مرة أخرى.');
+        return;
+    }
+    reportBox.innerHTML = loadingHtml('جاري قراءة البصمة الثنائية وترويسة الملف وفحص محتواه داخل جهازك...');
 
     let result, hash;
     try {
@@ -560,7 +540,7 @@ async function analyzeFile() {
 
     renderReport(reportBox, 'file', 'مؤشر الخطورة', result, meta, extra);
     addToHistory(file.name, 'فحص ملف', result.score, LEVEL_STATUS[result.level]);
-    reportScan('file', result.level);
+    recordScan('file', file.name, result.score, result.level);
 }
 
 function updateMediaFileName(input) {
@@ -784,7 +764,7 @@ async function uploadAndScan() {
     `;
 
     addToHistory(file.name, 'فحص سلامة ملف وسائط', riskScore, historyStatus);
-    reportScan('media', riskScore >= 70 ? 'danger' : (riskScore >= 30 ? 'warning' : 'safe'));
+    recordScan('media', file.name, riskScore, riskScore >= 70 ? 'danger' : (riskScore >= 30 ? 'warning' : 'safe'));
 }
 
 // ==========================================================
@@ -792,8 +772,7 @@ async function uploadAndScan() {
 // ==========================================================
 const ACTIONS = {
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
-    saveUserName, resetUserName, saveCyberBotEndpoint, clearCyberBotConversation,
-    sendCyberBotMessage, testUrl, loadSimulation, checkSimulation,
+    clearCyberBotConversation, sendCyberBotMessage, testUrl, loadSimulation, checkSimulation,
     updateFileName, updateMediaFileName
 };
 

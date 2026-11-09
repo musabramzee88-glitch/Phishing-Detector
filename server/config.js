@@ -2,22 +2,107 @@
 
 /*
   إعدادات الخادم. كل شيء يُقرأ من متغيرات البيئة، ولا يوجد أي سر داخل الكود.
+  القائمة الكاملة مع الشرح: README.md (قسم المتغيرات).
 
-  OPENAI_API_KEY, OPENAI_MODEL     تفعيل ردود CyberBot بالذكاء الاصطناعي (اختياري)
-  OPENAI_WEB_SEARCH=1              السماح للنموذج بالبحث على الإنترنت (اختياري، قد يكلّف)
-  OPENAI_BASE_URL                  عنوان مزوّد النموذج (الافتراضي https://api.openai.com/v1)
-  ADMINS                           حسابات الأدمن: user:salt:hash[:totpSecret]، تفصل بينها فاصلة.
-                                   تُولَّد بالأمر: npm run make-admin   (بدونها صفحة الأدمن مغلقة تماماً)
-  TRUST_PROXY=1                    قراءة عنوان الزائر من ترويسات الوسيط (يُفعَّل تلقائياً على Render)
-  CYBERBOT_ORIGIN                  أصل موقع آخر يُسمح له باستدعاء /api/chat (اختياري)
-  CYBERBOT_GLOBAL_LIMIT            أقصى عدد رسائل CyberBot بالدقيقة لكل الزوار معاً (الافتراضي 120)
-  UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN   قاعدة بيانات Upstash لسجل المبيعات (موصى بها)
-  HOST, PORT                       عنوان ومنفذ الاستماع
+  الأساسية:
+    APP_URL                          عنوان الموقع العام (مثل https://phishing-detector.onrender.com) لروابط الدخول عبر Google/Microsoft/Apple
+    UPSTASH_REDIS_REST_URL/TOKEN     قاعدة البيانات (الحسابات والاشتراكات). إلزامية بالإنتاج.
+    ADMINS                           حسابات الأدمن (npm run make-admin)
+  الذكاء الاصطناعي (CyberBot):
+    AI_API_KEY, AI_MODEL, AI_BASE_URL   أي مزوّد متوافق مع OpenAI (OpenAI, Gemini, Groq, OpenRouter...)
+    OPENAI_API_KEY, OPENAI_MODEL     (الأسماء القديمة ما زالت مدعومة)
+    GEMINI_API_KEY                   اختصار: يفعّل Gemini مباشرة
+  تسجيل الدخول الخارجي (كل مزوّد يظهر زره فقط إذا ضُبطت متغيراته):
+    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+    MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET
+    APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
+  الخطط والدفع:
+    PRICE_USD (2), PRICE_IQD (3000), TRIAL_DAYS (30)
+    PAY_QICARD                       رقم بطاقة الماستر كارد (Qi Card) لاستلام الدفع، يظهر للمشترك (الطريقة الوحيدة)
+    CONTACT_WHATSAPP, CONTACT_TELEGRAM, PAYMENT_NOTE
+  أخرى:
+    THREAT_FEEDS=0                   تعطيل قوائم التهديدات و RDAP
+    TRUST_PROXY=1, HOST, PORT, CYBERBOT_GLOBAL_LIMIT, STORE_PREFIX
 */
 
 const path = require("node:path");
 
 const HEX_32_BYTES = /^[0-9a-f]{64}$/i;
+
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g;
+const cleanEnv = (value, max) => String(value || "").replace(CONTROL_CHARS, " ").trim().slice(0, max);
+const numberEnv = (value, fallback, min, max) => {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+};
+
+// عنوان الموقع العام: يلزم https بالإنتاج (http مسموح للجهاز المحلي فقط)
+function parseAppUrl(env, port) {
+    const fallback = env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    try {
+        const u = new URL(String(env.APP_URL || fallback).trim());
+        const local = ["localhost", "127.0.0.1"].includes(u.hostname);
+        if (u.protocol !== "https:" && !(u.protocol === "http:" && local)) throw new Error("insecure");
+        return u.origin;
+    } catch {
+        return `http://localhost:${port}`;
+    }
+}
+
+function parseOAuth(env) {
+    const pair = (id, secret) => (env[id] && env[secret] ? { clientId: String(env[id]).trim(), clientSecret: String(env[secret]).trim() } : null);
+    let apple = null;
+    if (env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY) {
+        // المفتاح يُلصق بـ Render كما هو، أو بسطر واحد مع \n بدل الأسطر الجديدة
+        const pem = String(env.APPLE_PRIVATE_KEY).replace(/\\n/g, "\n").trim();
+        try {
+            const privateKey = require("node:crypto").createPrivateKey(pem);
+            apple = { clientId: env.APPLE_CLIENT_ID.trim(), teamId: env.APPLE_TEAM_ID.trim(), keyId: env.APPLE_KEY_ID.trim(), privateKey };
+        } catch {
+            apple = null;
+        }
+    }
+    return {
+        google: pair("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
+        microsoft: pair("MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"),
+        apple
+    };
+}
+
+// مزوّد الذكاء الاصطناعي. أي خدمة متوافقة مع OpenAI تعمل؛ Responses API لـ OpenAI و Chat Completions للبقية.
+function parseAi(env) {
+    let apiKey = env.AI_API_KEY || env.OPENAI_API_KEY || "";
+    let model = env.AI_MODEL || env.OPENAI_MODEL || "";
+    let baseUrl = env.AI_BASE_URL || env.OPENAI_BASE_URL || "";
+    if (!apiKey && env.GEMINI_API_KEY) {
+        apiKey = env.GEMINI_API_KEY;
+        baseUrl = baseUrl || "https://generativelanguage.googleapis.com/v1beta/openai";
+        model = model || "gemini-2.5-flash";
+    }
+    baseUrl = (baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+    let style = String(env.AI_API_STYLE || "").toLowerCase();
+    if (!["responses", "chat"].includes(style)) {
+        let host = "";
+        try { host = new URL(baseUrl).hostname; } catch { /* يُرفض لاحقاً */ }
+        style = host === "api.openai.com" ? "responses" : "chat";
+    }
+    return { apiKey, model, baseUrl, style, webSearch: env.OPENAI_WEB_SEARCH === "1" || env.AI_WEB_SEARCH === "1" };
+}
+
+function parsePayment(env) {
+    const methods = [];
+    const add = (id, label, value) => { const v = cleanEnv(value, 80); if (v) methods.push({ id, label, account: v }); };
+    // الدفع بالماستر كارد فقط: بطاقة كي كارد (Qi Card) الماستر كارد. لا توجد طرق أخرى.
+    add("qicard", "ماستر كارد (Qi Card)", env.PAY_QICARD);
+    // بدون أي طريقة مضبوطة نعرض "تواصل معنا" فقط، ويبقى طلب التفعيل ممكناً
+    if (!methods.length) methods.push({ id: "contact", label: "تواصل معنا لترتيب الدفع", account: "" });
+    return {
+        methods,
+        whatsapp: /^\d{7,15}$/.test(env.CONTACT_WHATSAPP || "") ? env.CONTACT_WHATSAPP : "",
+        telegram: /^[A-Za-z0-9_]{5,32}$/.test(env.CONTACT_TELEGRAM || "") ? env.CONTACT_TELEGRAM : "",
+        note: cleanEnv(env.PAYMENT_NOTE, 400)
+    };
+}
 
 // قاعدة Upstash: عنوان REST والرمز من لوحة Upstash. نقبل https فقط (وhttp للجهاز المحلي بالاختبارات).
 function parseUpstash(env) {
@@ -31,7 +116,7 @@ function parseUpstash(env) {
         const prefix = /^[A-Za-z0-9_-]{1,32}$/.test(env.STORE_PREFIX || "") ? env.STORE_PREFIX : "pd";
         return { upstash: { url: parsed.origin, token, prefix }, error: "" };
     } catch {
-        return { upstash: null, error: "UPSTASH_REDIS_REST_URL أو UPSTASH_REDIS_REST_TOKEN غير صالح (يلزم عنوان https ورمز). سيُستخدم ملف DATA_DIR بدلاً منها." };
+        return { upstash: null, error: "UPSTASH_REDIS_REST_URL أو UPSTASH_REDIS_REST_TOKEN غير صالح (يلزم عنوان https ورمز). الحسابات ستعمل بالذاكرة فقط." };
     }
 }
 
@@ -64,32 +149,24 @@ function loadConfig(env = process.env) {
         port: Number(env.PORT || 8080),
         trustProxy: env.TRUST_PROXY === "1" || onRender,
         allowedOrigin: env.CYBERBOT_ORIGIN || "",
-        openai: {
-            apiKey: env.OPENAI_API_KEY || "",
-            model: env.OPENAI_MODEL || "",
-            webSearch: env.OPENAI_WEB_SEARCH === "1",
-            baseUrl: (env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "")
+        appUrl: parseAppUrl(env, Number(env.PORT || 8080)),
+        openai: parseAi(env),
+        oauth: parseOAuth(env),
+        intel: { enabled: env.THREAT_FEEDS !== "0" },
+        plans: {
+            priceUsd: numberEnv(env.PRICE_USD, 2, 0, 1000),
+            priceIqd: numberEnv(env.PRICE_IQD, 3000, 0, 10_000_000),
+            trialDays: numberEnv(env.TRIAL_DAYS, 30, 0, 365)
         },
+        payment: parsePayment(env),
         admins: parseAdmins(env.ADMINS),
         // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)
         auditStdout: env.AUDIT_STDOUT === "1" || (onRender && env.AUDIT_STDOUT !== "0"),
         health: {},   // عتبات مراقب الصحة (انظر server/health.js)، تُعدَّل بالاختبارات فقط
         billing: {
-            // سر توقيع مفاتيح الترخيص (32 حرفاً فأكثر). بدونه لا يمكن إصدار مفاتيح ولا التحقق منها. npm run make-secret
-            licenseSecret: env.LICENSE_SECRET || "",
-            // قاعدة بيانات خارجية لسجل المبيعات (موصى بها على Render المجانية). تُفضَّل على DATA_DIR إن ضُبطت.
+            // قاعدة البيانات الخارجية (الحسابات والاشتراكات). بدونها: ذاكرة فقط (للتجربة المحلية).
             upstash: upstash.upstash,
-            upstashError: upstash.error,
-            retryMs: 30_000,
-            // مجلد حفظ سجل المبيعات. على Render يجب أن يكون قرصاً دائماً (Persistent Disk) وإلا يضيع عند كل نشر.
-            dataDir: env.DATA_DIR || path.join(root, "data"),
-            persistentDiskConfigured: Boolean(env.DATA_DIR),
-            // بيانات التواصل التي تظهر بصفحة الباقات (أنت تحددها بالمتغيرات، لا شيء مكتوب بالكود)
-            contact: {
-                whatsapp: /^\d{7,15}$/.test(env.CONTACT_WHATSAPP || "") ? env.CONTACT_WHATSAPP : "",
-                telegram: /^[A-Za-z0-9_]{5,32}$/.test(env.CONTACT_TELEGRAM || "") ? env.CONTACT_TELEGRAM : "",
-                note: String(env.PAYMENT_NOTE || "").replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, " ").slice(0, 400)
-            }
+            upstashError: upstash.error
         },
         limits: {
             chatPerMinute: 20,
@@ -100,7 +177,11 @@ function loadConfig(env = process.env) {
             loginFailuresPerWindow: 5,
             loginWindowMs: 15 * 60_000,
             loginAttemptsPerMinute: 30,
-            badLicenseKeysPerWindow: 20,
+            badApiKeysPerWindow: 20,
+            registrationsPerDay: 5,
+            userLoginFailures: 8,
+            authPerMinute: 30,
+            scanPerMinute: 30,
             maxBodyBytes: 128 * 1024
         },
         session: {

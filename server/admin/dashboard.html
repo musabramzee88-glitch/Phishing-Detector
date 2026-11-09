@@ -39,41 +39,32 @@
             <div class="table-wrap"><table id="scans"></table></div>
         </section>
 
-        <section id="billing">
-            <h2>الاشتراكات والإيرادات</h2>
-            <div id="billingNotice"></div>
+        <section id="payments">
+            <h2>طلبات الدفع والإيرادات</h2>
             <div id="revenue" class="cards"></div>
-            <div class="table-wrap spaced"><table id="monthly"></table></div>
+            <div class="actions-row">
+                <label class="muted"><input type="checkbox" id="showAllPayments"> عرض كل الطلبات (وليس المعلّقة فقط)</label>
+            </div>
+            <div class="table-wrap spaced"><table id="paymentsTable"></table></div>
+            <p class="note">قبل الموافقة: تأكد من وصول المبلغ فعلاً بحسابك (ماستر كارد / Qi Card) وطابق رقم العملية. الموافقة تمدد اشتراك المستخدم تلقائياً من تاريخ انتهائه الحالي.</p>
+        </section>
 
-            <h3>إصدار مفتاح ترخيص (بعد استلام الدفع)</h3>
-            <form id="licenseForm" class="form-grid" autocomplete="off">
-                <input type="hidden" name="renewalOf" value="">
-                <label>اسم الزبون <input name="customer" type="text" maxlength="80" required></label>
-                <label>الباقة
-                    <select name="tier"><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select>
-                </label>
-                <label>المدة بالأيام <input name="days" type="number" min="1" max="3660" value="30" required></label>
-                <label>المبلغ المستلم <input name="amount" type="number" min="0" step="0.01" required></label>
-                <label>العملة
-                    <select name="currency"><option value="IQD">IQD دينار</option><option value="USD">USD دولار</option></select>
-                </label>
-                <label>طريقة الدفع
-                    <select name="method">
-                        <option>ZainCash</option><option>FIB</option><option>Qi Card</option><option>Asia Hawala</option>
-                        <option>نقداً</option><option>تحويل مصرفي</option><option>أخرى</option>
-                    </select>
-                </label>
-                <label class="wide">ملاحظة (اختياري) <input name="note" type="text" maxlength="200"></label>
-                <div class="wide"><button id="licenseSubmit" type="submit">إصدار المفتاح</button> <span id="renewalHint" class="muted"></span></div>
+        <section id="usersSection">
+            <h2>المستخدمون</h2>
+            <form id="userSearch" class="actions-row" autocomplete="off">
+                <input id="userQuery" type="email" placeholder="ابحث بالبريد الإلكتروني" dir="ltr">
+                <button type="submit">بحث</button>
+                <button type="button" id="userReset" class="secondary">الكل</button>
+                <span id="usersTotal" class="muted"></span>
             </form>
-            <div id="newKey"></div>
-
-            <div class="table-wrap spaced"><table id="licenses"></table></div>
+            <div id="userNotice"></div>
+            <div class="table-wrap spaced"><table id="usersTable"></table></div>
             <p class="actions-row">
-                <a class="linkbtn" href="/api/admin/export/sales.csv" download>تصدير سجل المبيعات (CSV)</a>
-                <a class="linkbtn" href="/api/admin/export/backup.json" download>نسخة احتياطية (JSON)</a>
+                <button type="button" id="usersPrev" class="secondary">السابق</button>
+                <button type="button" id="usersNext" class="secondary">التالي</button>
+                <a class="linkbtn" href="/api/admin/export/users.csv" download>تصدير المستخدمين (CSV)</a>
+                <a class="linkbtn" href="/api/admin/export/payments.csv" download>تصدير المدفوعات (CSV)</a>
             </p>
-            <p class="note">خذ نسخة احتياطية بعد كل عملية بيع. مفاتيح الزبائن موقَّعة وتبقى صالحة حتى لو ضاع السجل، لكن سجل المبيعات والإلغاءات يضيع إذا لم يُحفظ على قرص دائم. تسجيل الإيراد يدوي: الإلغاء لا يحذف المبلغ المسجّل.</p>
         </section>
 
         <section>
@@ -89,6 +80,6 @@
         <p class="note">الإحصاءات محفوظة في ذاكرة الخادم فقط وتتصفّر عند إعادة تشغيله. لا تُحفظ الروابط ولا الرسائل ولا الملفات. تتحدّث الصفحة تلقائياً كل 10 ثوانٍ.</p>
     </main>
     <script src="/admin/assets/dashboard.js"></script>
-    <script src="/admin/assets/licenses.js"></script>
+    <script src="/admin/assets/manage.js"></script>
 </body>
 </html>

@@ -20,7 +20,8 @@
         no_email: 'لم يرسل المزوّد بريدك الإلكتروني. اسمح بمشاركة البريد وحاول مجدداً.',
         link_unverified: 'هذا البريد مسجّل مسبقاً. سجّل الدخول بالبريد وكلمة السر.',
         email_taken: 'هذا البريد مسجّل مسبقاً.',
-        disabled: 'هذا الحساب موقوف. تواصل مع الدعم.'
+        disabled: 'هذا الحساب موقوف. تواصل مع الدعم.',
+        bad_verify: 'رابط التأكيد غير صالح أو منتهي. سجّل الدخول واطلب رابطاً جديداً.'
     };
     const PROVIDER_ICONS = { google: 'fa-brands fa-google', microsoft: 'fa-brands fa-microsoft', apple: 'fa-brands fa-apple' };
 
@@ -31,7 +32,7 @@
         box.hidden = !text;
     }
 
-    function setMode(next) {
+    function setMode(next, keepNotice) {
         mode = next;
         document.querySelectorAll('.auth-tab').forEach(tab => {
             const active = tab.dataset.mode === next;
@@ -45,7 +46,18 @@
         $('forgotHint').hidden = register;
         $('authSubmitText').textContent = register ? 'إنشاء الحساب وبدء الشهر المجاني' : 'دخول';
         $('authPassword').setAttribute('autocomplete', register ? 'new-password' : 'current-password');
-        notice('');
+        if (!keepNotice) notice('');
+    }
+
+    async function mailAction(path, text) {
+        const email = $('authEmail').value.trim();
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) return notice('اكتب بريدك في الحقل أولاً.');
+        try {
+            const data = await post(path, { email });
+            notice(data.message || text, 'success');
+        } catch (error) {
+            notice(error.message);
+        }
     }
 
     async function post(url, body) {
@@ -57,7 +69,11 @@
         });
         let data = {};
         try { data = await response.json(); } catch { /* رد غير JSON */ }
-        if (!response.ok) throw new Error(data.error || 'حدث خطأ. حاول مرة أخرى.');
+        if (!response.ok) {
+            const error = new Error(data.error || 'حدث خطأ. حاول مرة أخرى.');
+            error.code = data.code || '';
+            throw error;
+        }
         return data;
     }
 
@@ -77,11 +93,23 @@
         if (password.length < 8) return notice('كلمة السر 8 أحرف على الأقل.');
         setBusy(form, true);
         try {
-            if (mode === 'register') await post('/api/auth/register', { email, password, name: $('authName').value.trim() });
-            else await post('/api/auth/login', { email, password });
+            if (mode === 'register') {
+                const data = await post('/api/auth/register', { email, password, name: $('authName').value.trim() });
+                if (data.needsVerification) {
+                    $('resendRow').hidden = false;
+                    notice(data.sent
+                        ? 'أرسلنا رابط التفعيل إلى ' + data.email + '. افتح بريدك (وافحص الرسائل غير المرغوبة) واضغط الرابط، ثم سجّل الدخول.'
+                        : 'تم إنشاء الحساب لكن تعذر إرسال الرابط الآن. اضغط «أعد الإرسال» بعد قليل.', 'success');
+                    setBusy(form, false);
+                    return setMode('login', true);
+                }
+            } else {
+                await post('/api/auth/login', { email, password });
+            }
             notice('تم! جارٍ فتح لوحتك...', 'success');
             window.location.replace('/');
         } catch (error) {
+            if (error.code === 'email_unverified') $('resendRow').hidden = false;
             notice(error.message);
             setBusy(form, false);
         }
@@ -141,6 +169,9 @@
         const error = params.get('error');
         if (error) notice(ERRORS[error] || ERRORS.failed);
         if (params.get('mode') === 'register') setMode('register');
+        if (params.get('verified')) notice('تم تأكيد بريدك. سجّل الدخول الآن وابدأ شهرك المجاني.', 'success');
+        $('forgotBtn').addEventListener('click', () => mailAction('/api/auth/forgot', 'أرسلنا رابط إعادة التعيين.'));
+        $('resendBtn').addEventListener('click', () => mailAction('/api/auth/resend', 'أرسلنا رابطاً جديداً.'));
 
         document.querySelectorAll('.auth-tab').forEach(tab => tab.addEventListener('click', () => setMode(tab.dataset.mode)));
         $('authForm').addEventListener('submit', submitAuth);

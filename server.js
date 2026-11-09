@@ -29,6 +29,7 @@ const { createHealthMonitor } = require("./server/health");
 const { createVisitorCounter } = require("./server/visitors");
 const { openDb } = require("./server/db");
 const { createUsers } = require("./server/users");
+const { createMailer } = require("./server/mailer");
 const { createOAuth } = require("./server/oauth");
 const { createAuth } = require("./server/auth");
 const { createIntel } = require("./server/intel");
@@ -52,10 +53,11 @@ function createApp(config = loadConfig(), overrides = {}) {
     const users = createUsers({ db, config, now: overrides.now });
     const oauth = createOAuth({ config, db, fetchImpl: overrides.fetch || fetch });
     const intel = overrides.intel || createIntel({ enabled: config.intel.enabled, log: message => stats.event("intel", message, "") });
-    const auth = createAuth({ config, users, oauth, stats });
+    const mailer = createMailer(config);
+    const auth = createAuth({ config, users, oauth, stats, mailer });
     const scan = createScan({ config, users, auth, intel, stats });
     const chat = createChatHandler({ config, users, auth, scan, stats });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, mail: mailer.status });
 
     const pages = {
         app: fs.readFileSync(path.join(config.publicDir, "index.html")),

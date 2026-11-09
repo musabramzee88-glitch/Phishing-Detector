@@ -151,6 +151,7 @@ function renderInfo(data) {
         ["السعر الشهري / التجربة", data.config.plans ? `${data.config.plans.priceUsd}$ ≈ ${data.config.plans.priceIqd} د.ع / ${data.config.plans.trialDays} يوماً` : "—"],
         ["قوائم التهديدات", data.config.intel ? (data.config.intel.enabled ? `${data.config.intel.urls} رابط محمّل` + Object.values(data.config.intel.feeds).map(f => ` | ${f.label}: ${f.count}${f.error ? " (خطأ: " + f.error + ")" : ""}`).join("") : "معطّلة") : "—"],
         ["CyberBot مربوط بنموذج ذكاء اصطناعي", yesNo(data.config.chatConfigured) + (data.config.chat && data.config.chat.model ? ` (${data.config.chat.model}, ${data.config.chat.style})` : "")],
+        ["تأكيد البريد وإرسال الروابط", data.config.mail && data.config.mail.enabled ? "مفعّل (" + data.config.mail.provider + ")" + (data.config.mail.lastError ? " — آخر عطل: " + data.config.mail.lastError : "") : "غير مفعّل: أي شخص يسجّل ببريد غير مؤكَّد. أضف BREVO_API_KEY و MAIL_FROM"],
         ["آخر عطل بمزوّد CyberBot", data.config.chat && data.config.chat.lastError ? data.config.chat.lastError : "لا يوجد"],
         ["البحث على الإنترنت بـ CyberBot", yesNo(data.config.webSearch)],
         ["حد CyberBot لكل زائر بالدقيقة", data.config.chatPerMinute],

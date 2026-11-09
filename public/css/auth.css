@@ -187,3 +187,6 @@
     .user-chip-name { display: none; }
     .plan-banner { margin: 10px 12px 0; }
 }
+
+.auth-link { background: none; border: 0; padding: 0; color: var(--accent, #3aa0ff); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.auth-link:hover { opacity: .85; }

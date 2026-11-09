@@ -200,6 +200,7 @@ function createAdmin(config, stats, extras = {}) {
             config: {
                 chatConfigured: Boolean(config.openai.apiKey && config.openai.model),
                 chat: extras.chat ? extras.chat() : null,
+                mail: extras.mail ? extras.mail() : null,
                 database: extras.db ? { backend: extras.db.backend, persistent: extras.db.persistent, warning: extras.db.persistent ? "" : (config.onRender ? "الحسابات محفوظة بالذاكرة فقط وستضيع عند أي نشر أو إعادة تشغيل! أضف UPSTASH_REDIS_REST_URL و UPSTASH_REDIS_REST_TOKEN." : "ذاكرة فقط (تشغيل محلي).") } : null,
                 intel: extras.intel ? extras.intel.status() : null,
                 oauth: Object.keys(config.oauth).filter(k => config.oauth[k]),

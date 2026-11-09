@@ -30,7 +30,7 @@ const { pricingInfo } = require("./plans");
 
 const PROVIDER_IDS = new Set(["google", "microsoft", "apple"]);
 
-function createAuth({ config, users, oauth, stats }) {
+function createAuth({ config, users, oauth, stats, mailer }) {
     const authLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.authPerMinute });
     const registrations = createRateLimiter({ windowMs: 24 * 60 * 60_000, max: config.limits.registrationsPerDay });
     const ipFailures = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.userLoginFailures * 2 });
@@ -116,9 +116,83 @@ function createAuth({ config, users, oauth, stats }) {
             const user = await users.register({ email: body.email, password: body.password, name: body.name });
             stats.count("registrations");
             stats.event("register", "حساب جديد (بريد)", ip);
+            if (users.needsVerification(user)) {
+                // لا جلسة قبل تأكيد البريد: نرسل الرابط ونطلب من المستخدم فتح بريده
+                const sent = await sendVerification(user);
+                return h.sendJson(res, 201, { needsVerification: true, email: user.email, sent });
+            }
             await startSession(req, res, user, 201, await me(user));
         } catch (error) {
             sendError(res, error);
+        }
+    }
+
+    // يرسل رابط التأكيد. يرجع true/false ولا يرمي: فشل البريد لا يكشف شيئاً ولا يوقف التسجيل (يقدر المستخدم يطلب إعادة الإرسال).
+    async function sendVerification(user) {
+        try {
+            if (!(await users.mailAllowed(user.email, "verify"))) return false;
+            const raw = await users.createVerifyToken(user.id);
+            await mailer.verifyEmail(user.email, `${config.appUrl}/auth/verify?token=${encodeURIComponent(raw)}`);
+            return true;
+        } catch (error) {
+            stats.event("mail_error", "تعذر إرسال رسالة التأكيد", "");
+            return false;
+        }
+    }
+
+    // إعادة إرسال رابط التأكيد. الرد نفسه دائماً (لا نكشف هل البريد مسجّل).
+    async function resendVerification(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        const body = await jsonBody(req, res);
+        if (body === undefined) return;
+        if (!mailer.enabled) return h.sendJson(res, 503, { error: "إرسال البريد غير مفعّل على الخادم." });
+        try {
+            const user = await users.findByEmail(String(body.email || "").trim().toLowerCase());
+            if (user && users.needsVerification(user) && !user.disabled) await sendVerification(user);
+            h.sendJson(res, 200, { ok: true, message: "إذا كان البريد مسجّلاً وغير مؤكَّد أرسلنا لك رابطاً جديداً. افحص صندوق الوارد والرسائل غير المرغوبة." });
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    // نسيت كلمة السر: رابط يصل للبريد (صالح ساعة ولمرة واحدة). الرد نفسه دائماً.
+    async function forgotPassword(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        const body = await jsonBody(req, res);
+        if (body === undefined) return;
+        if (!mailer.enabled) return h.sendJson(res, 503, { error: "إرسال البريد غير مفعّل. تواصل مع الدعم ليرسل لك رابط إعادة التعيين." });
+        try {
+            const email = String(body.email || "").trim().toLowerCase();
+            const user = email ? await users.findByEmail(email) : null;
+            if (user && !user.disabled && await users.mailAllowed(user.email, "reset")) {
+                try {
+                    const raw = await users.createResetLink(user.id);
+                    await mailer.resetEmail(user.email, `${config.appUrl}/login.html?reset=${encodeURIComponent(raw)}`);
+                    stats.event("password_reset_requested", "طلب رابط كلمة سر بالبريد", ip);
+                } catch {
+                    stats.event("mail_error", "تعذر إرسال رابط كلمة السر", ip);
+                }
+            }
+            h.sendJson(res, 200, { ok: true, message: "إذا كان البريد مسجّلاً أرسلنا لك رابط إعادة التعيين. الرابط صالح ساعة واحدة." });
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    // رابط التأكيد من البريد
+    async function verifyLink(req, res, url) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return redirect(res, "/login.html?error=rate");
+        try {
+            await users.verifyEmail(url.searchParams.get("token") || "");
+            stats.event("email_verified", "تأكيد بريد", ip);
+            redirect(res, "/login.html?verified=1");
+        } catch (error) {
+            if (error instanceof UserError) return redirect(res, "/login.html?error=bad_verify");
+            if (error && error.name === "UpstashError") return redirect(res, "/login.html?error=unavailable");
+            throw error;
         }
     }
 
@@ -307,13 +381,19 @@ function createAuth({ config, users, oauth, stats }) {
         const p = url.pathname;
         if (p === "/api/auth/config") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
-            h.sendJson(res, 200, { providers: oauth.providers, trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd });
+            h.sendJson(res, 200, { providers: oauth.providers, emailVerification: mailer.enabled, trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd });
             return true;
         }
         if (p === "/api/auth/register") return await register(req, res), true;
         if (p === "/api/auth/login") return await login(req, res), true;
         if (p === "/api/auth/logout") return await logout(req, res), true;
         if (p === "/api/auth/reset") return await resetPassword(req, res), true;
+        if (p === "/api/auth/resend") return await resendVerification(req, res), true;
+        if (p === "/api/auth/forgot") return await forgotPassword(req, res), true;
+        if (p === "/auth/verify") {
+            if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
+            return await verifyLink(req, res, url), true;
+        }
         if (p === "/api/auth/me") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
             const user = await requireUser(req, res);

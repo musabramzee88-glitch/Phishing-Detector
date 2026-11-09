@@ -13,7 +13,9 @@
     hist:<id>              سجل الفحوصات (ZSET، لمشتركي Pro فقط)
     apikey:<sha256(key)>   -> id
     pay:<id>               طلب دفع (JSON)،  pays (ZSET الكل)،  pays:pending (SET)،  upays:<uid> (ZSET)
-    reset:<sha256(token)>  رابط إعادة تعيين كلمة السر (يصدره الأدمن) ينتهي بعد ساعة
+    reset:<sha256(token)>  رابط إعادة تعيين كلمة السر ينتهي بعد ساعة
+    verify:<sha256(token)> رابط تأكيد البريد (24 ساعة)،  canon:<email موحّد> -> id،  trial:<email موحّد> (الشهر المجاني استُهلك)
+    mailn:<نوع>:<sha>      عدّاد رسائل البريد بالساعة
   الرموز السرية (الجلسات، مفاتيح API، روابط إعادة التعيين) لا تُخزَّن أبداً كما هي، بل بصمتها SHA-256.
 */
 
@@ -31,6 +33,33 @@ const COMMON_PASSWORDS = new Set([
     "00000000", "iloveyou", "abcd1234", "abc12345", "admin123", "welcome1", "87654321", "12341234",
     "11223344", "1q2w3e4r", "q1w2e3r4", "asdfghjk", "zxcvbnm1", "baghdad1", "iraq1234"
 ]);
+
+// مزوّدو بريد مؤقت شائعون: يُرفضون عند التسجيل بالبريد (لا يؤثر على الدخول عبر Google/Microsoft/Apple)
+const DISPOSABLE_DOMAINS = new Set([
+    "mailinator.com", "guerrillamail.com", "guerrillamail.net", "guerrillamail.org", "sharklasers.com", "grr.la", "10minutemail.com", "10minutemail.net",
+    "tempmail.com", "temp-mail.org", "temp-mail.io", "tempmail.net", "tempmailo.com", "throwawaymail.com", "yopmail.com", "yopmail.net", "yopmail.fr",
+    "trashmail.com", "trashmail.net", "trashmail.de", "getnada.com", "nada.email", "maildrop.cc", "dispostable.com", "fakeinbox.com", "mailnesia.com",
+    "mintemail.com", "mohmal.com", "emailondeck.com", "burnermail.io", "spamgourmet.com", "mytemp.email", "tempinbox.com", "moakt.com", "mail.tm",
+    "inboxkitten.com", "tmpmail.org", "tmpmail.net", "dropmail.me", "discard.email", "anonbox.net", "33mail.com", "emailfake.com", "fakemail.net",
+    "harakirimail.com", "mailcatch.com", "mailforspam.com", "spambox.us", "spam4.me", "tempr.email", "tempail.com", "email-fake.com", "luxusmail.org",
+    "1secmail.com", "1secmail.net", "1secmail.org", "wwjmp.com", "esiix.com", "xojxe.com", "yoggm.com", "vjuum.com", "laafd.com", "txcct.com",
+    "gufum.com", "cuvox.de", "armyspy.com", "dayrep.com", "einrot.com", "fleckens.hu", "gustr.com", "jourrapide.com", "rhyta.com", "superrito.com", "teleworm.us",
+    "crazymailing.com", "linshiyouxiang.net", "mailpoof.com", "mvrht.net", "tmail.ws", "zetmail.com", "tempm.com", "temporary-mail.net", "guerrillamailblock.com"
+]);
+
+// يوحّد عناوين الصندوق نفسه: Gmail يتجاهل النقاط و +tag، وبقية المزوّدين نحذف +tag. نستخدمه لمنع تكرار الشهر المجاني.
+function canonicalEmail(email) {
+    const at = email.lastIndexOf("@");
+    let local = email.slice(0, at);
+    let domain = email.slice(at + 1);
+    if (domain === "googlemail.com") domain = "gmail.com";
+    const base = local.split("+")[0];
+    if (base) local = base;
+    if (domain === "gmail.com") local = local.replace(/\./g, "") || local;
+    return local + "@" + domain;
+}
+
+const isDisposableEmail = email => DISPOSABLE_DOMAINS.has(email.slice(email.lastIndexOf("@") + 1));
 
 class UserError extends Error {
     constructor(code, message, status = 400) {
@@ -106,6 +135,15 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     const cache = new Map();          // id -> { user, at }
     const sessionCache = new Map();   // sha -> { uid, exp, at }
     const trialMs = config.plans.trialDays * DAY_MS;
+    // عند ضبط مزوّد البريد: حسابات البريد/كلمة السر لا تعمل قبل تأكيد البريد، ويبدأ الشهر المجاني عند التأكيد.
+    const verifyRequired = Boolean(config.mail && config.mail.enabled);
+
+    // الشهر المجاني مرة واحدة لكل صندوق بريد (حتى لو حُذف الحساب وأُعيد إنشاؤه)
+    async function claimTrial(email) {
+        if (trialMs <= 0) return 0;
+        const won = await db.cmd(["SET", k("trial", canonicalEmail(email)), "1", "NX"]);
+        return won === "OK" ? clock() + trialMs : 0;
+    }
 
     function remember(user) {
         if (cache.size > 5000) cache.delete(cache.keys().next().value);
@@ -145,15 +183,22 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const id = randomId();
         const reserved = await db.cmd(["SET", k("email", email), id, "NX"]);
         if (reserved !== "OK") throw new UserError("email_taken", "هذا البريد مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.", 409);
+        // نفس الصندوق بشكل آخر (نقاط Gmail أو +tag) يُعامل كحساب مكرر
+        const canonOwner = await db.cmd(["SET", k("canon", canonicalEmail(email)), id, "NX"]);
+        if (canonOwner !== "OK") {
+            await db.cmd(["DEL", k("email", email)]);
+            throw new UserError("email_taken", "هذا البريد مسجّل مسبقاً. سجّل الدخول بدلاً من ذلك.", 409);
+        }
         const now = clock();
+        const trialEndsAt = (emailVerified || !verifyRequired) ? await claimTrial(email) : 0;
         const user = {
             id, email, name: cleanName(name) || email.split("@")[0],
             emailVerified: Boolean(emailVerified),
             pw: password ? await hashPassword(password) : "",
             providers: provider ? { [provider]: sub } : {},
             createdAt: now,
-            // أول شهر مجاني لكل حساب جديد (مرة واحدة)
-            trialEndsAt: trialMs > 0 ? now + trialMs : 0,
+            // أول شهر مجاني (مرة واحدة لكل صندوق بريد). حسابات البريد تبدأ الشهر عند تأكيد البريد إن كان التأكيد مفعّلاً.
+            trialEndsAt,
             paidUntil: 0,
             disabled: false,
             lastLoginAt: now
@@ -169,7 +214,36 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (!email) throw new UserError("bad_email", "اكتب بريداً إلكترونياً صحيحاً.");
         const problem = passwordProblem(password, email);
         if (problem) throw new UserError("weak_password", problem);
+        if (isDisposableEmail(email)) throw new UserError("disposable_email", "لا نقبل البريد المؤقت. استخدم بريدك الحقيقي (Gmail أو Outlook أو بريد جامعتك).");
         return create({ email, name, password, emailVerified: false });
+    }
+
+    // ---------- تأكيد البريد ----------
+    const needsVerification = user => verifyRequired && !user.emailVerified;
+
+    // يحدّ عدد رسائل البريد لكل صندوق (يمنع استعمال الموقع لإغراق بريد أحد)
+    async function mailAllowed(email, kind, max = 3) {
+        const key = k("mailn", kind, sha256(canonicalEmail(email)));
+        const [n] = await db.pipe([["INCR", key], ["EXPIRE", key, "3600"]]);
+        return Number(n) <= max;
+    }
+
+    async function createVerifyToken(userId) {
+        const raw = token();
+        await db.cmd(["SET", k("verify", sha256(raw)), userId, "EX", String(24 * 3600)]);
+        return raw;
+    }
+
+    async function verifyEmail(raw) {
+        if (typeof raw !== "string" || raw.length > 100) throw new UserError("bad_link", "رابط التأكيد غير صالح أو منتهي.", 400);
+        const key = k("verify", sha256(raw));
+        const id = await db.cmd(["GET", key]);
+        const user = id ? await get(id) : null;
+        if (!user) throw new UserError("bad_link", "رابط التأكيد غير صالح أو منتهي.", 400);
+        await db.cmd(["DEL", key]);
+        if (user.emailVerified) return user;
+        const trialEndsAt = user.trialEndsAt || await claimTrial(user.email);
+        return update(user.id, u => { u.emailVerified = true; u.trialEndsAt = trialEndsAt; });
     }
 
     // كلمة السر الخاطئة والحساب غير الموجود يرجعان نفس الخطأ وبنفس الزمن تقريباً
@@ -179,6 +253,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const ok = await verifyPassword(String(password || ""), user && user.pw ? user.pw : DUMMY_HASH);
         if (!user || !user.pw || !ok) throw new UserError("bad_login", "البريد أو كلمة السر غير صحيحة.", 401);
         if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+        if (needsVerification(user)) throw new UserError("email_unverified", "أكّد بريدك الإلكتروني أولاً: أرسلنا لك رابط التفعيل. إذا ما وصلك اطلب إرساله مرة ثانية.", 403);
         return update(user.id, u => { u.lastLoginAt = clock(); });
     }
 
@@ -205,9 +280,11 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
             if (!emailVerified) throw new UserError("link_unverified", "هذا البريد مسجّل مسبقاً. سجّل الدخول بطريقتك المعتادة.", 409);
             if (existing.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
             await db.cmd(["SET", k("oauth", provider, sub), existing.id]);
+            const trialEndsAt = existing.trialEndsAt || await claimTrial(existing.email);
             const user = await update(existing.id, u => {
                 u.providers = { ...(u.providers || {}), [provider]: sub };
                 u.emailVerified = true;
+                u.trialEndsAt = trialEndsAt;
                 u.lastLoginAt = clock();
             });
             return { user, created: false };
@@ -335,7 +412,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     // حذف الحساب نهائياً (طلبات الدفع تبقى بسجل الإيرادات بدون اسم)
     async function remove(user) {
         const commands = [
-            ["DEL", k("u", user.id)], ["DEL", k("email", user.email)], ["ZREM", k("users"), user.id],
+            ["DEL", k("u", user.id)], ["DEL", k("email", user.email)], ["DEL", k("canon", canonicalEmail(user.email))], ["ZREM", k("users"), user.id],
             ["DEL", k("hist", user.id)], ["DEL", k("upays", user.id)]
         ];
         for (const [provider, sub] of Object.entries(user.providers || {})) commands.push(["DEL", k("oauth", provider, sub)]);
@@ -472,7 +549,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     }
 
     return {
-        get, register, login, loginWithProvider, createSession, userFromSession, destroySession,
+        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, verifyEmail, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, setDisabled, revenue,

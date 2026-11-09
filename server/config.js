@@ -18,6 +18,7 @@
     APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
   الخطط والدفع:
     PRICE_USD (2), PRICE_IQD (3000), TRIAL_DAYS (30)
+    BREVO_API_KEY أو RESEND_API_KEY + MAIL_FROM (+ MAIL_FROM_NAME)   تفعيل التحقق من البريد وإرسال روابط كلمة السر
     PAY_QICARD                       رقم بطاقة الماستر كارد (Qi Card) لاستلام الدفع، يظهر للمشترك (الطريقة الوحيدة)
     CONTACT_WHATSAPP, CONTACT_TELEGRAM, PAYMENT_NOTE
   أخرى:
@@ -87,6 +88,21 @@ function parseAi(env) {
         style = host === "api.openai.com" ? "responses" : "chat";
     }
     return { apiKey, model, baseUrl, style, webSearch: env.OPENAI_WEB_SEARCH === "1" || env.AI_WEB_SEARCH === "1" };
+}
+
+// البريد (التحقق من الإيميل وروابط كلمة السر). يعمل فقط إذا ضُبط المفتاح وعنوان المرسل.
+function parseMail(env) {
+    const provider = env.BREVO_API_KEY ? "brevo" : env.RESEND_API_KEY ? "resend" : "";
+    const apiKey = String(env.BREVO_API_KEY || env.RESEND_API_KEY || "").trim();
+    const from = /^[^\s@"<>]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(String(env.MAIL_FROM || "").trim()) ? String(env.MAIL_FROM).trim() : "";
+    let apiBase = provider === "brevo" ? "https://api.brevo.com" : "https://api.resend.com";
+    if (env.MAIL_API_BASE) {
+        try {
+            const u = new URL(env.MAIL_API_BASE);
+            if (u.protocol === "https:" || ["localhost", "127.0.0.1"].includes(u.hostname)) apiBase = u.origin;
+        } catch { /* نبقي الافتراضي */ }
+    }
+    return { provider, apiKey, from, fromName: cleanEnv(env.MAIL_FROM_NAME || "Phishing Detector", 60), apiBase, enabled: Boolean(provider && apiKey && from) };
 }
 
 function parsePayment(env) {
@@ -159,6 +175,7 @@ function loadConfig(env = process.env) {
             trialDays: numberEnv(env.TRIAL_DAYS, 30, 0, 365)
         },
         payment: parsePayment(env),
+        mail: parseMail(env),
         admins: parseAdmins(env.ADMINS),
         // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)
         auditStdout: env.AUDIT_STDOUT === "1" || (onRender && env.AUDIT_STDOUT !== "0"),

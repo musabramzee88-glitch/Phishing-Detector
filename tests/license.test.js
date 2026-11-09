@@ -14,7 +14,7 @@ const DAY = 86_400_000;
 
 // ---------------------------------------------------------------- مفاتيح الترخيص
 
-test('مفتاح الترخيص: إصدار ثم تحقق، وشكله ثابت ومقروء', () => {
+test('مفتاح الترخيص: إصدار ثم تحقق، وشكله ثابت ومقروء', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     assert.equal(lm.enabled, true);
     const issued = lm.issue({ tier: 'pro', expiresAt: T0 + 30 * DAY });
@@ -25,7 +25,7 @@ test('مفتاح الترخيص: إصدار ثم تحقق، وشكله ثابت 
     assert.match(lm.issue({ tier: 'enterprise', expiresAt: T0 + DAY }).key, /^PD1-E-/);
 });
 
-test('المفتاح يقبل حالة الأحرف والمسافات الزائدة', () => {
+test('المفتاح يقبل حالة الأحرف والمسافات الزائدة', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     const { key } = lm.issue({ tier: 'pro', expiresAt: T0 + 10 * DAY });
     assert.equal(lm.verify('  ' + key.toLowerCase() + '\n').ok, true);
@@ -34,7 +34,7 @@ test('المفتاح يقبل حالة الأحرف والمسافات الزا�
     assert.equal(lm.verify(key.replace(/-/g, '_')).ok, false);                     // لكن استبدال الشرطات يكسره
 });
 
-test('لا يمكن تزوير المفتاح: تغيير الباقة أو التاريخ أو الرقم أو التوقيع أو السر', () => {
+test('لا يمكن تزوير المفتاح: تغيير الباقة أو التاريخ أو الرقم أو التوقيع أو السر', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     const { key } = lm.issue({ tier: 'pro', expiresAt: T0 + 30 * DAY });
     const parts = key.split('-');
@@ -50,7 +50,7 @@ test('لا يمكن تزوير المفتاح: تغيير الباقة أو ال
     assert.equal(other.verify(key).reason, 'signature');
 });
 
-test('الصلاحية تنتهي بنهاية يوم الانتهاء (UTC) بالضبط', () => {
+test('الصلاحية تنتهي بنهاية يوم الانتهاء (UTC) بالضبط', async () => {
     let now = T0;
     const lm = createLicenseManager(SECRET, { now: () => now });
     const { key, id } = lm.issue({ tier: 'pro', expiresAt: T0 + 5 * DAY });     // 14 نوفمبر
@@ -63,7 +63,7 @@ test('الصلاحية تنتهي بنهاية يوم الانتهاء (UTC) ب�
     assert.equal(expired.id, id);
 });
 
-test('مدخلات غريبة وتواريخ غير حقيقية ترجع format بدون أخطاء', () => {
+test('مدخلات غريبة وتواريخ غير حقيقية ترجع format بدون أخطاء', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     for (const input of [null, undefined, 123, '', 'PD1', 'x'.repeat(5000), "' OR 1=1 --", '<script>', 'PD1-P-ABCDEF12-20261301-' + 'A'.repeat(16), 'PD1-P-ABCDEF12-20260230-' + 'A'.repeat(16), 'PD1-X-ABCDEF12-20261209-' + 'A'.repeat(16)]) {
         const r = lm.verify(input);
@@ -72,7 +72,7 @@ test('مدخلات غريبة وتواريخ غير حقيقية ترجع format
     }
 });
 
-test('الإصدار يرفض الباقة المجهولة والتاريخ الماضي، وبدون سر الاشتراكات معطّلة', () => {
+test('الإصدار يرفض الباقة المجهولة والتاريخ الماضي، وبدون سر الاشتراكات معطّلة', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     assert.throws(() => lm.issue({ tier: 'vip', expiresAt: T0 + DAY }));
     assert.throws(() => lm.issue({ tier: 'pro', expiresAt: T0 - DAY }));
@@ -85,7 +85,7 @@ test('الإصدار يرفض الباقة المجهولة والتاريخ ا�
     }
 });
 
-test('keyFor ثابت لنفس المدخلات، والأرقام لا تتكرر', () => {
+test('keyFor ثابت لنفس المدخلات، والأرقام لا تتكرر', async () => {
     const lm = createLicenseManager(SECRET, { now: () => T0 });
     const issued = lm.issue({ tier: 'pro', expiresAt: T0 + 3 * DAY });
     assert.equal(lm.keyFor({ tier: 'pro', id: issued.id, expiresAt: issued.expiresAt }), issued.key);
@@ -94,7 +94,7 @@ test('keyFor ثابت لنفس المدخلات، والأرقام لا تتكر
     assert.equal(ids.size, 2000);
 });
 
-test('أدوات التواريخ', () => {
+test('أدوات التواريخ', async () => {
     assert.equal(dateToStamp(Date.UTC(2026, 0, 5)), '20260105');
     assert.equal(stampToExpiry('20260230'), null);
     assert.equal(stampToExpiry('20240229'), Date.UTC(2024, 1, 29, 23, 59, 59, 999));
@@ -107,14 +107,14 @@ function tempDir() {
 }
 const sampleSale = (over = {}) => ({ id: 'ABCDEF12', createdAt: new Date(T0).toISOString(), customer: 'زبون', tier: 'pro', expiresAt: new Date(T0 + 30 * DAY).toISOString(), amount: 15000, currency: 'IQD', method: 'ZainCash', note: '', ...over });
 
-test('التخزين: يحفظ ويقرأ من جديد، ولا يترك ملفاً مؤقتاً', () => {
+test('التخزين: يحفظ ويقرأ من جديد، ولا يترك ملفاً مؤقتاً', async () => {
     const dir = tempDir();
     try {
         const a = createStore(dir);
         assert.equal(a.state.persistent, true);
-        a.addSale(sampleSale());
-        a.revoke('ABCDEF12');
-        a.revoke('ABCDEF12');                                         // مكرر: لا يتضاعف
+        (await a.addSale(sampleSale()));
+        (await a.revoke('ABCDEF12'));
+        (await a.revoke('ABCDEF12'));                                         // مكرر: لا يتضاعف
         const b = createStore(dir);
         assert.equal(b.sales().length, 1);
         assert.equal(b.isRevoked('ABCDEF12'), true);
@@ -123,7 +123,7 @@ test('التخزين: يحفظ ويقرأ من جديد، ولا يترك ملف
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('التخزين: ملف تالف لا يُكتب فوقه، يُحفظ باسم آخر مع تنبيه', () => {
+test('التخزين: ملف تالف لا يُكتب فوقه، يُحفظ باسم آخر مع تنبيه', async () => {
     const dir = tempDir();
     try {
         fs.writeFileSync(path.join(dir, 'billing.json'), '{ not json ');
@@ -132,12 +132,12 @@ test('التخزين: ملف تالف لا يُكتب فوقه، يُحفظ با
         assert.match(store.state.error, /تالفاً/);
         assert.ok(fs.readdirSync(dir).some(f => /^billing\.corrupt-\d+\.json$/.test(f)));
         assert.equal(fs.readFileSync(fs.readdirSync(dir).filter(f => f.includes('corrupt')).map(f => path.join(dir, f))[0], 'utf8'), '{ not json ');
-        store.addSale(sampleSale());
+        (await store.addSale(sampleSale()));
         assert.equal(createStore(dir).sales().length, 1);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('التخزين: مجلد لا يمكن الكتابة فيه يعمل بالذاكرة مع تنبيه، ووضع بلا مجلد', () => {
+test('التخزين: مجلد لا يمكن الكتابة فيه يعمل بالذاكرة مع تنبيه، ووضع بلا مجلد', async () => {
     const dir = tempDir();
     try {
         const blocker = path.join(dir, 'file-not-dir');
@@ -145,7 +145,7 @@ test('التخزين: مجلد لا يمكن الكتابة فيه يعمل با
         const store = createStore(path.join(blocker, 'data'));          // مسار تحت ملف: لا يمكن إنشاؤه
         assert.equal(store.state.persistent, false);
         assert.match(store.state.error, /بالذاكرة/);
-        store.addSale(sampleSale());
+        (await store.addSale(sampleSale()));
         assert.equal(store.sales().length, 1);
         const memory = createStore(null);
         assert.equal(memory.state.persistent, false);
@@ -153,17 +153,17 @@ test('التخزين: مجلد لا يمكن الكتابة فيه يعمل با
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('التخزين: حد أقصى لعدد السجلات', () => {
+test('التخزين: حد أقصى لعدد السجلات', async () => {
     const store = createStore(null);
-    for (let i = 0; i < MAX_SALES; i++) store.addSale(sampleSale({ id: String(i) }));
-    assert.throws(() => store.addSale(sampleSale()), /limit/);
+    for (let i = 0; i < MAX_SALES; i++) (await store.addSale(sampleSale({ id: String(i) })));
+    await assert.rejects(() => store.addSale(sampleSale()), /limit/);
 });
 
 // ---------------------------------------------------------------- الإيرادات
 
 const sale = (over) => sampleSale(over);
 
-test('الإيرادات: لكل عملة على حدة، الشهر الحالي، آخر 30 يوماً، الأشهر الستة', () => {
+test('الإيرادات: لكل عملة على حدة، الشهر الحالي، آخر 30 يوماً، الأشهر الستة', async () => {
     const sales = [
         sale({ id: 'A0000001', createdAt: new Date(T0 - 2 * DAY).toISOString(), amount: 15000, currency: 'IQD' }),         // هذا الشهر
         sale({ id: 'A0000002', createdAt: new Date(T0 - 20 * DAY).toISOString(), amount: 10, currency: 'USD', tier: 'enterprise' }),  // 20 أكتوبر: آخر 30 يوماً لكن شهر آخر
@@ -182,7 +182,7 @@ test('الإيرادات: لكل عملة على حدة، الشهر الحال�
     assert.equal(s.monthly[3].IQD, 70000);
 });
 
-test('الإيرادات: الحالات والعدّ حسب الباقة والتي تنتهي قريباً', () => {
+test('الإيرادات: الحالات والعدّ حسب الباقة والتي تنتهي قريباً', async () => {
     const sales = [
         sale({ id: 'B0000001', expiresAt: new Date(T0 + 30 * DAY).toISOString() }),                       // نشط
         sale({ id: 'B0000002', expiresAt: new Date(T0 + 3 * DAY).toISOString(), customer: 'قريب' }),      // ينتهي قريباً
@@ -199,7 +199,7 @@ test('الإيرادات: الحالات والعدّ حسب الباقة وال
     assert.equal(statusOf(sales[0], true, T0), 'revoked');
 });
 
-test('CSV: حماية المعادلات والاقتباس', () => {
+test('CSV: حماية المعادلات والاقتباس', async () => {
     assert.equal(csvCell('=HYPERLINK("http://x")'), `"'=HYPERLINK(""http://x"")"`);
     assert.equal(csvCell('+1'), "'+1");
     assert.equal(csvCell('-5'), "'-5");
@@ -222,9 +222,9 @@ function newBilling(options = {}) {
 }
 const validInput = (over = {}) => ({ customer: '  شركة   الأمل  ', tier: 'pro', days: 30, amount: 15000, currency: 'IQD', method: 'ZainCash', note: 'ملاحظة', ...over });
 
-test('الإصدار: يسجّل البيع ويرجع مفتاحاً صالحاً، ولا يكتب اسم الزبون بسجل التدقيق', () => {
+test('الإصدار: يسجّل البيع ويرجع مفتاحاً صالحاً، ولا يكتب اسم الزبون بسجل التدقيق', async () => {
     const { billing, license, events, store } = newBilling();
-    const result = billing.create(validInput(), '10.0.0.5');
+    const result = (await billing.create(validInput(), '10.0.0.5'));
     assert.equal(result.status, 201);
     assert.equal(result.license.customer, 'شركة الأمل');               // مسافات منظّمة
     assert.equal(result.license.status, 'active');
@@ -237,39 +237,39 @@ test('الإصدار: يسجّل البيع ويرجع مفتاحاً صالحا
     assert.equal(billing.overview().summary.revenue.IQD.thisMonth, 15000);
 });
 
-test('الإصدار: التحقق من كل حقل', () => {
+test('الإصدار: التحقق من كل حقل', async () => {
     const { billing, store } = newBilling();
     const bad = [
         { customer: '' }, { customer: '   ' }, { tier: 'vip' }, { tier: 'free' }, { days: 0 }, { days: 3661 }, { days: 1.5 }, { days: 'abc' },
         { amount: -1 }, { amount: 'abc' }, { amount: 1e10 }, { amount: Infinity }, { currency: 'EUR' }, { method: 'bitcoin' }, { renewalOf: 'not-an-id' }
     ];
     for (const patch of bad) {
-        const r = billing.create(validInput(patch), '1.1.1.1');
+        const r = (await billing.create(validInput(patch), '1.1.1.1'));
         assert.equal(r.status, 400, JSON.stringify(patch));
         assert.ok(r.error);
     }
-    assert.equal(billing.create(null, '1.1.1.1').status, 400);
+    assert.equal((await billing.create(null, '1.1.1.1')).status, 400);
     assert.equal(store.sales().length, 0);
-    assert.equal(billing.create(validInput({ amount: 0 }), '1.1.1.1').status, 201);            // مجاني/هدية مسموح
-    assert.equal(billing.create(validInput({ amount: 10.456, currency: 'USD' }), '1.1.1.1').license.amount, 10.46);
-    const long = billing.create(validInput({ customer: 'م'.repeat(500), note: 'ن'.repeat(900) }), '1.1.1.1');
+    assert.equal((await billing.create(validInput({ amount: 0 }), '1.1.1.1')).status, 201);            // مجاني/هدية مسموح
+    assert.equal((await billing.create(validInput({ amount: 10.456, currency: 'USD' }), '1.1.1.1')).license.amount, 10.46);
+    const long = (await billing.create(validInput({ customer: 'م'.repeat(500), note: 'ن'.repeat(900) }), '1.1.1.1'));
     assert.equal(long.license.customer.length, 80);
     assert.equal(long.license.note.length, 200);
 });
 
-test('الإصدار: بدون سر يرجع 503 ولا يسجّل شيئاً', () => {
+test('الإصدار: بدون سر يرجع 503 ولا يسجّل شيئاً', async () => {
     const { billing, store } = newBilling({ secret: '' });
     assert.equal(billing.enabled, false);
-    assert.equal(billing.create(validInput(), '1.1.1.1').status, 503);
+    assert.equal((await billing.create(validInput(), '1.1.1.1')).status, 503);
     assert.equal(store.sales().length, 0);
 });
 
-test('الإلغاء: يغيّر الحالة، ويتحقق من الرقم، ولا يحذف الإيراد', () => {
+test('الإلغاء: يغيّر الحالة، ويتحقق من الرقم، ولا يحذف الإيراد', async () => {
     const { billing, license, events } = newBilling();
-    const { key, license: created } = billing.create(validInput(), '1.1.1.1');
-    assert.equal(billing.revoke('zzz', '1.1.1.1').status, 400);
-    assert.equal(billing.revoke('00000000', '1.1.1.1').status, 404);
-    assert.equal(billing.revoke(created.id, '1.1.1.1').status, 200);
+    const { key, license: created } = (await billing.create(validInput(), '1.1.1.1'));
+    assert.equal((await billing.revoke('zzz', '1.1.1.1')).status, 400);
+    assert.equal((await billing.revoke('00000000', '1.1.1.1')).status, 404);
+    assert.equal((await billing.revoke(created.id, '1.1.1.1')).status, 200);
     const overview = billing.overview();
     assert.equal(overview.licenses[0].status, 'revoked');
     assert.equal(overview.summary.revenue.IQD.allTime, 15000);
@@ -278,11 +278,11 @@ test('الإلغاء: يغيّر الحالة، ويتحقق من الرقم، �
     assert.ok(events.some(e => e[0] === 'license_revoked'));
 });
 
-test('التجديد: مفتاح جديد بتاريخ جديد ويرتبط بالسابق، والقديم يبقى صالحاً حتى ينتهي', () => {
+test('التجديد: مفتاح جديد بتاريخ جديد ويرتبط بالسابق، والقديم يبقى صالحاً حتى ينتهي', async () => {
     const { billing, license, advance } = newBilling();
-    const first = billing.create(validInput({ days: 30 }), '1.1.1.1');
+    const first = (await billing.create(validInput({ days: 30 }), '1.1.1.1'));
     advance(25 * DAY);
-    const renewal = billing.create(validInput({ days: 30, renewalOf: first.license.id }), '1.1.1.1');
+    const renewal = (await billing.create(validInput({ days: 30, renewalOf: first.license.id }), '1.1.1.1'));
     assert.notEqual(renewal.key, first.key);
     assert.equal(renewal.license.renewalOf, first.license.id);
     assert.equal(license.verify(first.key).ok, true);
@@ -292,9 +292,9 @@ test('التجديد: مفتاح جديد بتاريخ جديد ويرتبط ب�
     assert.equal(license.verify(renewal.key).ok, true);
 });
 
-test('التصدير: CSV بترويسة BOM وحماية المعادلات، والنسخة الاحتياطية JSON', () => {
+test('التصدير: CSV بترويسة BOM وحماية المعادلات، والنسخة الاحتياطية JSON', async () => {
     const { billing } = newBilling();
-    billing.create(validInput({ customer: '=HYPERLINK("http://evil")', note: 'a,"b"' }), '1.1.1.1');
+    (await billing.create(validInput({ customer: '=HYPERLINK("http://evil")', note: 'a,"b"' }), '1.1.1.1'));
     const csv = billing.csv();
     assert.ok(csv.startsWith('﻿license_id,created_at,customer'));
     assert.ok(csv.includes(`"'=HYPERLINK(""http://evil"")"`));

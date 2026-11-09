@@ -76,7 +76,7 @@ function csvCell(value) {
     return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 
-function createBilling({ store, license, stats, now = Date.now }) {
+function createBilling({ store, license, stats, now = Date.now, onRender = false }) {
     function view(sale, time) {
         const revoked = store.isRevoked(sale.id);
         return {
@@ -106,7 +106,7 @@ function createBilling({ store, license, stats, now = Date.now }) {
         enabled: license.enabled,
 
         // يُصدر مفتاحاً بعد أن تستلم الدفع. المفتاح يُعرض هنا ويمكن عرضه لاحقاً من القائمة.
-        create(input, ip) {
+        async create(input, ip) {
             if (!license.enabled) return { status: 503, error: "الاشتراكات غير مفعّلة: ضع LICENSE_SECRET بمتغيرات البيئة (npm run make-secret)." };
             const checked = validate(input);
             if (checked.error) return { status: 400, error: checked.error };
@@ -124,8 +124,10 @@ function createBilling({ store, license, stats, now = Date.now }) {
             };
             if (renewalOf) sale.renewalOf = renewalOf;
             try {
-                store.addSale(sale);
-            } catch {
+                await store.addSale(sale);
+            } catch (error) {
+                // الفشل هنا يعني أن البيع لم يُحفظ: لا نعرض المفتاح ولا نسجّل شيئاً
+                if (error && error.code === "STORE_UNAVAILABLE") return { status: 503, error: "قاعدة البيانات غير متاحة الآن. لم يُسجَّل البيع ولم يُصدَر مفتاح. حاول بعد قليل." };
                 return { status: 507, error: "وصل السجل لأقصى عدد مسموح من السجلات." };
             }
             // اسم الزبون لا يُكتب بسجل التدقيق (سجلات الاستضافة): نكتفي برقم الترخيص
@@ -133,11 +135,15 @@ function createBilling({ store, license, stats, now = Date.now }) {
             return { status: 201, license: view(sale, time), key: issued.key };
         },
 
-        revoke(id, ip) {
+        async revoke(id, ip) {
             const target = String(id || "");
             if (!ID_PATTERN.test(target)) return { status: 400, error: "رقم الترخيص غير صحيح." };
             if (!store.sales().some(s => s.id === target)) return { status: 404, error: "الترخيص غير موجود." };
-            store.revoke(target);
+            try {
+                await store.revoke(target);
+            } catch {
+                return { status: 503, error: "قاعدة البيانات غير متاحة الآن. لم يُلغَ الترخيص. حاول بعد قليل." };
+            }
             stats.event("license_revoked", `إلغاء الترخيص ${target}`, ip);
             return { status: 200, ok: true };
         },
@@ -147,7 +153,14 @@ function createBilling({ store, license, stats, now = Date.now }) {
             const sales = store.sales();
             return {
                 enabled: license.enabled,
-                storage: { persistent: store.state.persistent, error: store.state.error },
+                storage: {
+                    backend: store.state.backend,
+                    persistent: store.state.persistent,
+                    error: store.state.error,
+                    notice: store.state.notice || "",
+                    // على Render بدون قاعدة خارجية الملف يُمسح مع كل نشر (إلا إذا رُبط قرص دائم)
+                    ephemeralRisk: onRender && store.state.backend === "file"
+                },
                 summary: summarize(sales, id => store.isRevoked(id), time),
                 licenses: sales.slice(-500).reverse().map(sale => view(sale, time))
             };

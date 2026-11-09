@@ -26,6 +26,7 @@ async function startServer(env = {}, tweak) {
     const config = loadConfig({ HOST: '127.0.0.1', ...env });
     if (tweak) tweak(config);
     const app = createApp(config);
+    await app.ready;
     await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
     app.base = { port: app.server.address().port };
     app.close = () => new Promise(resolve => { app.server.closeAllConnections(); app.server.close(resolve); });

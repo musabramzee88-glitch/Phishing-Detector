@@ -306,7 +306,7 @@ function createAdmin(config, stats, extras = {}) {
             if (req.method !== "POST") return methodNotAllowed(res, "GET, POST");
             const body = await adminPostBody(req, res);
             if (body === undefined) return;
-            const result = billing.create(body, ip);
+            const result = await billing.create(body, ip);
             if (result.error) return http.sendJson(res, result.status, { error: result.error });
             return http.sendJson(res, 201, { license: result.license, key: result.key });
         }
@@ -314,7 +314,7 @@ function createAdmin(config, stats, extras = {}) {
             if (req.method !== "POST") return methodNotAllowed(res, "POST");
             const body = await adminPostBody(req, res);
             if (body === undefined) return;
-            const result = billing.revoke(body.id, ip);
+            const result = await billing.revoke(body.id, ip);
             return http.sendJson(res, result.status, result.error ? { error: result.error } : { ok: true });
         }
         if (p === "/api/admin/export/sales.csv" && req.method === "GET") {

@@ -24,7 +24,7 @@ const { createHealthMonitor } = require("./server/health");
 const { createVisitorCounter } = require("./server/visitors");
 const { createChatHandler } = require("./server/chat");
 const { createLicenseManager } = require("./server/license");
-const { createStore } = require("./server/store");
+const { createStore, openStore } = require("./server/store");
 const { createBilling } = require("./server/billing");
 const { createPro } = require("./server/pro");
 const { createAdmin } = require("./server/admin");
@@ -43,8 +43,8 @@ function createApp(config = loadConfig()) {
     const currentHealth = () => health.evaluate(stats.recent("client_error", 5 * 60_000));
     // الاشتراكات: بدون LICENSE_SECRET تبقى مغلقة، ولا يُنشأ أي ملف بيانات
     const license = createLicenseManager(config.billing.licenseSecret);
-    const store = createStore(license.enabled ? config.billing.dataDir : null);
-    const billing = createBilling({ store, license, stats });
+    const store = license.enabled ? openStore(config.billing) : createStore(null);
+    const billing = createBilling({ store, license, stats, onRender: config.onRender });
     const pro = createPro({ config, license, store, stats });
     const admin = createAdmin(config, stats, { visitors, health: currentHealth, billing, license });
     const chat = createChatHandler(config, chatLimiter, stats);
@@ -133,18 +133,26 @@ function createApp(config = loadConfig()) {
     server.requestTimeout = 60_000;
     server.keepAliveTimeout = 5_000;
     server.maxHeadersCount = 50;
-    server.on("close", () => health.stop());
+    server.on("close", () => { health.stop(); store.close(); });
 
-    return { server, stats, config, admin, visitors };
+    // ready: انتهت أول محاولة لتحميل السجل (نجحت أو فشلت). الخادم لا يبدأ الاستماع قبلها.
+    return { server, stats, config, admin, visitors, store, ready: store.ready };
 }
 
-function main() {
-    const { server, stats, config, admin } = createApp();
+async function main() {
+    const { server, stats, config, admin, store, ready } = createApp();
+    await ready;
 
     server.listen(config.port, config.host, () => {
         console.log(`Phishing Detector listening at http://${config.host}:${config.port}`);
         if (!config.openai.apiKey || !config.openai.model) console.log("CyberBot: set OPENAI_API_KEY and OPENAI_MODEL to enable AI replies.");
         console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
+        if (config.billing.licenseSecret) {
+            console.log(`Billing store: ${store.state.backend}${store.state.persistent ? " (persistent)" : " (NOT persistent)"}.${store.state.error ? " " + store.state.error : ""}`);
+        } else {
+            console.log("Subscriptions disabled: set LICENSE_SECRET (run: npm run make-secret).");
+        }
+        if (config.billing.upstashError) console.log(config.billing.upstashError);
     });
 
     // Render يرسل SIGTERM عند كل نشر جديد: نُنهي الاتصالات الجارية بهدوء
@@ -174,6 +182,11 @@ function main() {
     });
 }
 
-if (require.main === module) main();
+if (require.main === module) {
+    main().catch(error => {
+        console.error("Failed to start:", error && error.message);
+        process.exit(1);
+    });
+}
 
 module.exports = { createApp };

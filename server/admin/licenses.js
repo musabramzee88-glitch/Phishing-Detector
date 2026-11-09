@@ -35,11 +35,18 @@ async function api(path, options) {
 function renderNotice(data) {
     const box = document.getElementById("billingNotice");
     const notes = [];
+    const storage = data.storage;
+    const BACKENDS = { upstash: "قاعدة بيانات خارجية (Upstash): السجل محفوظ خارج الخادم.", file: "ملف على قرص الخادم.", memory: "الذاكرة فقط." };
     if (!data.enabled) notes.push(["الاشتراكات غير مفعّلة. أنشئ سراً بالأمر npm run make-secret وضعه بمتغير البيئة LICENSE_SECRET، ثم أعد تشغيل الخدمة.", "bad"]);
-    else if (!data.storage.persistent) notes.push(["السجل غير محفوظ على القرص الآن: " + (data.storage.error || "غير معروف") + " سيضيع عند إعادة التشغيل. صدّر نسخة احتياطية بعد كل عملية بيع.", "bad"]);
-    else if (data.storage.error) notes.push([data.storage.error, "warn"]);
-    box.replaceChildren(...notes.map(([text, tone]) => node("div", tone === "bad" ? "error" : "notice warn", text)));
-    document.getElementById("licenseSubmit").disabled = !data.enabled;
+    else {
+        notes.push(["مكان حفظ السجل: " + (BACKENDS[storage.backend] || storage.backend), storage.persistent ? "ok" : "bad"]);
+        if (!storage.persistent) notes.push([(storage.error || "التخزين غير متاح.") + " لن يُحفظ أي بيع حتى يُحلّ هذا.", "bad"]);
+        else if (storage.error) notes.push([storage.error, "warn"]);
+        if (storage.notice) notes.push([storage.notice, "warn"]);
+        if (storage.ephemeralRisk) notes.push(["تحذير: السجل ملف على قرص Render المؤقت ويُمسح عند كل نشر أو إعادة تشغيل. اربط قاعدة Upstash (UPSTASH_REDIS_REST_URL و UPSTASH_REDIS_REST_TOKEN) أو قرصاً دائماً، وخذ نسخة احتياطية بعد كل بيع.", "bad"]);
+    }
+    box.replaceChildren(...notes.map(([text, tone]) => node("div", tone === "bad" ? "error" : "notice " + tone, text)));
+    document.getElementById("licenseSubmit").disabled = !data.enabled || !storage.persistent;
 }
 
 function renderRevenue(summary) {

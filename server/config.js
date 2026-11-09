@@ -55,6 +55,19 @@ function loadConfig(env = process.env) {
         // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)
         auditStdout: env.AUDIT_STDOUT === "1" || (onRender && env.AUDIT_STDOUT !== "0"),
         health: {},   // عتبات مراقب الصحة (انظر server/health.js)، تُعدَّل بالاختبارات فقط
+        billing: {
+            // سر توقيع مفاتيح الترخيص (32 حرفاً فأكثر). بدونه لا يمكن إصدار مفاتيح ولا التحقق منها. npm run make-secret
+            licenseSecret: env.LICENSE_SECRET || "",
+            // مجلد حفظ سجل المبيعات. على Render يجب أن يكون قرصاً دائماً (Persistent Disk) وإلا يضيع عند كل نشر.
+            dataDir: env.DATA_DIR || path.join(root, "data"),
+            persistentDiskConfigured: Boolean(env.DATA_DIR),
+            // بيانات التواصل التي تظهر بصفحة الباقات (أنت تحددها بالمتغيرات، لا شيء مكتوب بالكود)
+            contact: {
+                whatsapp: /^\d{7,15}$/.test(env.CONTACT_WHATSAPP || "") ? env.CONTACT_WHATSAPP : "",
+                telegram: /^[A-Za-z0-9_]{5,32}$/.test(env.CONTACT_TELEGRAM || "") ? env.CONTACT_TELEGRAM : "",
+                note: String(env.PAYMENT_NOTE || "").replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, " ").slice(0, 400)
+            }
+        },
         limits: {
             chatPerMinute: 20,
             globalChatPerMinute: Number(env.CYBERBOT_GLOBAL_LIMIT || 120),
@@ -64,6 +77,7 @@ function loadConfig(env = process.env) {
             loginFailuresPerWindow: 5,
             loginWindowMs: 15 * 60_000,
             loginAttemptsPerMinute: 30,
+            badLicenseKeysPerWindow: 20,
             maxBodyBytes: 128 * 1024
         },
         session: {

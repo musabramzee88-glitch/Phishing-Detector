@@ -30,7 +30,7 @@ function createStats({ audit } = {}) {
     const counters = {
         requests: 0, chatOk: 0, chatErrors: 0, rateLimited: 0,
         loginOk: 0, loginFailed: 0, blockedRequests: 0,
-        clientErrors: 0, serverErrors: 0
+        clientErrors: 0, serverErrors: 0, proRequests: 0
     };
     const scans = {};
     for (const kind of SCAN_KINDS) scans[kind] = { safe: 0, warning: 0, danger: 0 };

@@ -793,3 +793,26 @@ footer {
     .chat-send-button { min-height:44px; }
     .chat-bubble { width:96%; }
 }
+
+
+/* ==========================================
+   الباقات والفحص الجماعي
+   ========================================== */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.tier-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 22px 18px; }
+.tier-card.featured { border-color: var(--accent-blue); box-shadow: 0 0 24px var(--accent-glow); }
+.tier-card h3 { margin: 0 0 6px; font-size: 1.25rem; }
+.tier-price { font-weight: 800; color: var(--accent-blue); margin-bottom: 14px; }
+.tier-features { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; line-height: 1.9; }
+.tier-features li::before { content: '¹3'; color: var(--accent-green); margin-inline-end: 8px; }
+.contact-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+.contact-link { display: inline-block; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--accent-blue); color: var(--accent-blue); text-decoration: none; font-weight: 700; }
+.payment-note { padding: 10px 12px; border: 1px dashed var(--border-color); border-radius: 10px; font-size: 0.9rem; }
+.license-msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 0.9rem; }
+.license-msg.ok { border-color: var(--accent-green); }
+.license-msg.warn { border-color: var(--accent-yellow); }
+.license-msg.bad { border-color: var(--accent-red); color: var(--accent-red); }
+.bulk-wrap { overflow-x: auto; margin-top: 10px; }
+.bulk-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.bulk-table th, .bulk-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); }
+.bulk-table .ltr-cell { direction: ltr; text-align: left; word-break: break-all; max-width: 260px; }

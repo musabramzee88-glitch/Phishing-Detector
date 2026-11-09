@@ -88,6 +88,14 @@
                     <i class="fa-solid fa-robot" style="color:var(--accent-blue);"></i>
                     <span>CyberBot AI (المساعد الذكي)</span>
                 </button>
+                <button class="action-card-btn" data-page="pricingPage" data-title="الباقات والاشتراكات" data-icon="fa-solid fa-crown">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>الباقات والاشتراكات</span>
+                </button>
+                <button class="action-card-btn" data-page="bulkPage" data-title="الفحص الجماعي (Pro)" data-icon="fa-solid fa-layer-group">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>الفحص الجماعي (Pro)</span>
+                </button>
             </div>
 
             <div class="team-card">
@@ -359,6 +367,60 @@
         </div>
     </div>
 
+    <!-- الباقات والاشتراكات -->
+    <div id="pricingPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>الباقات والاشتراكات</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">الفحص الفردي مجاني دائماً. الباقات المدفوعة تضيف الفحص الجماعي ووصول API.</p>
+            </div>
+
+            <div id="pricingTiers" class="pricing-grid"></div>
+
+            <div id="pricingContact" class="scanner-card"></div>
+
+            <div class="scanner-card">
+                <h3>عندي مفتاح ترخيص</h3>
+                <div class="input-group">
+                    <input type="text" id="licenseInput" placeholder="PD1-P-XXXXXXXX-YYYYMMDD-XXXXXXXXXXXXXXXX" autocomplete="off" spellcheck="false" style="direction:ltr; text-align:left;">
+                    <button class="btn-scan" data-action="activateLicense"><i class="fa-solid fa-key"></i> تفعيل</button>
+                </div>
+                <div id="licenseStatus"></div>
+                <button class="btn-quick" data-action="deactivateLicense" style="margin-top:10px;">حذف المفتاح من هذا المتصفح</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفحص الجماعي (Pro) -->
+    <div id="bulkPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>الفحص الجماعي للروابط (Pro)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">ألصق قائمة روابط (رابط بكل سطر) واحصل على تقرير بكل رابط مع تصدير CSV.</p>
+            </div>
+
+            <div class="scanner-card">
+                <div id="bulkLicenseNotice"></div>
+                <div class="input-group">
+                    <textarea id="bulkInput" rows="8" placeholder="https://example.com&#10;https://fasebook.com&#10;..." style="direction:ltr; text-align:left;"></textarea>
+                </div>
+                <div style="margin-top: 15px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn-scan" data-action="runBulkScan"><i class="fa-solid fa-layer-group"></i> فحص القائمة</button>
+                    <button class="btn-quick" data-action="exportBulkCsv"><i class="fa-solid fa-file-csv"></i> تصدير CSV</button>
+                </div>
+                <div id="bulkReport" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 7. صفحة CyberBot AI (المساعد الأمني الذكي المتطور والمتحاور ببراعة بشرية كاملة) -->
     <div id="cyberBotPage" class="page-section">
         <div class="scanner-container">
@@ -419,5 +481,6 @@
     <script src="/js/error-guard.js"></script>
     <script src="/js/detection-engine.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/pro.js"></script>
 </body>
 </html>

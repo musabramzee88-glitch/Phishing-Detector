@@ -9,6 +9,7 @@
     /api/chat         جسر CyberBot (المفتاح يبقى على الخادم)
     /api/event        إحصاءات مجهولة من الصفحة (نوع الفحص ونتيجته فقط)
     /api/client-error تقارير أخطاء متصفحات الزوار (للمراقبة فقط)
+    /api/pricing      الباقات (عام)،  /api/license/check  التحقق من مفتاح،  /api/pro/scan-urls  فحص جماعي (مفتاح)
     /admin            لوحة الأدمن (مغلقة إلا إذا ضُبط ADMINS)
 
   الإعدادات: انظر server/config.js. الأدمن: npm run make-admin
@@ -22,6 +23,10 @@ const { createStats, cleanText } = require("./server/stats");
 const { createHealthMonitor } = require("./server/health");
 const { createVisitorCounter } = require("./server/visitors");
 const { createChatHandler } = require("./server/chat");
+const { createLicenseManager } = require("./server/license");
+const { createStore } = require("./server/store");
+const { createBilling } = require("./server/billing");
+const { createPro } = require("./server/pro");
 const { createAdmin } = require("./server/admin");
 const { serveStatic } = require("./server/static");
 
@@ -36,7 +41,12 @@ function createApp(config = loadConfig()) {
     const eventLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.eventPerMinute });
     const errorLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.clientErrorPerMinute, globalMax: config.limits.globalClientErrorPerMinute });
     const currentHealth = () => health.evaluate(stats.recent("client_error", 5 * 60_000));
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth });
+    // الاشتراكات: بدون LICENSE_SECRET تبقى مغلقة، ولا يُنشأ أي ملف بيانات
+    const license = createLicenseManager(config.billing.licenseSecret);
+    const store = createStore(license.enabled ? config.billing.dataDir : null);
+    const billing = createBilling({ store, license, stats });
+    const pro = createPro({ config, license, store, stats });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, billing, license });
     const chat = createChatHandler(config, chatLimiter, stats);
 
     // نقاط الاستقبال الصغيرة (POST/JSON من صفحاتنا فقط). كل واحدة تقبل بيانات محددة وتتجاهل أي شيء آخر.
@@ -99,6 +109,9 @@ function createApp(config = loadConfig()) {
             if (pathname === "/api/chat") return await chat(req, res);
             if (pathname === "/api/event") return await handleEvent(req, res);
             if (pathname === "/api/client-error") return await handleClientError(req, res);
+            if (pathname === "/api/pricing") return pro.pricing(req, res);
+            if (pathname === "/api/license/check") return await pro.check(req, res);
+            if (pathname === "/api/pro/scan-urls") return await pro.scanUrls(req, res);
             if (await admin.handle(req, res, url)) return;
 
             if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {

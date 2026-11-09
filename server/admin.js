@@ -25,7 +25,8 @@ const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة.";
 const ASSETS = {
     "admin.css": { type: "text/css; charset=utf-8", publicAsset: true },
     "login.js": { type: "text/javascript; charset=utf-8", publicAsset: true },
-    "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
+    "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
+    "licenses.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
 };
 
 function sha256(value) {
@@ -261,8 +262,70 @@ function createAdmin(config, stats, extras = {}) {
             return true;
         }
 
+        // ---------- الاشتراكات والإيرادات (تتطلب جلسة أدمن) ----------
+        if (p.startsWith("/api/admin/licenses") || p.startsWith("/api/admin/export/")) {
+            return await billingRoutes(req, res, p), true;
+        }
+
         http.sendJson(res, 404, { error: "Not found" });
         return true;
+    }
+
+    // POST من الصفحة نفسها فقط، بجسم JSON صغير
+    async function adminPostBody(req, res) {
+        if (!http.isSameOrigin(req)) return http.sendJson(res, 403, { error: "Forbidden" }), undefined;
+        if (!http.isJsonRequest(req)) return http.sendJson(res, 415, { error: "Content-Type must be application/json" }), undefined;
+        try {
+            const body = await http.readJsonBody(req, 4096);
+            if (body === null || typeof body !== "object" || Array.isArray(body)) throw new Error("bad body");
+            return body;
+        } catch {
+            return http.sendJson(res, 400, { error: "طلب غير صالح." }), undefined;
+        }
+    }
+
+    function sendDownload(res, contentType, filename, body) {
+        res.writeHead(200, {
+            "Content-Type": contentType,
+            "Content-Disposition": `attachment; filename="${filename}"`,
+            "Content-Length": Buffer.byteLength(body),
+            "Cache-Control": "no-store"
+        });
+        res.end(body);
+    }
+
+    async function billingRoutes(req, res, p) {
+        const billing = extras.billing;
+        const session = currentSession(req);
+        if (!billing) return http.sendJson(res, 404, { error: "Not found" });
+        if (!session) return http.sendJson(res, 401, { error: "Unauthorized" });
+        const ip = http.getClientIp(req, config);
+
+        if (p === "/api/admin/licenses") {
+            if (req.method === "GET") return http.sendJson(res, 200, billing.overview());
+            if (req.method !== "POST") return methodNotAllowed(res, "GET, POST");
+            const body = await adminPostBody(req, res);
+            if (body === undefined) return;
+            const result = billing.create(body, ip);
+            if (result.error) return http.sendJson(res, result.status, { error: result.error });
+            return http.sendJson(res, 201, { license: result.license, key: result.key });
+        }
+        if (p === "/api/admin/licenses/revoke") {
+            if (req.method !== "POST") return methodNotAllowed(res, "POST");
+            const body = await adminPostBody(req, res);
+            if (body === undefined) return;
+            const result = billing.revoke(body.id, ip);
+            return http.sendJson(res, result.status, result.error ? { error: result.error } : { ok: true });
+        }
+        if (p === "/api/admin/export/sales.csv" && req.method === "GET") {
+            stats.event("export", "تصدير سجل المبيعات CSV", ip);
+            return sendDownload(res, "text/csv; charset=utf-8", "sales.csv", billing.csv());
+        }
+        if (p === "/api/admin/export/backup.json" && req.method === "GET") {
+            stats.event("export", "تصدير نسخة احتياطية JSON", ip);
+            return sendDownload(res, "application/json; charset=utf-8", "billing-backup.json", JSON.stringify(billing.backup(), null, 2));
+        }
+        return http.sendJson(res, 404, { error: "Not found" });
     }
 
     return { handle, enabled };

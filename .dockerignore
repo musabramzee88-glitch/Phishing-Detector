@@ -1,0 +1,9 @@
+node_modules
+cloudflared.exe
+*.class
+*.jar
+*.java
+*.zip
+uploads
+.env
+.claude

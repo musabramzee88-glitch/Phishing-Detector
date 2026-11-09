@@ -4,7 +4,9 @@
   CyberBot secure server bridge.
   Required values: OPENAI_API_KEY and OPENAI_MODEL. Optional live search: OPENAI_WEB_SEARCH=1.
   Optional: OPENAI_BASE_URL (default https://api.openai.com/v1),
-            HOST (default 127.0.0.1), PORT (default 8080), CYBERBOT_ORIGIN for cross-origin hosting.
+            HOST (default 127.0.0.1), PORT (default 8080), CYBERBOT_ORIGIN for cross-origin hosting,
+            TRUST_PROXY=1 to read the client IP from proxy headers (automatic on Render),
+            CYBERBOT_GLOBAL_LIMIT = max chat requests per minute from all visitors combined (default 120).
   Requires Node.js 18+. The browser never receives the API key.
 */
 
@@ -23,6 +25,14 @@ const API_BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1"
 const MAX_BODY_BYTES = 128 * 1024;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_HISTORY_ITEMS = 8;
+const RATE_WINDOW_MS = 60_000;
+const PER_CLIENT_LIMIT = 20;
+const GLOBAL_LIMIT = Number(process.env.CYBERBOT_GLOBAL_LIMIT || 120);
+// Behind Render's proxy every request arrives from the proxy's address, so the real client IP
+// has to come from the headers the proxy adds.
+const TRUST_PROXY = process.env.TRUST_PROXY === "1" || Boolean(process.env.RENDER);
+// Only these files are served to visitors. Everything else in the folder stays private.
+const PUBLIC_FILES = new Set(["/index.html", "/logo.png", "/detection-engine.js"]);
 
 const SYSTEM_INSTRUCTIONS = [
     "You are CyberBot, a professional conversational assistant embedded in an Arabic cybersecurity-awareness website.",
@@ -48,6 +58,15 @@ const mimeTypes = {
 };
 
 const requestCounts = new Map();
+const globalWindow = { start: 0, count: 0 };
+
+// Drop expired entries so the map does not grow with every visitor forever.
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of requestCounts) {
+        if (now - entry.start > RATE_WINDOW_MS) requestCounts.delete(key);
+    }
+}, RATE_WINDOW_MS).unref();
 
 function sendJson(response, status, payload) {
     const body = JSON.stringify(payload);
@@ -73,16 +92,36 @@ async function readJsonBody(request) {
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-function allowRequest(remoteAddress) {
+function getClientKey(request) {
+    if (TRUST_PROXY) {
+        // Cloudflare (in front of Render) sets True-Client-IP and clients cannot override it.
+        const trueClientIp = String(request.headers["true-client-ip"] || "").trim();
+        if (trueClientIp) return trueClientIp;
+        // X-Forwarded-For can be spoofed by the client; the global limit below still caps total usage.
+        const forwarded = String(request.headers["x-forwarded-for"] || "").split(",").map(part => part.trim()).filter(Boolean);
+        if (forwarded.length) return forwarded[0];
+    }
+    return request.socket.remoteAddress || "unknown";
+}
+
+function allowRequest(clientKey) {
     const now = Date.now();
-    const key = remoteAddress || "unknown";
-    const current = requestCounts.get(key);
-    if (!current || now - current.start > 60_000) {
-        requestCounts.set(key, { start: now, count: 1 });
+    if (now - globalWindow.start > RATE_WINDOW_MS) {
+        globalWindow.start = now;
+        globalWindow.count = 0;
+    }
+    if (globalWindow.count >= GLOBAL_LIMIT) return false;
+
+    const current = requestCounts.get(clientKey);
+    if (!current || now - current.start > RATE_WINDOW_MS) {
+        requestCounts.set(clientKey, { start: now, count: 1 });
+        globalWindow.count += 1;
         return true;
     }
+    if (current.count >= PER_CLIENT_LIMIT) return false;
     current.count += 1;
-    return current.count <= 20;
+    globalWindow.count += 1;
+    return true;
 }
 
 function extractResponseText(data) {
@@ -111,7 +150,7 @@ function extractResponseText(data) {
 }
 
 async function handleChat(request, response) {
-    if (!allowRequest(request.socket.remoteAddress)) {
+    if (!allowRequest(getClientKey(request))) {
         sendJson(response, 429, { error: "تم تجاوز عدد الطلبات المسموح به مؤقتًا." });
         return;
     }
@@ -210,12 +249,11 @@ function serveStatic(request, response, pathname) {
         return;
     }
     if (decoded === "/") decoded = "/index.html";
-    const candidate = path.resolve(ROOT, "." + decoded);
-    if (!candidate.startsWith(ROOT + path.sep) || path.basename(candidate).startsWith(".") ||
-        candidate === path.join(ROOT, "server.js")) {
+    if (!PUBLIC_FILES.has(decoded)) {
         sendJson(response, 404, { error: "Not found" });
         return;
     }
+    const candidate = path.join(ROOT, decoded);
 
     fs.stat(candidate, (statError, stats) => {
         if (statError || !stats.isFile()) {

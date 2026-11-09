@@ -642,6 +642,7 @@
         .li-danger::before { color: var(--accent-red); }
         .li-safe::before { color: var(--accent-green); }
         .li-warning::before { color: var(--accent-yellow); }
+        .li-info::before { color: var(--accent-blue); }
 
         .history-card {
             background: var(--bg-card);
@@ -887,20 +888,20 @@
 
             <div class="team-card">
                 <div class="institution-header">
-                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت[cite: 3]</a></h3>
-                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني[cite: 3]</a></p>
+                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت">جامعة تكريت</a></h3>
+                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
                 </div>
                 <div class="developers-section">
-                    <h4>إعداد وتطوير المبرمجين[cite: 3]:</h4>
+                    <h4>إعداد وتطوير المبرمجين:</h4>
                     <div class="dev-names">
                         <div class="dev-tag">
                             <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي[cite: 3]
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي
                             </a>
                         </div>
                         <div class="dev-tag">
                             <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank">
-                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت[cite: 3]
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت
                             </a>
                         </div>
                     </div>
@@ -933,22 +934,22 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="academicDefenseToggle"> وضع الحماية الأكاديمية والحكومية المشددة (.edu.iq / .gov.iq)
                     </label>
-                    <span style="font-size: 0.75rem;">محرك Levenshtein نشط[cite: 3]</span>
+                    <span style="font-size: 0.75rem;">محرك كشف متعدد الطبقات: انتحال العلامات، Homograph، Punycode، إعادة التوجيه</span>
                 </div>
 
                 <div class="demo-triggers">
                     <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">تجربة سريعة:</span>
-                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت[cite: 3]</button>
+                    <button class="btn-quick" onclick="testUrl('https://tu.edu.iq')">جامعة تكريت</button>
                     <button class="btn-quick" onclick="testUrl('https://facebook.com')">فيسبوك الأصلي</button>
                     <button class="btn-quick" onclick="testUrl('https://fasebook.com')">تلاعب بفيسبوك</button>
-                    <button class="btn-quick" onclick="testUrl('https://g0ogle.com')">تلاعب بجوجل[cite: 3]</button>
+                    <button class="btn-quick" onclick="testUrl('https://g0ogle.com')">تلاعب بجوجل</button>
                 </div>
 
                 <div id="reportBox" class="report-box"></div>
             </div>
 
             <div class="history-card">
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)[cite: 3]</h3>
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)</h3>
                 <div style="overflow-x: auto;">
                     <table class="history-table">
                         <thead>
@@ -962,7 +963,7 @@
                         </thead>
                         <tbody id="historyTableBody">
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد[cite: 3].</td>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -980,7 +981,7 @@
 
             <div style="text-align:center; margin-bottom: 1.5rem;">
                 <h2>منظومة فحص الملفات وكشف البرمجيات المفخخة</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة[cite: 3]</p>
+                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة</p>
             </div>
 
             <div class="scanner-card">
@@ -989,13 +990,13 @@
                     <div style="width: 100%;">
                         <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <div id="fileLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف للفحص</div>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)[cite: 3]</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)</span>
                     </div>
                 </div>
                 
                 <div style="margin-top: 15px; text-align: left;">
                     <button class="btn-scan" onclick="analyzeFile()" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)[cite: 3]
+                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)
                     </button>
                 </div>
 
@@ -1012,8 +1013,8 @@
             </button>
 
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)[cite: 3]</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية[cite: 3]</p>
+                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية</p>
             </div>
 
             <div class="scanner-card">
@@ -1039,8 +1040,8 @@
             </button>
 
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>فحص ملفات الصوت والفيديو وكشف التزييف العميق (Deepfake Detector)[cite: 3]</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">استخدام خوارزميات تحليل الترددات الطيفية (MFCC) والتشوهات البصرية (OpenCV) للتحقق من سلامة الوسائط[cite: 3]</p>
+                <h2>فحص سلامة ملفات الصوت والفيديو</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">يتحقق من البصمة الثنائية للملف (Magic Bytes) ليكشف الملفات التنفيذية المتنكرة بامتداد وسائط، ثم يحاول تشغيل الملف داخل المتصفح لقراءة مدته وأبعاده. يعرض التقرير أيضاً خطوات التحقق اليدوي من التزييف العميق، لأن هذا الفحص لا يكشف التزييف العميق آلياً.</p>
             </div>
 
             <div class="scanner-card">
@@ -1049,7 +1050,7 @@
                     <div style="width: 100%;">
                         <i class="fa-solid fa-file-video" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
                         <div id="mediaLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف صوت أو فيديو</div>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم صيغ الوسائط المتعددة (MP3, WAV, MP4, AVI، وغيرها)[cite: 3]</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يتعرف على MP3, WAV, OGG, FLAC, M4A, MP4, MOV, WEBM, MKV, AVI, WMV. يُفحص الملف داخل متصفحك ولا يُرفع إلى أي خادم.</span>
                     </div>
                 </div>
                 
@@ -1072,18 +1073,18 @@
             </button>
 
             <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>المسار التوعوي والدليل الأمني الشامل[cite: 3]</h2>
-                <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية[cite: 3]</p>
+                <h2>المسار التوعوي والدليل الأمني الشامل</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية</p>
             </div>
 
             <div class="scanner-card" style="border-color: var(--accent-blue);">
-                <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد[cite: 3]</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات[cite: 3]:</p>
+                <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات:</p>
                 
                 <div class="sim-tabs-row">
-                    <button class="sim-tab-btn active" onclick="loadSimulation(0)">السيناريو 1: بريد تزوير الحساب[cite: 3]</button>
-                    <button class="sim-tab-btn" onclick="loadSimulation(1)">السيناريو 2: رسالة بنكية (Smishing)[cite: 3]</button>
-                    <button class="sim-tab-btn" onclick="loadSimulation(2)">السيناريو 3: عرض عمل وهمي (Job Scam)[cite: 3]</button>
+                    <button class="sim-tab-btn active" onclick="loadSimulation(0)">السيناريو 1: بريد تزوير الحساب</button>
+                    <button class="sim-tab-btn" onclick="loadSimulation(1)">السيناريو 2: رسالة بنكية (Smishing)</button>
+                    <button class="sim-tab-btn" onclick="loadSimulation(2)">السيناريو 3: عرض عمل وهمي (Job Scam)</button>
                 </div>
 
                 <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px; direction: rtl;"></div>
@@ -1095,59 +1096,59 @@
 
             <div class="awareness-grid">
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-link"></i> قواعد كشف الروابط الخبيثة[cite: 3]</h3>
+                    <h3><i class="fa-solid fa-link"></i> قواعد كشف الروابط الخبيثة</h3>
                     <p>
-                        • تحقق من كتابة اسم الموقع بدقة (إبدال الحروف مثل g0ogle بدلاً من google يُسمى Typosquatting)[cite: 3].<br>
-                        • ابحث عن بروتوكول التشافير المشفر HTTPS ورمز القفل[cite: 3].<br>
-                        • تجنب النقر على الروابط المختصرة المجهولة قبل توسيعها وتدقيق نطاقها الأصلي[cite: 3].
+                        • تحقق من كتابة اسم الموقع بدقة (إبدال الحروف مثل g0ogle بدلاً من google يُسمى Typosquatting).<br>
+                        • ابحث عن بروتوكول التشافير المشفر HTTPS ورمز القفل.<br>
+                        • تجنب النقر على الروابط المختصرة المجهولة قبل توسيعها وتدقيق نطاقها الأصلي.
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-key"></i> المصادقة الثنائية (MFA)[cite: 3]</h3>
+                    <h3><i class="fa-solid fa-key"></i> المصادقة الثنائية (MFA)</h3>
                     <p>
-                        • قم بتفعيل التوثيق بخطوتين على كافة حساباتك ومواقعك[cite: 3].<br>
-                        • لا تشارك رمز OTP الخاص بك مع أي شخص إطلاقاً تحت أي مسمى[cite: 3].<br>
-                        • استخدم تطبيقات المصادقة (Google Authenticator) بدلاً من الرسائل النصية القصيرة SMS[cite: 3].
+                        • قم بتفعيل التوثيق بخطوتين على كافة حساباتك ومواقعك.<br>
+                        • لا تشارك رمز OTP الخاص بك مع أي شخص إطلاقاً تحت أي مسمى.<br>
+                        • استخدم تطبيقات المصادقة (Google Authenticator) بدلاً من الرسائل النصية القصيرة SMS.
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-phone-slash"></i> التصيد الصوتي والهاتفي (Vishing)[cite: 3]</h3>
+                    <h3><i class="fa-solid fa-phone-slash"></i> التصيد الصوتي والهاتفي (Vishing)</h3>
                     <p>
-                        • البنوك والمؤسسات الرسمية لن تطلب كلمة سرك أو رمز بطاقتك عبر الهاتف[cite: 3].<br>
-                        • إذا وصلك اتصال يدعي أنه من جهة رسمية يطلب بياناتك، أغلق الخط واتصل بالرقم الرسمي المسجل خلف البطاقة[cite: 3].
+                        • البنوك والمؤسسات الرسمية لن تطلب كلمة سرك أو رمز بطاقتك عبر الهاتف.<br>
+                        • إذا وصلك اتصال يدعي أنه من جهة رسمية يطلب بياناتك، أغلق الخط واتصل بالرقم الرسمي المسجل خلف البطاقة.
                     </p>
                 </div>
 
                 <div class="awareness-card">
-                    <h3><i class="fa-solid fa-user-ninja"></i> كشف التزييف العميق (Deepfake)[cite: 3]</h3>
+                    <h3><i class="fa-solid fa-user-ninja"></i> كشف التزييف العميق (Deepfake)</h3>
                     <p>
-                        • انتبه لرفرفة العين غير الطبيعية وحركة الشفاه المطابقة للصوت[cite: 3].<br>
-                        • استمع للترددات الصوتية الرتيبة الخالية من التأثيرات الطبيعية[cite: 3].<br>
-                        • اسأل الشخص المعني سؤالاً شخصياً لا يعلمه إلا هو للتحقق المباشر[cite: 3].
+                        • انتبه لرفرفة العين غير الطبيعية وحركة الشفاه المطابقة للصوت.<br>
+                        • استمع للترددات الصوتية الرتيبة الخالية من التأثيرات الطبيعية.<br>
+                        • اسأل الشخص المعني سؤالاً شخصياً لا يعلمه إلا هو للتحقق المباشر.
                     </p>
                 </div>
             </div>
 
             <div class="history-card" style="margin-top: 2rem;">
-                <h3 style="color: var(--accent-red);"><i class="fa-solid fa-kit-medical"></i> خطة الاستجابة الطارئة عند التعرض للتصيد (Incident Response Protocol)[cite: 3]</h3>
+                <h3 style="color: var(--accent-red);"><i class="fa-solid fa-kit-medical"></i> خطة الاستجابة الطارئة عند التعرض للتصيد (Incident Response Protocol)</h3>
                 <div style="margin-top: 1rem;">
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>تغيير كلمات السر فوراً[cite: 3]:</strong> قم بتغيير كلمة سر الحساب المتأثر وجميع الحسابات التي تشترك معها بنفس كلمة المرور[cite: 3].</div>
+                        <div><strong>تغيير كلمات السر فوراً:</strong> قم بتغيير كلمة سر الحساب المتأثر وجميع الحسابات التي تشترك معها بنفس كلمة المرور.</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>إبلاغ الجهات المالية[cite: 3]:</strong> إذا قمت بإدخال بيانات بطاقتك البنكية، تواصل مع المصرف فوراً لتجميد البطاقة المعنية[cite: 3].</div>
+                        <div><strong>إبلاغ الجهات المالية:</strong> إذا قمت بإدخال بيانات بطاقتك البنكية، تواصل مع المصرف فوراً لتجميد البطاقة المعنية.</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>عزل الجهاز وإجراء فحص[cite: 3]:</strong> قم بفصل الاتصال بالإنترنت واعمل فحص شامل عبر برنامج الحماية لمنع انتشار البرمجيات الخبيثة[cite: 3].</div>
+                        <div><strong>عزل الجهاز وإجراء فحص:</strong> قم بفصل الاتصال بالإنترنت واعمل فحص شامل عبر برنامج الحماية لمنع انتشار البرمجيات الخبيثة.</div>
                     </div>
                     <div class="checklist-item">
                         <i class="fa-solid fa-circle-check"></i>
-                        <div><strong>تسجيل الجلسات والمراجعة[cite: 3]:</strong> قم بإنهاء كافة الجلسات النشطة (Sign out of all devices) وتفعيل المصادقة الثنائية[cite: 3].</div>
+                        <div><strong>تسجيل الجلسات والمراجعة:</strong> قم بإنهاء كافة الجلسات النشطة (Sign out of all devices) وتفعيل المصادقة الثنائية.</div>
                     </div>
                 </div>
             </div>
@@ -1165,7 +1166,7 @@
             <div id="namePromptCard" class="scanner-card" style="text-align: center; padding: 3rem 2rem;">
                 <i class="fa-solid fa-id-card-clip" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 1rem;"></i>
                 <h3 style="font-size: 1.4rem; margin-bottom: 10px;">أهلاً بك في CyberBot AI</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">من فضلك، أدخل الاسم أو اللقب الذي تريد أن يناديك به المساعد الذكي[cite: 3]:</p>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">من فضلك، أدخل الاسم أو اللقب الذي تريد أن يناديك به المساعد الذكي:</p>
                 <div style="max-width: 400px; margin: 0 auto; display: flex; gap: 10px;">
                     <input type="text" id="userNameInput" placeholder="أدخل اسمك هنا..." onkeypress="if(event.key === 'Enter') saveUserName()" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: #fff; font-family: inherit; text-align: center;">
                     <button onclick="saveUserName()" style="background: linear-gradient(135deg, var(--accent-blue), #0072ff); color: #0a0f1d; border: none; padding: 0 24px; border-radius: 10px; font-weight: 800; cursor: pointer;">
@@ -1207,8 +1208,11 @@
     </div>
 
     <footer>
-        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني[cite: 3]</p>
+        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
     </footer>
+
+    <!-- محرك الكشف: خوارزميات فحص الروابط والرسائل والملفات (بدون أي اتصال بالإنترنت) -->
+    <script src="/detection-engine.js"></script>
 
     <!-- سكريبت التشغيل الأساسي والتحليل -->
     <script>
@@ -1379,9 +1383,9 @@
             } else if (/(رابط|url|http|www|موقع)/.test(text)) {
                 answer = "لفحص رابط، افتح قسم «فحص الروابط» وأدخل العنوان كاملًا. النتيجة الحالية تحليل أولي قائم على قواعد داخل الصفحة؛ لا تثبت أن الرابط آمن، لذا لا تدخل بياناتك في موقع مشبوه.";
             } else if (/(رساله|رسائل|نص|تصيد|احتيال|بريد)/.test(text)) {
-                answer = "يمكنك استخدام قسم «فحص النصوص والرسائل». التحليل يعتمد على مؤشرات وكلمات محددة، لذلك قد يفوّت أساليب احتيال جديدة أو يعطي إنذارًا خاطئًا.";
+                answer = "يمكنك استخدام قسم «فحص النصوص والرسائل». يحلل أنماط الاحتيال (التهديد والاستعجال وطلب الرموز والدفع) بالعربية والإنكليزية، ويفحص الروابط داخل الرسالة. لكنه يعتمد على قواعد محددة، لذلك قد يفوّت أساليب جديدة أو يعطي إنذارًا خاطئًا.";
             } else if (/(ملف|فيروس|malware|exe|برنامج)/.test(text)) {
-                answer = "فحص الملفات في الصفحة يعتمد على اسم الملف وبعض البصمات الأولية، وليس على مضاد فيروسات أو تحليل سلوكي. لا تشغّل ملفًا مجهولًا اعتمادًا على نتيجة هذه الصفحة وحدها.";
+                answer = "فحص الملفات في الصفحة يقرأ النوع الحقيقي للملف من بصمته الثنائية ويفحص ترويسة الملفات التنفيذية (التوقيع الرقمي والتغليف) ومحتوى السكربتات والماكرو، ويعرض بصمة SHA-256. لكنه ليس مضاد فيروسات ولا تحليلًا سلوكيًا، فلا تشغّل ملفًا مجهولًا اعتمادًا على نتيجة هذه الصفحة وحدها.";
             } else if (/(صوت|فيديو|deepfake|تزييف|وسائط)/.test(text)) {
                 answer = "قسم الصوت والفيديو في هذه الصفحة لا يشغّل نموذج كشف تزييف حقيقيًا؛ نتيجته الحالية تقديرية وبسيطة. لا تعتمد عليها لإثبات أصالة التسجيل.";
             } else if (/(كيف استخدم|كيف ابدأ|ماذا تستطيع|شنو تقدر|مساعده|مساعدة)/.test(text)) {
@@ -1562,6 +1566,10 @@
 
         let scanHistory = [];
 
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
         function addToHistory(target, type, score, statusText) {
             const now = new Date().toLocaleTimeString('ar-IQ');
             scanHistory.unshift({ time: now, target: target, type: type, score: score, status: statusText });
@@ -1570,11 +1578,11 @@
             tbody.innerHTML = '';
 
             scanHistory.forEach(item => {
-                let badgeStyle = item.score >= 50 ? 'color: var(--accent-red); font-weight:700;' : (item.score > 0 ? 'color: var(--accent-yellow); font-weight:700;' : 'color: var(--accent-green); font-weight:700;');
+                let badgeStyle = item.score >= 55 ? 'color: var(--accent-red); font-weight:700;' : (item.score >= 25 ? 'color: var(--accent-yellow); font-weight:700;' : 'color: var(--accent-green); font-weight:700;');
                 tbody.innerHTML += `
                     <tr>
                         <td>${item.time}</td>
-                        <td style="direction:ltr; max-width:250px; overflow:hidden; text-overflow:ellipsis;">${item.target}</td>
+                        <td style="direction:ltr; max-width:250px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.target)}</td>
                         <td>${item.type}</td>
                         <td style="${badgeStyle}">${item.score}%</td>
                         <td>${item.status}</td>
@@ -1583,180 +1591,71 @@
             });
         }
 
-        function getLevenshteinDistance(a, b) {
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        // ---- ربط محرك الكشف (detection-engine.js) بالصفحة ----
+        const LEVEL_UI = {
+            safe:    { badge: 'score-safe',    icon: 'fa-circle-check' },
+            warning: { badge: 'score-warning', icon: 'fa-circle-exclamation' },
+            danger:  { badge: 'score-danger',  icon: 'fa-triangle-exclamation' }
+        };
+        const LEVEL_TITLES = {
+            url:  { safe: 'لم تُرصد مؤشرات خطر في الرابط (Low Risk)', warning: 'تنبيه: مؤشرات مخاطرة تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: رابط تصيد واحتيال محتمل (High Risk)' },
+            text: { safe: 'لم تُرصد أساليب احتيال معروفة في النص (Low Risk)', warning: 'تنبيه: في الرسالة مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير: رسالة احتيال وهندسة اجتماعية محتملة (High Risk)' },
+            file: { safe: 'لم تُرصد مؤشرات خطر في الملف (Low Risk)', warning: 'تنبيه: الملف فيه مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: ملف مشبوه أو خبيث محتمل (High Risk)' }
+        };
+        const LEVEL_STATUS = { safe: 'لا مؤشرات', warning: 'تنبيه', danger: 'خطر' };
+        const SCAN_DISCLAIMER = 'هذا فحص بقواعد وخوارزميات محلية يعمل داخل متصفحك. غياب المؤشرات لا يثبت أن الهدف آمن، ووجودها لا يثبت أنه خبيث.';
 
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
-                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
-                    }
-                }
-            }
-            return matrix[b.length][a.length];
+        // يرسم تقرير الفحص. كل نص قادم من المستخدم أو من المحرك يمر عبر escapeHtml.
+        function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
+            const ui = LEVEL_UI[result.level];
+            const items = result.reasons
+                .map(r => `<li class="li-${r.type}">${escapeHtml(r.text)}</li>`)
+                .join('');
+            box.style.display = 'block';
+            box.innerHTML = `
+                <div class="report-header">
+                    <div>
+                        <strong style="font-size:1.1rem;"><i class="fa-solid ${ui.icon}"></i> ${LEVEL_TITLES[kind][result.level]}</strong>
+                    </div>
+                    <div class="risk-score-badge ${ui.badge}">
+                        ${scoreLabel}: ${result.score}%
+                    </div>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">${metaHtml}</div>
+                <ul class="report-details-list">${items}</ul>
+                ${extraHtml || ''}
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px;">${SCAN_DISCLAIMER}</p>
+            `;
         }
-
-        function calculateSimilarity(str1, str2) {
-            const distance = getLevenshteinDistance(str1, str2);
-            const maxLength = Math.max(str1.length, str2.length);
-            return (1 - distance / maxLength) * 100;
-        }
-
-        const OFFICIAL_DOMAINS = [
-            { name: 'فيسبوك', domain: 'facebook.com', core: 'facebook' },
-            { name: 'جوجل', domain: 'google.com', core: 'google' },
-            { name: 'إنستغرام', domain: 'instagram.com', core: 'instagram' },
-            { name: 'واتساب', domain: 'whatsapp.com', core: 'whatsapp' },
-            { name: 'تليجرام', domain: 'telegram.org', core: 'telegram' },
-            { name: 'باي بال', domain: 'paypal.com', core: 'paypal' },
-            { name: 'جامعة تكريت', domain: 'tu.edu.iq', core: 'tu.edu.iq' },
-            { name: 'كلية علوم الحاسوب والرياضيات', domain: 'ccms.tu.edu.iq', core: 'ccms' },
-            { name: 'وزارة التعليم العالي', domain: 'mohesr.gov.iq', core: 'mohesr' }
-        ];
 
         function analyzeUrl() {
-            let input = document.getElementById('urlInput').value.trim();
+            const input = document.getElementById('urlInput').value.trim();
             const reportBox = document.getElementById('reportBox');
-            const academicDefense = document.getElementById('academicDefenseToggle').checked;
+            const strict = document.getElementById('academicDefenseToggle').checked;
 
             if (!input) {
                 alert('يرجى إدخال رابط للفحص');
                 return;
             }
 
-            if (!input.startsWith('http://') && !input.startsWith('https://')) {
-                input = 'http://' + input;
+            const result = PhishingEngine.analyzeUrl(input, { strict });
+            if (result.error) {
+                reportBox.style.display = 'block';
+                reportBox.innerHTML = '<div style="color:var(--accent-red);">عذراً، الرابط المدخل غير صالح هيكلياً. تأكد من كتابته بشكل صحيح.</div>';
+                return;
             }
 
-            reportBox.style.display = 'block';
-            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-shield-halved fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تشغيل محرك الخوارزميات السيبرانية لمعالجة التشابه والانتحال...</div>';
-
-            setTimeout(() => {
-                let riskScore = 0;
-                let reasons = [];
-                let urlObj;
-                
-                try {
-                    urlObj = new URL(input);
-                } catch (e) {
-                    reportBox.innerHTML = '<div style="color:var(--accent-red);">عذراً، الرابط المدخل غير صالح هيكلياً.</div>';
-                    return;
+            let meta = `<strong>الرابط المحلل:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.input)}</code>`;
+            if (result.host) {
+                meta += `<br><strong>النطاق الفعلي:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.registrable || result.host)}</code>`;
+                if (result.unicodeHost && result.unicodeHost !== result.host) {
+                    meta += ` &nbsp;<strong>يظهر بالأحرف:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.unicodeHost)}</code>`;
                 }
+            }
+            if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
+            renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta);
 
-                const host = urlObj.hostname.toLowerCase();
-                const protocol = urlObj.protocol;
-                const path = urlObj.pathname.toLowerCase();
-                const cleanHost = host.replace(/^www\./, '');
-
-                const exactMatch = OFFICIAL_DOMAINS.find(item => cleanHost === item.domain || cleanHost.endsWith('.' + item.domain));
-
-                if (exactMatch && protocol === 'https:') {
-                    riskScore = 0;
-                    reasons.push({ text: `النطاق رسمي وموثوق ومسجل تحت منظومة (${exactMatch.name}).`, type: 'safe' });
-                    reasons.push({ text: 'بروتوكول التشفير آمن ومشفر بنجاح (HTTPS).', type: 'safe' });
-                    reasons.push({ text: 'البنية الهيكلية مطابقة تماماً للمستند الأمني.', type: 'safe' });
-                } else {
-                    let matchedImpersonation = null;
-                    const hostParts = cleanHost.split('.');
-                    const mainDomainPart = hostParts[0];
-
-                    for (let target of OFFICIAL_DOMAINS) {
-                        const sim = calculateSimilarity(mainDomainPart, target.core);
-                        if (sim >= 68 && cleanHost !== target.domain && !cleanHost.endsWith('.' + target.domain)) {
-                            matchedImpersonation = {
-                                brandName: target.name,
-                                officialDomain: target.domain,
-                                similarity: Math.round(sim)
-                            };
-                            break;
-                        }
-                    }
-
-                    if (protocol === 'http:') {
-                        riskScore += 25;
-                        reasons.push({ text: 'الاتصال غير مشفر (HTTP)، مما يسهل اعتراض وتعديل البيانات.', type: 'danger' });
-                    } else {
-                        reasons.push({ text: 'الاتصال مشفر عبر بروتوكول HTTPS.', type: 'safe' });
-                    }
-
-                    if (matchedImpersonation) {
-                        riskScore += 75;
-                        reasons.push({ 
-                            text: `تنبيه خطير: تم كشف محاولة انتحال اسم المنصة الرسمية (${matchedImpersonation.brandName}) بنسبة تشابه هيكلي ${matchedImpersonation.similarity}%. هذا الموقع غير رسمي ومصمم للاحتيال وخداع المستخدمين!`, 
-                            type: 'danger' 
-                        });
-                    }
-
-                    if (academicDefense && (cleanHost.includes('edu.iq') || cleanHost.includes('gov.iq'))) {
-                        riskScore += 20;
-                        reasons.push({ text: 'تم تفعيل الحماية الأكاديمية المشددة: تم فحص شهادة السجل وتوافق النطاق المحلي بدقة.', type: 'warning' });
-                    }
-
-                    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-                    if (ipRegex.test(cleanHost)) {
-                        riskScore += 35;
-                        reasons.push({ text: 'استخدام عنوان IP مباشر بدلاً من نطاق رسمي (مؤشر خطر على سيرفرات التصيد).', type: 'danger' });
-                    }
-
-                    const dangerKeywords = ['login', 'verify', 'update', 'banking', 'account', 'security', 'signin', 'password'];
-                    const foundKw = dangerKeywords.filter(kw => path.includes(kw) || cleanHost.includes(kw));
-                    if (foundKw.length > 0 && !matchedImpersonation) {
-                        riskScore += 30;
-                        reasons.push({ text: `وجود مسارات حساسة مفخخة (${foundKw.join(', ')}) على نطاق غير معتمد.`, type: 'warning' });
-                    }
-
-                    if (riskScore === 0) {
-                        reasons.push({ text: 'لم يتم رصد مؤشرات تلاعب أو خطورة مباشرة في الرابط الحالي.', type: 'safe' });
-                        reasons.push({ text: 'شهادة الأمان الهيكلية سليمة.', type: 'safe' });
-                    }
-                }
-
-                riskScore = Math.min(riskScore, 100);
-
-                let badgeClass = 'score-safe';
-                let statusTitle = 'الرابط آمن وموثوق (Low Risk)';
-                let statusIcon = 'fa-circle-check';
-
-                if (riskScore >= 50) {
-                    badgeClass = 'score-danger';
-                    statusTitle = 'تحذير شديد: رابط تصيد واحتيال إلكتروني (High Risk)';
-                    statusIcon = 'fa-triangle-exclamation';
-                } else if (riskScore > 0) {
-                    badgeClass = 'score-warning';
-                    statusTitle = 'تنبيه: يوجد مؤشرات مخاطرة محتملة (Medium Risk)';
-                    statusIcon = 'fa-triangle-exclamation';
-                }
-
-                let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
-
-                reportBox.innerHTML = `
-                    <div class="report-header">
-                        <div>
-                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
-                        </div>
-                        <div class="risk-score-badge ${badgeClass}">
-                            مؤشر الخطورة: ${riskScore}%
-                        </div>
-                    </div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                        <strong>الرابط المحلل:</strong> <code style="direction:ltr; display:inline-block;">${input}</code>
-                    </div>
-                    <ul class="report-details-list">
-                        ${listHtml}
-                    </ul>
-                `;
-
-                addToHistory(input, 'رابط URL', riskScore, riskScore >= 50 ? 'خطر' : (riskScore > 0 ? 'تنبيه' : 'آمن'));
-
-            }, 600);
+            addToHistory(input, 'رابط URL', result.score, LEVEL_STATUS[result.level]);
         }
 
         function analyzeText() {
@@ -1768,88 +1667,49 @@
                 return;
             }
 
-            textReportBox.style.display = 'block';
-            textReportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تحليل الكلمات المفتاحية وهندسة التلاعب بالرسالة...</div>';
+            const result = PhishingEngine.analyzeText(textInput);
+            const preview = textInput.length > 140 ? textInput.substring(0, 140) + '…' : textInput;
+            const meta = `<strong>النص المحلل:</strong> <p style="margin-top:4px; color:var(--text-main); font-style:italic;">"${escapeHtml(preview)}"</p>`;
 
-            setTimeout(() => {
-                let textScore = 0;
-                let textReasons = [];
-                const lowerText = textInput.toLowerCase();
+            let extra = '';
+            if (result.advice && result.advice.length) {
+                extra = `
+                    <div style="margin-top:14px; padding:12px 14px; border:1px dashed var(--border-color); border-radius:10px;">
+                        <strong><i class="fa-solid fa-shield-heart"></i> ماذا تفعل؟</strong>
+                        <ul class="report-details-list">${result.advice.map(a => `<li class="li-info">${escapeHtml(a)}</li>`).join('')}</ul>
+                    </div>`;
+            }
+            renderReport(textReportBox, 'text', 'مؤشر المخاطر', result, meta, extra);
 
-                const phishingPhrases = [
-                    { phrase: 'تجميد حساب', weight: 40 },
-                    { phrase: 'تحديث بيانات', weight: 35 },
-                    { phrase: 'مبروك ربحت', weight: 45 },
-                    { phrase: 'رصيد مجاني', weight: 35 },
-                    { phrase: 'كلمة السر', weight: 25 },
-                    { phrase: 'إيقاف بطاقتك', weight: 40 },
-                    { phrase: 'انقر على الرابط', weight: 20 },
-                    { phrase: 'click here', weight: 20 },
-                    { phrase: 'verify account', weight: 35 }
-                ];
-
-                phishingPhrases.forEach(item => {
-                    if (lowerText.includes(item.phrase)) {
-                        textScore += item.weight;
-                        textReasons.push({ text: `تم رصد عبارة تحشيد واستعجال مشبوهة: ("${item.phrase}")`, type: 'danger' });
-                    }
-                });
-
-                if (textScore === 0) {
-                    textScore = 5;
-                    textReasons.push({ text: 'النص يبدو طبيعياً ولم يتم رصد كلمات مفتاحية شائعة لهجمات الهندسة الاجتماعية.', type: 'safe' });
-                }
-
-                textScore = Math.min(textScore, 100);
-
-                let badgeClass = textScore >= 40 ? 'score-danger' : 'score-safe';
-                let statusTitle = textScore >= 40 ? 'تحذير: رسالة احتيال وهندسة اجتماعية محتملة!' : 'النص آمن ولا توجد مؤشرات خطورة';
-                let statusIcon = textScore >= 40 ? 'fa-triangle-exclamation' : 'fa-circle-check';
-
-                let listHtml = textReasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
-
-                textReportBox.innerHTML = `
-                    <div class="report-header">
-                        <div>
-                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
-                        </div>
-                        <div class="risk-score-badge ${badgeClass}">
-                            مؤشر المخاطر: ${textScore}%
-                        </div>
-                    </div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                        <strong>النص المحلل:</strong> <p style="margin-top:4px; color:var(--text-main); font-style:italic;">"${textInput.substring(0, 100)}..."</p>
-                    </div>
-                    <ul class="report-details-list">
-                        ${listHtml}
-                    </ul>
-                `;
-
-                addToHistory(textInput.substring(0, 30) + '...', 'نص رسالة', textScore, textScore >= 40 ? 'خطر' : 'آمن');
-
-            }, 600);
+            addToHistory(textInput.substring(0, 30) + (textInput.length > 30 ? '…' : ''), 'نص رسالة', result.score, LEVEL_STATUS[result.level]);
         }
 
         function updateFileName(input) {
             const label = document.getElementById('fileLabelText');
             if (input.files && input.files[0]) {
-                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${input.files[0].name}</span>`;
+                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${escapeHtml(input.files[0].name)}</span>`;
             }
         }
 
-        const TRUSTED_KNOWN_EXES = [
-            'chrome.exe', 'msedge.exe', 'firefox.exe', 'brave.exe', 'opera.exe',
-            'gemini.exe', 'discord.exe', 'telegram.exe', 'whatsapp.exe', 'teams.exe',
-            'skype.exe', 'spotify.exe', 'vlc.exe', 'notepad++.exe', 'code.exe',
-            'steam.exe', 'epicgameslauncher.exe', 'origin.exe', 'battlenet.exe',
-            '7z.exe', 'winrar.exe', 'vcredist_x64.exe', 'vcredist_x86.exe', 'dotnetfx.exe',
-            'zoom.exe', 'slack.exe', 'obs64.exe', 'winword.exe', 'excel.exe', 'powerpnt.exe'
-        ];
+        const FILE_HEAD_BYTES = 1024 * 1024;       // أول 1MB: الترويسة ومحتوى السكربتات
+        const FILE_TAIL_BYTES = 256 * 1024;        // آخر 256KB: فهرس ملفات ZIP/DOCX وذيل PDF
+        const FILE_HASH_MAX_BYTES = 64 * 1024 * 1024;
 
-        function analyzeFile() {
+        // بصمة SHA-256 للملف كاملاً (تُحسب داخل المتصفح). تتوقف عند الملفات الكبيرة أو الصفحات غير الآمنة (غير https).
+        async function sha256Hex(file) {
+            if (!window.crypto || !crypto.subtle || file.size > FILE_HASH_MAX_BYTES) return null;
+            try {
+                const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+                return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+            } catch {
+                return null;
+            }
+        }
+
+        async function analyzeFile() {
             const fileInput = document.getElementById('fileInput');
             const reportBox = document.getElementById('fileReportBox');
-            
+
             if (fileInput.files.length === 0) {
                 alert('يرجى اختيار ملف أولاً لغرض الفحص الأمني.');
                 return;
@@ -1857,109 +1717,137 @@
 
             const file = fileInput.files[0];
             reportBox.style.display = 'block';
-            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري إجراء فحص عميق للبصمة الثنائية والتواقيع الرقمية للملف...</div>';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري قراءة البصمة الثنائية وترويسة الملف وفحص محتواه...</div>';
 
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const arr = new Uint8Array(e.target.result);
-                let header = '';
-                for (let i = 0; i < Math.min(arr.length, 8); i++) {
-                    header += arr[i].toString(16).toUpperCase().padStart(2, '0');
-                }
+            let result, hash;
+            try {
+                const head = new Uint8Array(await file.slice(0, FILE_HEAD_BYTES).arrayBuffer());
+                const tail = file.size > FILE_HEAD_BYTES
+                    ? new Uint8Array(await file.slice(Math.max(FILE_HEAD_BYTES, file.size - FILE_TAIL_BYTES)).arrayBuffer())
+                    : new Uint8Array(0);
+                result = PhishingEngine.analyzeFile({ name: file.name, size: file.size, head, tail });
+                hash = await sha256Hex(file);
+            } catch {
+                reportBox.innerHTML = '<div style="color:var(--accent-red);">تعذر قراءة الملف. قد يكون محذوفاً أو غير قابل للوصول.</div>';
+                return;
+            }
 
-                setTimeout(() => {
-                    let riskScore = 0;
-                    let reasons = [];
-                    let detectedRealType = "مجهول / غير معروف";
-                    
-                    const fileName = file.name.toLowerCase();
-                    const dangerousExtensions = ['.bat', '.cmd', '.vbs', '.scr', '.pif', '.js', '.msi', '.ps1', '.hta'];
-                    const isDangerousExt = dangerousExtensions.some(ext => fileName.endsWith(ext));
-                    const suspiciousKeywords = ['crack', 'keygen', 'patch', 'hack', 'payload', 'stealer', 'trojan', 'virus', 'malware', 'exploit'];
-                    const hasSuspiciousKeyword = suspiciousKeywords.some(kw => fileName.includes(kw));
-                    const fakeExtCheck = ['.pdf.exe', '.jpg.exe', '.png.exe', '.txt.exe', '.docx.exe', '.xlsx.exe'];
-                    const isFakeExtension = fakeExtCheck.some(fake => fileName.includes(fake));
+            const sizeText = file.size >= 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : (file.size / 1024).toFixed(2) + ' KB';
+            let meta = `<strong>اسم الملف:</strong> ${escapeHtml(file.name)} | <strong>النوع الفعلي:</strong> ${escapeHtml(result.type.label)} | <strong>الحجم:</strong> ${sizeText}`;
+            if (file.size > 0) meta += ` | <strong>عشوائية البيانات:</strong> ${result.entropy} / 8`;
 
-                    if (isFakeExtension) {
-                        riskScore = 100;
-                        detectedRealType = "ملف تنفيذي مخفي بامتياز وهمي (Spoofed Executable)";
-                        reasons.push({ text: 'خطير جداً: تم رصد محاولة خداع تلاعب بالامتداد (Extension Spoofing).', type: 'danger' });
-                    } else if (header.startsWith('4D5A')) {
-                        detectedRealType = "ملف تنفيذي نظامي (PE Executable .exe/.dll)";
-                        if (TRUSTED_KNOWN_EXES.includes(fileName)) {
-                            riskScore = 0;
-                            reasons.push({ text: `الملف التنفيذي (${file.name}) مطبق ومطابق للقائمة البيضاء للبرامج المشهورة والموثوقة رسمياً.`, type: 'safe' });
-                        } else if (hasSuspiciousKeyword) {
-                            riskScore = 95;
-                            reasons.push({ text: `تنبيه حرج: اسم الملف يحتوي على مصطلحات مريبة أو شائعة في البرمجيات الخبيثة (${fileName}).`, type: 'danger' });
-                        } else {
-                            riskScore = 45;
-                            reasons.push({ text: `تنبيه: الملف التنفيذي (${file.name}) غير مدرج في قاعدة بيانات المنصات والبرامج المشهورة.`, type: 'warning' });
-                        }
-                    } else if (header.startsWith('504B')) {
-                        detectedRealType = "ملف أرشيف مضغوط أو حزمة برمجية (ZIP / JAR)";
-                        riskScore = 5;
-                        reasons.push({ text: 'ملف مضغوط بأسلوب سليم، والبصمة الثنائية متطابقة.', type: 'safe' });
-                    } else if (header.startsWith('25504446')) {
-                        detectedRealType = "مستند وثيقة رسمية (PDF)";
-                        riskScore = 0;
-                        reasons.push({ text: 'ملف PDF سليم وتوقيعه الثنائي متطابق تماماً.', type: 'safe' });
-                    } else if (header.startsWith('FFD8FF') || header.startsWith('89504E47')) {
-                        detectedRealType = "ملف صورة رقمية (JPG / PNG)";
-                        riskScore = 0;
-                        reasons.push({ text: 'صورة رقمية سليمة وتوقيعها البرمجي متطابق.', type: 'safe' });
-                    } else if (isDangerousExt) {
-                        riskScore = 90;
-                        detectedRealType = "ملف سكربت أو أمرين نظاميين خطيرين";
-                        reasons.push({ text: `تم اكتشاف امتداد خطير (${fileName}) قادر على تنفيذ أوامر مباشرة.`, type: 'danger' });
-                    } else {
-                        riskScore = 40;
-                        detectedRealType = "ملف ذو بنية ثنائية مجهولة";
-                        reasons.push({ text: 'بصمة الملف الثنائية غير مطابقة للأنماط القياسية المعتمدة.', type: 'warning' });
-                    }
+            let extra = '';
+            if (hash) {
+                extra = `
+                    <div style="margin-top:14px; padding:12px 14px; border:1px dashed var(--border-color); border-radius:10px;">
+                        <strong><i class="fa-solid fa-fingerprint"></i> بصمة الملف (SHA-256)</strong>
+                        <p style="font-size:0.78rem; direction:ltr; word-break:break-all; margin:6px 0; color:var(--text-main);">${hash}</p>
+                        <a href="https://www.virustotal.com/gui/file/${hash}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue); font-size:0.85rem;">
+                            <i class="fa-solid fa-magnifying-glass"></i> ابحث عن البصمة في VirusTotal
+                        </a>
+                        <span style="font-size:0.78rem; color:var(--text-muted);"> (يبحث بالبصمة فقط، والملف نفسه لا يُرفع. إذا كان الملف جديداً أو نادراً قد لا يظهر له نتيجة.)</span>
+                    </div>`;
+            } else if (file.size > FILE_HASH_MAX_BYTES) {
+                extra = '<p style="font-size:0.78rem; color:var(--text-muted); margin-top:10px;">لم تُحسب بصمة SHA-256 لأن حجم الملف يتجاوز 64MB.</p>';
+            }
 
-                    riskScore = Math.min(riskScore, 100);
-
-                    let badgeClass = riskScore >= 50 ? 'score-danger' : 'score-safe';
-                    let statusTitle = riskScore >= 50 ? 'تحذير شديد: ملف مشبوه أو خبيث (High Risk)' : 'الملف آمن وموثوق (Low Risk)';
-                    let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : 'fa-circle-check';
-
-                    let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
-
-                    reportBox.innerHTML = `
-                        <div class="report-header">
-                            <div>
-                                <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
-                            </div>
-                            <div class="risk-score-badge ${badgeClass}">
-                                مؤشر الخطورة: ${riskScore}%
-                            </div>
-                        </div>
-                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                            <strong>اسم الملف:</strong> ${file.name} | <strong>النوع:</strong> ${detectedRealType} | <strong>الحجم:</strong> ${(file.size / 1024).toFixed(2)} KB
-                        </div>
-                        <ul class="report-details-list">
-                            ${listHtml}
-                        </ul>
-                    `;
-
-                    addToHistory(file.name, 'فحص ملف متقدم', riskScore, riskScore >= 50 ? 'خطر' : 'آمن');
-
-                }, 700);
-            };
-
-            reader.readAsArrayBuffer(file.slice(0, 64));
+            renderReport(reportBox, 'file', 'مؤشر الخطورة', result, meta, extra);
+            addToHistory(file.name, 'فحص ملف', result.score, LEVEL_STATUS[result.level]);
         }
 
         function updateMediaFileName(input) {
             const label = document.getElementById('mediaLabelText');
             if (input.files && input.files[0]) {
-                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${input.files[0].name}</span>`;
+                label.innerHTML = `الملف المختار: <span style="color: var(--accent-blue);">${escapeHtml(input.files[0].name)}</span>`;
             }
         }
 
-        function uploadAndScan() {
+        const MEDIA_EXTENSIONS = {
+            audio: ['mp3', 'wav', 'ogg', 'oga', 'opus', 'flac', 'm4a', 'aac', 'wma', 'amr'],
+            video: ['mp4', 'm4v', 'mov', 'webm', 'mkv', 'avi', 'wmv', '3gp']
+        };
+        const EXECUTABLE_EXTENSIONS = ['exe', 'scr', 'bat', 'cmd', 'com', 'pif', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'ps1', 'msi', 'hta', 'lnk', 'jar', 'dll', 'apk'];
+
+        // يقرأ أول بايتات الملف ويطابقها مع تواقيع الصيغ المعروفة (Magic Bytes)
+        function detectMediaSignature(bytes) {
+            const hex = (start, length) => Array.from(bytes.slice(start, start + length))
+                .map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+            const ascii = (start, length) => String.fromCharCode(...bytes.slice(start, start + length));
+
+            if (bytes.length < 4) return { kind: 'unknown', label: 'ملف فارغ أو صغير جداً بلا بصمة معروفة' };
+            if (hex(0, 2) === '4D5A') return { kind: 'executable', label: 'ملف تنفيذي لنظام Windows (EXE / DLL)' };
+            if (hex(0, 4) === '7F454C46') return { kind: 'executable', label: 'ملف تنفيذي لنظام Linux (ELF)' };
+            if (['FEEDFACE', 'FEEDFACF', 'CEFAEDFE', 'CFFAEDFE', 'CAFEBABE'].includes(hex(0, 4))) {
+                return { kind: 'executable', label: 'ملف تنفيذي (macOS Mach-O أو Java Class)' };
+            }
+            if (hex(0, 4) === '504B0304') return { kind: 'archive', label: 'أرشيف مضغوط (ZIP / JAR / APK / Office)' };
+            if (ascii(0, 4) === 'Rar!') return { kind: 'archive', label: 'أرشيف مضغوط (RAR)' };
+            if (hex(0, 6) === '377ABCAF271C') return { kind: 'archive', label: 'أرشيف مضغوط (7z)' };
+            if (hex(0, 4) === '25504446') return { kind: 'document', label: 'مستند PDF' };
+            if (hex(0, 3) === 'FFD8FF' || hex(0, 4) === '89504E47' || ascii(0, 4) === 'GIF8') {
+                return { kind: 'image', label: 'صورة (JPG / PNG / GIF)' };
+            }
+            if (ascii(0, 5) === '#!AMR') return { kind: 'audio', label: 'صوت AMR' };
+            if (ascii(0, 3) === 'ID3') return { kind: 'audio', label: 'صوت MP3 (يحتوي وسم ID3)' };
+            if (bytes[0] === 0xFF && (bytes[1] & 0xF6) === 0xF0) return { kind: 'audio', label: 'صوت AAC (ADTS)' };
+            if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return { kind: 'audio', label: 'صوت MP3 (إطارات MPEG)' };
+            if (ascii(0, 4) === 'RIFF') {
+                const riffType = ascii(8, 4);
+                if (riffType === 'WAVE') return { kind: 'audio', label: 'صوت WAV' };
+                if (riffType === 'AVI ') return { kind: 'video', label: 'فيديو AVI' };
+                return { kind: 'unknown', label: 'حاوية RIFF غير معروفة' };
+            }
+            if (ascii(0, 4) === 'OggS') return { kind: 'media', label: 'حاوية Ogg (صوت أو فيديو)' };
+            if (ascii(0, 4) === 'fLaC') return { kind: 'audio', label: 'صوت FLAC' };
+            if (ascii(4, 4) === 'ftyp') {
+                const brand = ascii(8, 4);
+                if (brand.startsWith('M4A') || brand.startsWith('M4B')) return { kind: 'audio', label: 'صوت M4A' };
+                if (brand === 'qt  ') return { kind: 'video', label: 'فيديو QuickTime (MOV)' };
+                if (brand.startsWith('3g')) return { kind: 'video', label: 'فيديو 3GP' };
+                return { kind: 'media', label: 'حاوية MP4 (فيديو أو صوت)' };
+            }
+            if (hex(0, 4) === '1A45DFA3') return { kind: 'media', label: 'حاوية WebM / MKV' };
+            if (hex(0, 4) === '3026B275') return { kind: 'media', label: 'حاوية Windows Media (WMA / WMV)' };
+            return { kind: 'unknown', label: 'بصمة غير مطابقة لأي صيغة وسائط معروفة' };
+        }
+
+        // يحاول المتصفح قراءة بيانات الملف (المدة والأبعاد) بدون تشغيله
+        function probeMediaPlayback(file) {
+            return new Promise(resolve => {
+                const objectUrl = URL.createObjectURL(file);
+                const element = document.createElement('video');
+                let finished = false;
+                const finish = result => {
+                    if (finished) return;
+                    finished = true;
+                    clearTimeout(timer);
+                    element.removeAttribute('src');
+                    element.load();
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(result);
+                };
+                const timer = setTimeout(() => finish({ ok: false }), 6000);
+                element.preload = 'metadata';
+                element.muted = true;
+                element.onloadedmetadata = () => finish({
+                    ok: true,
+                    duration: element.duration,
+                    width: element.videoWidth,
+                    height: element.videoHeight
+                });
+                element.onerror = () => finish({ ok: false });
+                element.src = objectUrl;
+            });
+        }
+
+        function formatMediaDuration(seconds) {
+            if (!Number.isFinite(seconds) || seconds <= 0) return 'غير معروفة';
+            const total = Math.round(seconds);
+            const minutes = Math.floor(total / 60);
+            return minutes + ':' + String(total % 60).padStart(2, '0');
+        }
+
+        async function uploadAndScan() {
             const fileInput = document.getElementById('mediaUpload');
             const reportBox = document.getElementById('mediaReportBox');
 
@@ -1969,70 +1857,125 @@
             }
 
             const file = fileInput.files[0];
-            const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4') || file.name.toLowerCase().endsWith('.avi');
-            const fileType = isVideo ? 'فيديو مرئي (Video Deepfake Analysis)' : 'ملف صوتي (Audio MFCCs Analysis)';
-
             reportBox.style.display = 'block';
-            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري تحليل الأنماط الطيفية ومعاملات التباين (MFCC Variance) واكتشاف التشوهات البصرية للوجوه...</div>';
+            reportBox.innerHTML = '<div style="text-align:center; padding:1rem;"><i class="fa-solid fa-gear fa-spin" style="font-size:2rem; color:var(--accent-blue);"></i><br><br>جاري قراءة البصمة الثنائية للملف ومحاولة قراءة بياناته داخل المتصفح...</div>';
 
-            setTimeout(() => {
-                let riskScore = 0;
-                let reasons = [];
-                const fileName = file.name.toLowerCase();
-                const dangerousExts = ['.exe', '.scr', '.bat', '.cmd', '.vbs', '.js'];
-                const hasDanger = dangerousExts.some(ext => fileName.endsWith(ext));
+            const bytes = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+            const signature = detectMediaSignature(bytes);
+            const isMediaContent = ['audio', 'video', 'media'].includes(signature.kind);
 
-                if (hasDanger) {
-                    riskScore = 100;
-                    reasons.push({ text: 'تحذير خطير: تم كشف امتداد خبيث مخفي داخل ملف الوسائط (Extension Spoofing)!', type: 'danger' });
+            const lowerName = file.name.toLowerCase();
+            const nameParts = lowerName.split('.');
+            const extension = nameParts.length > 1 ? nameParts.pop() : '';
+            const innerExtensions = nameParts.slice(1);
+            const isMediaExtension = ext => MEDIA_EXTENSIONS.audio.includes(ext) || MEDIA_EXTENSIONS.video.includes(ext);
+            const extensionFamily = MEDIA_EXTENSIONS.audio.includes(extension) ? 'audio'
+                : MEDIA_EXTENSIONS.video.includes(extension) ? 'video'
+                : EXECUTABLE_EXTENSIONS.includes(extension) ? 'executable'
+                : 'other';
+
+            let riskScore = 0;
+            const reasons = [];
+            const raise = value => { riskScore = Math.max(riskScore, value); };
+
+            if (/[‪-‮⁦-⁩]/.test(file.name)) {
+                raise(100);
+                reasons.push({ text: 'اسم الملف يحتوي محارف خفية تعكس اتجاه النص (RLO)، وهي حيلة معروفة لإخفاء الامتداد الحقيقي للملف.', type: 'danger' });
+            }
+
+            if (extensionFamily === 'executable') {
+                if (innerExtensions.some(isMediaExtension)) {
+                    raise(100);
+                    reasons.push({ text: `امتداد مزدوج مخادع: الاسم يوحي بملف وسائط لكن امتداده الحقيقي هو .${escapeHtml(extension)} (ملف تنفيذي).`, type: 'danger' });
                 } else {
-                    if (fileName.includes('fake') || fileName.includes('deepfake') || fileName.includes('ai') || fileName.includes('clone') || fileName.includes('synth')) {
-                        riskScore = 88;
-                        if (isVideo) {
-                            reasons.push({ text: '🚨 تحذير: تم رصد انقطاعات وتشوهات بصرية وإطارات غير طبيعية في الوجه تعود لتقنية التزييف العميق (Video Deepfake)!', type: 'danger' });
-                            reasons.push({ text: 'نسبة الشذوذ البصري والإطارات المفقودة تتجاوز 30% مقارنة بالفيديوهات الطبيعية.', type: 'danger' });
-                        } else {
-                            reasons.push({ text: '🚨 تنبيه: تباين الترددات الطيفية منخفض جداً (MFCC Variance < 50.0), مما يرجح أن الصوت مولد بالذكاء الاصطناعي (Audio Deepfake)!', type: 'danger' });
-                            reasons.push({ text: 'تم رصد انتظام غير طبيعي في الموجات الصوتية المصطنعة.', type: 'warning' });
-                        }
-                    } else {
-                        riskScore = 12;
-                        if (isVideo) {
-                            reasons.push({ text: '🛡 الفيديو طبيعي وسليم، ولا توجد مؤشرات تلاعب أو تشوهات بصرية في إطارات الوجه.', type: 'safe' });
-                            reasons.push({ text: 'معدل الشذوذ البصري ضمن النطاق الطبيعي المسموح.', type: 'safe' });
-                        } else {
-                            reasons.push({ text: '🛡 الصوت يبدو بشرياً، ومعاملات الترددات الطيفية (MFCC Variance >= 50.0) طبيعية تماماً.', type: 'safe' });
-                            reasons.push({ text: 'التأثيرات والخصائص الصوتية الطبيعية سليمة.', type: 'safe' });
-                        }
-                    }
+                    raise(90);
+                    reasons.push({ text: `امتداد الملف .${escapeHtml(extension)} امتداد تنفيذي وليس امتداد صوت أو فيديو.`, type: 'danger' });
                 }
+            }
 
-                let badgeClass = riskScore >= 50 ? 'score-danger' : 'score-safe';
-                let statusTitle = riskScore >= 50 ? 'تحذير: تم كشف تلاعب أو تزييف عميق محتمل (High Risk)' : 'الملف آمن وطبيعي (Low Risk)';
-                let statusIcon = riskScore >= 50 ? 'fa-triangle-exclamation' : 'fa-circle-check';
+            if (signature.kind === 'executable') {
+                raise(100);
+                reasons.push({ text: `البصمة الثنائية تكشف أن محتوى الملف هو ${signature.label} وليس صوتاً أو فيديو. لا تفتح هذا الملف.`, type: 'danger' });
+            } else if (signature.kind === 'archive') {
+                raise(75);
+                reasons.push({ text: `محتوى الملف ${signature.label} وليس وسائط، وقد يحتوي ملفات أخرى مخفية.`, type: 'danger' });
+            } else if (signature.kind === 'document' || signature.kind === 'image') {
+                raise(45);
+                reasons.push({ text: `محتوى الملف ${signature.label}، ولا يطابق ملف صوت أو فيديو.`, type: 'warning' });
+            } else if (signature.kind === 'unknown') {
+                raise(40);
+                reasons.push({ text: `${signature.label}. قد يكون الملف تالفاً أو بصيغة نادرة أو مموهاً.`, type: 'warning' });
+            } else {
+                reasons.push({ text: `البصمة الثنائية تطابق ملف وسائط حقيقياً: ${signature.label}.`, type: 'safe' });
+                if (extensionFamily === 'other') {
+                    raise(20);
+                    reasons.push({ text: `امتداد الملف ${extension ? '.' + escapeHtml(extension) : '(بلا امتداد)'} غير معتاد لملفات الوسائط رغم أن المحتوى وسائط.`, type: 'warning' });
+                } else if ((signature.kind === 'audio' && extensionFamily === 'video') || (signature.kind === 'video' && extensionFamily === 'audio')) {
+                    raise(10);
+                    reasons.push({ text: 'نوع المحتوى (صوت/فيديو) لا يطابق الامتداد. هذا شائع ولا يدل على خطر بحد ذاته.', type: 'warning' });
+                }
+            }
 
-                let listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+            let durationText = '—';
+            let dimensionsText = '—';
+            if (isMediaContent) {
+                const probe = await probeMediaPlayback(file);
+                if (probe.ok) {
+                    durationText = formatMediaDuration(probe.duration);
+                    dimensionsText = probe.width > 0 ? `${probe.width}×${probe.height}` : 'صوت فقط';
+                    reasons.push({ text: `قرأ المتصفح الملف بنجاح (المدة ${durationText}${probe.width > 0 ? '، الدقة ' + dimensionsText : '، مسار صوتي بلا صورة'}).`, type: 'safe' });
+                } else {
+                    raise(25);
+                    reasons.push({ text: 'لم يستطع المتصفح قراءة الملف. قد تكون صيغته غير مدعومة في هذا المتصفح، أو يكون الملف تالفاً.', type: 'warning' });
+                }
+            }
 
-                reportBox.innerHTML = `
-                    <div class="report-header">
-                        <div>
-                            <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
-                        </div>
-                        <div class="risk-score-badge ${badgeClass}">
-                            مؤشر الخطورة: ${riskScore}%
-                        </div>
+            let badgeClass = 'score-safe';
+            let statusTitle = 'بنية الملف سليمة: ملف وسائط حقيقي';
+            let statusIcon = 'fa-circle-check';
+            let historyStatus = 'سليم';
+            if (riskScore >= 70) {
+                badgeClass = 'score-danger';
+                statusTitle = 'خطر: الملف ليس صوتاً أو فيديو حقيقياً (High Risk)';
+                statusIcon = 'fa-triangle-exclamation';
+                historyStatus = 'خطر';
+            } else if (riskScore >= 30) {
+                badgeClass = 'score-warning';
+                statusTitle = 'تنبيه: تعذّر التأكد من أن الملف وسائط سليمة';
+                statusIcon = 'fa-circle-exclamation';
+                historyStatus = 'تنبيه';
+            }
+
+            const listHtml = reasons.map(r => `<li class="li-${r.type}">${r.text}</li>`).join('');
+
+            reportBox.innerHTML = `
+                <div class="report-header">
+                    <div>
+                        <strong style="font-size:1.1rem;"><i class="fa-solid ${statusIcon}"></i> ${statusTitle}</strong>
                     </div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                        <strong>اسم الملف:</strong> ${file.name} | <strong>نوع التحليل:</strong> ${fileType} | <strong>الحجم:</strong> ${(file.size / (1024*1024)).toFixed(2)} MB
+                    <div class="risk-score-badge ${badgeClass}">
+                        مؤشر خطورة الملف: ${riskScore}%
                     </div>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
+                    <strong>اسم الملف:</strong> ${escapeHtml(file.name)} | <strong>المحتوى الفعلي:</strong> ${signature.label} | <strong>الحجم:</strong> ${(file.size / (1024 * 1024)).toFixed(2)} MB | <strong>المدة:</strong> ${durationText} | <strong>الأبعاد:</strong> ${dimensionsText}
+                </div>
+                <ul class="report-details-list">
+                    ${listHtml}
+                </ul>
+                <div style="margin-top:14px; padding:12px 14px; border:1px dashed var(--border-color); border-radius:10px;">
+                    <strong><i class="fa-solid fa-user-ninja"></i> التزييف العميق (Deepfake): يحتاج تحققاً يدوياً</strong>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin:6px 0;">هذا الفحص لا يحدد إن كان الصوت أو الفيديو مولداً بالذكاء الاصطناعي. سلامة بنية الملف لا تعني أن محتواه حقيقي.</p>
                     <ul class="report-details-list">
-                        ${listHtml}
+                        <li class="li-warning">قارن حركة الشفاه بالكلام، وراقب الرمش وحدود الوجه والشعر والإضاءة عند تحريك الرأس.</li>
+                        <li class="li-warning">استمع لنبرة رتيبة، أو غياب صوت التنفس والضوضاء الطبيعية، أو انتقالات مقطوعة بين الكلمات.</li>
+                        <li class="li-warning">تحقق من مصدر المقطع: من نشره أولاً؟ وهل نقلته جهة موثوقة؟</li>
+                        <li class="li-warning">إذا طلب المقطع مالاً أو بيانات، اتصل بالشخص على رقم تعرفه مسبقاً قبل أي تصرف.</li>
                     </ul>
-                `;
+                </div>
+            `;
 
-                addToHistory(file.name, isVideo ? 'فحص فيديو Deepfake' : 'فحص صوت Deepfake', riskScore, riskScore >= 50 ? 'خطر' : 'آمن');
-
-            }, 900);
+            addToHistory(file.name, 'فحص سلامة ملف وسائط', riskScore, historyStatus);
         }
     </script>
 </body>

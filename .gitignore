@@ -1,0 +1,15 @@
+# مكتبات Node تنزل من جديد بـ npm install
+node_modules/
+
+# برنامج Cloudflare Tunnel (55MB) ينزل من موقع Cloudflare، ما ينحفظ بالمستودع
+cloudflared.exe
+
+# ملفات الجافا المترجمة
+*.class
+
+# Python
+__pycache__/
+uploads/
+
+# أسرار ومفاتيح (مثل OPENAI_API_KEY)
+.env

@@ -1,0 +1,137 @@
+:root {
+    --bg: #0a0f1d;
+    --card: #121a2e;
+    --border: #243152;
+    --text: #e8edf9;
+    --muted: #8d9bb8;
+    --accent: #00f2fe;
+    --green: #00e676;
+    --yellow: #ffab00;
+    --red: #ff1744;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Tajawal', system-ui, sans-serif;
+    line-height: 1.7;
+}
+
+.muted { color: var(--muted); }
+.ltr { direction: ltr; unicode-bidi: plaintext; }
+
+/* ---------- صفحة الدخول ---------- */
+.login-body { display: grid; place-items: center; min-height: 100vh; padding: 16px; }
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+}
+
+.login-card h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.login-card p { margin: 0 0 18px; }
+
+label { display: block; margin-bottom: 14px; font-weight: 700; font-size: 0.9rem; }
+
+input {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 11px 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font: inherit;
+    direction: ltr;
+    text-align: left;
+}
+
+input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+button {
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 18px;
+    color: #06101c;
+    background: linear-gradient(135deg, var(--accent), #0072ff);
+}
+
+button:disabled { opacity: 0.6; cursor: wait; }
+button.secondary { color: var(--text); background: transparent; border: 1px solid var(--border); }
+.login-card button[type="submit"] { width: 100%; }
+
+.error {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--red);
+    border-radius: 10px;
+    background: rgba(255, 23, 68, 0.12);
+    color: #ff7a93;
+    font-size: 0.9rem;
+}
+
+/* ---------- لوحة التحكم ---------- */
+.topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+}
+
+.topbar h1 { margin: 0; font-size: 1.2rem; }
+.topbar .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+main.dashboard { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+section { margin-top: 28px; }
+section h2 { margin: 0 0 12px; font-size: 1.05rem; color: var(--accent); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+
+.stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.stat .value { font-size: 1.6rem; font-weight: 800; }
+.stat .label { color: var(--muted); font-size: 0.85rem; }
+.stat.ok .value { color: var(--green); }
+.stat.warn .value { color: var(--yellow); }
+.stat.bad .value { color: var(--red); }
+
+.table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td.detail { white-space: normal; min-width: 220px; }
+th { color: var(--muted); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+
+.badge { padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--border); }
+.badge.ok { color: var(--green); border-color: var(--green); }
+.badge.warn { color: var(--yellow); border-color: var(--yellow); }
+.badge.bad { color: var(--red); border-color: var(--red); }
+
+.info-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 24px; margin: 0; padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+.info-list div { display: flex; justify-content: space-between; gap: 12px; }
+.info-list dt { color: var(--muted); }
+.info-list dd { margin: 0; font-weight: 700; }
+
+.empty { padding: 18px; text-align: center; color: var(--muted); }
+.note { margin-top: 28px; color: var(--muted); font-size: 0.8rem; }

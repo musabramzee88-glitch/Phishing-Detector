@@ -1,0 +1,410 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const http = require('node:http');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { promisify } = require('node:util');
+const { loadConfig } = require('../server/config');
+const { createApp } = require('../server');
+const totp = require('../server/totp');
+
+const scrypt = promisify(crypto.scrypt);
+
+// بيانات اختبار فقط: تُولَّد عشوائياً داخل الاختبار ولا تُكتب في أي ملف
+const TEST_PASSWORD = 'T-' + crypto.randomBytes(12).toString('base64url');
+const TEST_TOTP = totp.generateSecret();
+const FAKE_OPENAI_KEY = 'sk-test-' + crypto.randomBytes(8).toString('hex');
+
+async function adminEntry(user, password, secret) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = (await scrypt(password, salt, 32)).toString('hex');
+    return `${user}:${salt}:${hash}${secret ? ':' + secret : ''}`;
+}
+
+async function startServer(env = {}, tweak) {
+    const config = loadConfig({ HOST: '127.0.0.1', ...env });
+    if (tweak) tweak(config);
+    const app = createApp(config);
+    await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
+    app.base = { port: app.server.address().port };
+    app.close = () => new Promise(resolve => { app.server.closeAllConnections(); app.server.close(resolve); });
+    return app;
+}
+
+// طلب HTTP خام: نحتاجه لإرسال ترويسات مثل Origin و Host كما نريد
+function request(app, method, pathName, { headers = {}, body } = {}) {
+    return new Promise((resolve, reject) => {
+        const payload = body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body));
+        const req = http.request({
+            host: '127.0.0.1', port: app.base.port, method, path: pathName,
+            headers: { ...(payload !== undefined ? { 'Content-Length': Buffer.byteLength(payload) } : {}), ...headers }
+        }, res => {
+            const chunks = [];
+            res.on('data', c => chunks.push(c));
+            res.on('end', () => {
+                const text = Buffer.concat(chunks).toString('utf8');
+                let json = null;
+                try { json = JSON.parse(text); } catch { /* ليس JSON */ }
+                resolve({ status: res.statusCode, headers: res.headers, text, json });
+            });
+        });
+        req.on('error', reject);
+        if (payload !== undefined) req.write(payload);
+        req.end();
+    });
+}
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+const sameOrigin = app => ({ ...JSON_HEADERS, Origin: `http://127.0.0.1:${app.base.port}` });
+
+function cookieFrom(response) {
+    const setCookie = [].concat(response.headers['set-cookie'] || [])[0] || '';
+    return setCookie.split(';')[0];
+}
+
+async function login(app, { username = 'musab', password = TEST_PASSWORD, code, headers } = {}) {
+    return request(app, 'POST', '/api/admin/login', {
+        headers: { ...sameOrigin(app), ...headers },
+        body: { username, password, code }
+    });
+}
+
+async function withServer(env, fn, tweak) {
+    const app = await startServer(env, tweak);
+    try { await fn(app); } finally { await app.close(); }
+}
+
+// ---------------------------------------------------------------- الموقع العام
+
+test('ترويسات الأمان على كل رد', () => withServer({}, async app => {
+    const res = await request(app, 'GET', '/');
+    assert.equal(res.status, 200);
+    const csp = res.headers['content-security-policy'];
+    assert.match(csp, /script-src 'self'(;|$)/);              // لا 'unsafe-inline' للسكربتات
+    assert.ok(!/script-src[^;]*unsafe/.test(csp));
+    assert.match(csp, /frame-ancestors 'none'/);
+    assert.match(csp, /object-src 'none'/);
+    assert.match(csp, /base-uri 'none'/);
+    assert.equal(res.headers['x-content-type-options'], 'nosniff');
+    assert.equal(res.headers['x-frame-options'], 'DENY');
+    assert.equal(res.headers['referrer-policy'], 'no-referrer');
+    assert.match(res.headers['permissions-policy'], /camera=\(\)/);
+    assert.equal(res.headers['cross-origin-opener-policy'], 'same-origin');
+    assert.equal(res.headers['x-powered-by'], undefined);
+    assert.equal(res.headers['strict-transport-security'], undefined);   // لا HSTS على http
+}));
+
+test('HSTS يُرسل فقط خلف وسيط HTTPS موثوق', () => withServer({ TRUST_PROXY: '1' }, async app => {
+    const res = await request(app, 'GET', '/healthz', { headers: { 'X-Forwarded-Proto': 'https' } });
+    assert.match(res.headers['strict-transport-security'], /max-age=31536000/);
+    const plain = await request(app, 'GET', '/healthz');
+    assert.equal(plain.headers['strict-transport-security'], undefined);
+}));
+
+test('الصفحة الرئيسية بلا سكربتات أو معالجات أو أنماط مضمنة (متوافقة مع CSP)', () => withServer({}, async app => {
+    const html = (await request(app, 'GET', '/')).text;
+    assert.ok(!/\son[a-z]+\s*=/i.test(html), 'inline event handler found');
+    assert.ok(!/<script(?![^>]*\ssrc=)[^>]*>/i.test(html), 'inline <script> found');
+    assert.ok(!/<style[\s>]/i.test(html), 'inline <style> found');
+    assert.ok(!/javascript:/i.test(html));
+    for (const m of html.matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)) assert.match(m[0], /rel="noopener noreferrer"/);
+    const js = (await request(app, 'GET', '/js/app.js')).text;
+    assert.ok(!/\sonclick\s*=/.test(js), 'inline handler generated by app.js');
+}));
+
+test('ملفات الموقع تُقدَّم، وكل شيء آخر محجوب', () => withServer({}, async app => {
+    for (const p of ['/', '/index.html', '/js/app.js', '/js/detection-engine.js', '/css/style.css', '/img/logo.png', '/robots.txt']) {
+        assert.equal((await request(app, 'GET', p)).status, 200, p);
+    }
+    const blocked = [
+        '/server.js', '/server/config.js', '/server/admin.js', '/server/admin/dashboard.js', '/package.json', '/Dockerfile',
+        '/tests/server.test.js', '/tools/make-admin.js', '/.git/config', '/.env', '/public/index.html',
+        '/%2e%2e/server.js', '/..%2fserver.js', '/..%5cserver.js', '/js/../../server.js', '/%2e%2e%2f%2e%2e%2fWindows/win.ini',
+        '/img/logo.png%00.html', '/js/', '/css', '/logo.jpg', '/app.py'
+    ];
+    for (const p of blocked) {
+        const res = await request(app, 'GET', p);
+        assert.ok([400, 404].includes(res.status), `${p} -> ${res.status}`);
+        assert.ok(!/require\(|createServer/.test(res.text), `${p} leaked source`);
+    }
+}));
+
+test('طرق HTTP غير المسموحة، HEAD، ومسار فاسد', () => withServer({}, async app => {
+    assert.equal((await request(app, 'POST', '/')).status, 405);
+    assert.equal((await request(app, 'DELETE', '/js/app.js')).status, 405);
+    const head = await request(app, 'HEAD', '/');
+    assert.equal(head.status, 200);
+    assert.equal(head.text, '');
+    assert.equal((await request(app, 'GET', '/%E0%A4%A')).status, 400);
+}));
+
+test('/healthz يرد 200 ويدعم HEAD', () => withServer({}, async app => {
+    const res = await request(app, 'GET', '/healthz');
+    assert.equal(res.status, 200);
+    assert.equal(res.text, 'ok');
+    assert.equal((await request(app, 'HEAD', '/healthz')).status, 200);
+    assert.equal((await request(app, 'POST', '/healthz')).status, 405);
+}));
+
+// ---------------------------------------------------------------- إحصاءات الفحص المجهولة
+
+test('/api/event يقبل نوعاً ونتيجة معروفين فقط، ويظهر العدّاد بلوحة الأدمن', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const ok = await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: { kind: 'url', level: 'danger' } });
+        assert.equal(ok.status, 204);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: { kind: 'url', level: 'nope' } })).status, 400);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: { kind: '__proto__', level: 'safe' } })).status, 400);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: 'not json' })).status, 400);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: { kind: 'url', level: 'safe', pad: 'x'.repeat(2000) } })).status, 400);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: { ...JSON_HEADERS, Origin: 'https://evil.example' }, body: { kind: 'url', level: 'safe' } })).status, 403);
+        assert.equal((await request(app, 'POST', '/api/event', { headers: { Origin: `http://127.0.0.1:${app.base.port}` }, body: '{}' })).status, 403);
+        assert.equal((await request(app, 'GET', '/api/event')).status, 405);
+
+        const cookie = cookieFrom(await login(app));
+        const stats = await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } });
+        assert.equal(stats.json.scans.url.danger, 1);
+        assert.equal(stats.json.scans.url.safe, 0);
+    });
+});
+
+test('/api/event: حد الطلبات لكل زائر', () => withServer({}, async app => {
+    const codes = [];
+    for (let i = 0; i < 125; i++) {
+        codes.push((await request(app, 'POST', '/api/event', { headers: sameOrigin(app), body: { kind: 'text', level: 'safe' } })).status);
+    }
+    assert.equal(codes.filter(c => c === 204).length, 120);
+    assert.equal(codes.filter(c => c === 429).length, 5);
+}));
+
+// ---------------------------------------------------------------- CyberBot
+
+test('/api/chat: الطرق، المصدر، نوع المحتوى، وغياب المفتاح', () => withServer({ OPENAI_API_KEY: FAKE_OPENAI_KEY }, async app => {
+    assert.equal((await request(app, 'GET', '/api/chat')).status, 405);
+    assert.equal((await request(app, 'POST', '/api/chat', { headers: { ...JSON_HEADERS, Origin: 'https://evil.example' }, body: { message: 'hi' } })).status, 403);
+    assert.equal((await request(app, 'POST', '/api/chat', { headers: { 'Content-Type': 'text/plain' }, body: 'hi' })).status, 415);
+    assert.equal((await request(app, 'OPTIONS', '/api/chat', { headers: { Origin: 'https://evil.example' } })).status, 403);
+    // المفتاح موجود لكن النموذج غير مضبوط: لا نتصل بأي خدمة خارجية ونرد 503
+    const res = await request(app, 'POST', '/api/chat', { headers: JSON_HEADERS, body: { message: 'مرحبا' } });
+    assert.equal(res.status, 503);
+    assert.ok(!res.text.includes(FAKE_OPENAI_KEY), 'API key leaked in response');
+}));
+
+test('/api/chat: حد الطلبات 20 بالدقيقة لكل زائر', () => withServer({}, async app => {
+    const codes = [];
+    for (let i = 0; i < 22; i++) codes.push((await request(app, 'POST', '/api/chat', { headers: JSON_HEADERS, body: { message: 'hi' } })).status);
+    assert.equal(codes.filter(c => c === 503).length, 20);
+    assert.equal(codes.filter(c => c === 429).length, 2);
+}));
+
+test('/api/chat: السقف العام يشمل كل الزوار حتى لو غيّروا عناوينهم', () => withServer({ TRUST_PROXY: '1', CYBERBOT_GLOBAL_LIMIT: '4' }, async app => {
+    const codes = [];
+    for (let i = 0; i < 6; i++) {
+        codes.push((await request(app, 'POST', '/api/chat', { headers: { ...JSON_HEADERS, 'True-Client-IP': `10.0.0.${i}` }, body: { message: 'hi' } })).status);
+    }
+    assert.deepEqual(codes, [503, 503, 503, 503, 429, 429]);
+}));
+
+// ---------------------------------------------------------------- الأدمن: مغلق افتراضياً
+
+test('بدون ADMINS صفحة الأدمن غير موجودة', () => withServer({}, async app => {
+    for (const p of ['/admin', '/admin/', '/admin/assets/dashboard.js', '/admin/assets/login.js', '/api/admin/stats']) {
+        assert.equal((await request(app, 'GET', p)).status, 404, p);
+    }
+    assert.equal((await login(app)).status, 404);
+}));
+
+// ---------------------------------------------------------------- الأدمن: الدخول
+
+test('صفحة الأدمن لغير المسجّلين: صفحة الدخول فقط، والداشبورد وملفاتها محجوبة', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD, TEST_TOTP) };
+    await withServer(env, async app => {
+        const page = await request(app, 'GET', '/admin');
+        assert.equal(page.status, 200);
+        assert.match(page.text, /id="loginForm"/);
+        assert.ok(!/id="logout"/.test(page.text));
+        assert.equal(page.headers['cache-control'], 'no-store');
+        assert.match(page.headers['x-robots-tag'], /noindex/);
+        assert.match(page.headers['content-security-policy'], /script-src 'self'/);
+        assert.equal((await request(app, 'GET', '/admin/assets/login.js')).status, 200);
+        assert.equal((await request(app, 'GET', '/admin/assets/admin.css')).status, 200);
+        assert.equal((await request(app, 'GET', '/admin/assets/dashboard.js')).status, 404);
+        assert.equal((await request(app, 'GET', '/admin/assets/dashboard.html')).status, 404);
+        assert.equal((await request(app, 'GET', '/admin/assets/../../server.js')).status, 404);
+        assert.equal((await request(app, 'GET', '/admin/assets/constructor')).status, 404);
+        assert.equal((await request(app, 'GET', '/api/admin/stats')).status, 401);
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: 'sid=forged-value' } })).status, 401);
+    });
+});
+
+test('دخول خاطئ: رسالة واحدة لا تكشف أي جزء أخطأ، وحظر بعد 5 محاولات', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD, TEST_TOTP) };
+    await withServer(env, async app => {
+        const wrongPass = await login(app, { password: 'wrong-password-123' });
+        const wrongUser = await login(app, { username: 'nobody', password: 'wrong-password-123' });
+        const noCode = await login(app);                                    // كلمة السر صحيحة بدون رمز
+        const badCode = await login(app, { code: '000000' });
+        for (const r of [wrongPass, wrongUser, noCode, badCode]) {
+            assert.equal(r.status, 401);
+            assert.deepEqual(r.json, wrongPass.json);
+            assert.equal(r.headers['set-cookie'], undefined);
+        }
+        await login(app, { password: 'again-wrong-1' });                    // الخامسة
+        const blocked = await login(app, { code: totp.totp(TEST_TOTP) });   // حتى الصحيحة محظورة الآن
+        assert.equal(blocked.status, 429);
+        assert.ok(Number(blocked.headers['retry-after']) >= 1);
+        assert.equal(blocked.headers['set-cookie'], undefined);
+    });
+});
+
+test('دخول صحيح بالرمز الثنائي: الكوكي محمي، ولا يُقبل نفس الرمز مرتين', async () => {
+    const env = { ADMINS: await adminEntry('Musab', TEST_PASSWORD, TEST_TOTP), OPENAI_API_KEY: FAKE_OPENAI_KEY, OPENAI_MODEL: 'test-model' };
+    await withServer(env, async app => {
+        const code = totp.totp(TEST_TOTP);
+        const ok = await login(app, { username: 'MUSAB', code });          // الاسم غير حساس لحالة الأحرف
+        assert.equal(ok.status, 200);
+        assert.deepEqual(ok.json, { ok: true });
+        const setCookie = ok.headers['set-cookie'][0];
+        assert.match(setCookie, /^sid=[A-Za-z0-9_-]{40,}/);
+        assert.match(setCookie, /HttpOnly/);
+        assert.match(setCookie, /SameSite=Strict/);
+        assert.match(setCookie, /Path=\//);
+        assert.ok(!/Secure/.test(setCookie), 'Secure على http يمنع الكوكي محلياً');
+        const replay = await login(app, { code });                          // نفس الرمز مرة ثانية
+        assert.equal(replay.status, 401);
+
+        const cookie = cookieFrom(ok);
+        const page = await request(app, 'GET', '/admin', { headers: { Cookie: cookie } });
+        assert.match(page.text, /id="logout"/);
+        assert.equal((await request(app, 'GET', '/admin/assets/dashboard.js', { headers: { Cookie: cookie } })).status, 200);
+
+        const stats = await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } });
+        assert.equal(stats.status, 200);
+        assert.equal(stats.json.user, 'musab');
+        assert.equal(stats.json.config.chatConfigured, true);
+        assert.equal(stats.json.config.totpEnabled, true);
+        assert.equal(stats.json.counters.loginOk, 1);
+        assert.equal(stats.json.counters.loginFailed, 1);
+        // لا أسرار في الرد أبداً
+        for (const secret of [TEST_PASSWORD, TEST_TOTP, FAKE_OPENAI_KEY, env.ADMINS.split(':')[1], env.ADMINS.split(':')[2]]) {
+            assert.ok(!stats.text.includes(secret), 'secret leaked in admin stats');
+        }
+        assert.ok(stats.json.events.some(e => e.type === 'login_ok'));
+        assert.ok(stats.json.events.every(e => !/\d+\.\d+\.\d+\.\d+$/.test(e.ip) || /\.x$/.test(e.ip)));   // العناوين مخفية جزئياً
+    });
+});
+
+test('خلف HTTPS: الكوكي __Host- و Secure', async () => {
+    const env = { TRUST_PROXY: '1', ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const ok = await login(app, { headers: { 'X-Forwarded-Proto': 'https' } });
+        assert.equal(ok.status, 200);
+        const setCookie = ok.headers['set-cookie'][0];
+        assert.match(setCookie, /^__Host-sid=/);
+        assert.match(setCookie, /; Secure/);
+        const cookie = cookieFrom(ok);
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie, 'X-Forwarded-Proto': 'https' } })).status, 200);
+        // على http نفس الكوكي لا يُقبل (الاسم مختلف)
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 401);
+    });
+});
+
+test('حماية CSRF: دخول وخروج من موقع آخر أو بنوع محتوى خاطئ يُرفض', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const evil = await login(app, { headers: { Origin: 'https://evil.example' } });
+        assert.equal(evil.status, 403);
+        assert.equal(evil.headers['set-cookie'], undefined);
+        const form = await request(app, 'POST', '/api/admin/login', {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: `http://127.0.0.1:${app.base.port}` },
+            body: `username=musab&password=${TEST_PASSWORD}`
+        });
+        assert.equal(form.status, 415);
+        assert.equal((await request(app, 'GET', '/api/admin/login')).status, 405);
+
+        const cookie = cookieFrom(await login(app));
+        const forgedLogout = await request(app, 'POST', '/api/admin/logout', { headers: { ...JSON_HEADERS, Origin: 'https://evil.example', Cookie: cookie }, body: '{}' });
+        assert.equal(forgedLogout.status, 403);
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 200);   // الجلسة باقية
+    });
+});
+
+test('تسجيل الخروج يُنهي الجلسة فعلاً', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const cookie = cookieFrom(await login(app));
+        const out = await request(app, 'POST', '/api/admin/logout', { headers: { ...sameOrigin(app), Cookie: cookie }, body: '{}' });
+        assert.equal(out.status, 200);
+        assert.match(out.headers['set-cookie'][0], /Max-Age=0/);
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 401);
+        assert.match((await request(app, 'GET', '/admin', { headers: { Cookie: cookie } })).text, /id="loginForm"/);
+    });
+});
+
+test('الجلسة تنتهي بعد مدة الخمول', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const cookie = cookieFrom(await login(app));
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 200);
+        await new Promise(r => setTimeout(r, 150));
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 401);
+    }, config => { config.session.idleMs = 100; });
+});
+
+test('كل دخول ينشئ جلسة جديدة (لا تثبيت للجلسة)، والحد الأقصى للجلسات', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const a = cookieFrom(await login(app));
+        const b = cookieFrom(await login(app));
+        assert.notEqual(a, b);
+        const fixed = await login(app, { headers: { Cookie: 'sid=attacker-chosen-value' } });
+        assert.notEqual(cookieFrom(fixed), 'sid=attacker-chosen-value');
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: 'sid=attacker-chosen-value' } })).status, 401);
+        // الجلسة الأقدم تُطرد عند تجاوز الحد
+        const first = cookieFrom(await login(app));
+        for (let i = 0; i < 20; i++) await login(app);
+        assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: first } })).status, 401);
+    }, config => { config.limits.loginAttemptsPerMinute = 1000; });
+});
+
+test('جسم طلب الدخول الكبير يُرفض، والمدخلات الطويلة لا تعطّل الخادم', async () => {
+    const env = { ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const big = await request(app, 'POST', '/api/admin/login', { headers: sameOrigin(app), body: { username: 'musab', password: 'x'.repeat(5000) } });
+        assert.equal(big.status, 400);
+        const long = await login(app, { password: 'y'.repeat(250) });
+        assert.equal(long.status, 401);
+        assert.equal((await request(app, 'POST', '/api/admin/login', { headers: sameOrigin(app), body: 'not json' })).status, 400);
+        assert.equal((await request(app, 'POST', '/api/admin/login', { headers: sameOrigin(app), body: '{"username":123,"password":{"a":1}}' })).status, 401);
+    });
+});
+
+test('سقف عام لمحاولات الدخول بالدقيقة (حتى من عناوين مختلفة)', async () => {
+    const env = { TRUST_PROXY: '1', ADMINS: await adminEntry('musab', TEST_PASSWORD) };
+    await withServer(env, async app => {
+        const codes = [];
+        for (let i = 0; i < 8; i++) codes.push((await login(app, { password: 'wrong-password-123', headers: { 'True-Client-IP': `10.1.0.${i}` } })).status);
+        assert.deepEqual(codes, [401, 401, 401, 401, 429, 429, 429, 429]);
+    }, config => { config.limits.loginAttemptsPerMinute = 4; });
+});
+
+// ---------------------------------------------------------------- الملفات والمستودع
+
+test('لا أسرار ولا بيانات اعتماد داخل الكود المرفوع', () => {
+    const root = path.resolve(__dirname, '..');
+    const skip = new Set(['node_modules', '.git', 'tests']);
+    const hits = [];
+    (function walk(dir) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (skip.has(entry.name)) continue;
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) { walk(full); continue; }
+            if (!/\.(js|html|css|json|md|txt|py)$/.test(entry.name)) continue;
+            const text = fs.readFileSync(full, 'utf8');
+            if (/sk-[A-Za-z0-9]{20,}/.test(text) || /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text) || /ADMINS\s*=\s*\w+:[0-9a-f]{16,}:[0-9a-f]{64}/.test(text)) hits.push(path.relative(root, full));
+        }
+    })(root);
+    assert.deepEqual(hits, []);
+});

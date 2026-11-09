@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام كشف ومكافحة التصيد الإلكتروني | Phishing Detector</title>
+    
+    <!-- أيقونة تبويب المتصفح (Favicon) -->
+    <link rel="icon" type="image/png" href="/img/logo.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-theme="dark">
+
+    <!-- شريط التنقل العلوي -->
+    <header>
+        <div class="logo">
+            <img src="/img/logo.png" alt="Logo">
+            <span>Phishing Detector</span>
+        </div>
+
+        <div class="current-tab-indicator" id="currentTabIndicator">
+            <i class="fa-solid fa-house"></i> الرئيسية
+        </div>
+
+        <div class="nav-controls">
+            <button class="back-home-header-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-house"></i> الرئيسية
+            </button>
+
+            <div class="theme-selector-container">
+                <button class="theme-dropdown-btn" data-action="toggleThemeMenu">
+                    <i class="fa-solid fa-palette"></i> <span>المظهر</span> <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
+                </button>
+                <div class="theme-menu" id="themeMenu">
+                    <button class="theme-option" data-theme="dark"><i class="fa-solid fa-moon" style="color:#00f2fe;"></i> الداكن الكلاسيكي</button>
+                    <button class="theme-option" data-theme="light"><i class="fa-solid fa-sun" style="color:#0066ff;"></i> المضيء النهاري</button>
+                    <button class="theme-option" data-theme="cyberpunk"><i class="fa-solid fa-bolt" style="color:#ff007f;"></i> سايبر بانك</button>
+                    <button class="theme-option" data-theme="matrix"><i class="fa-solid fa-terminal" style="color:#00ff66;"></i> ماتريكس الأخضر</button>
+                    <button class="theme-option" data-theme="emerald"><i class="fa-solid fa-gem" style="color:#10b981;"></i> الزمرد الملكي</button>
+                    <button class="theme-option" data-theme="sunset"><i class="fa-solid fa-fire" style="color:#f97316;"></i> غروب الشمس</button>
+                    <button class="theme-option" data-theme="purple"><i class="fa-solid fa-wand-magic-sparkles" style="color:#a855f7;"></i> البنفسجي الغامض</button>
+                    <button class="theme-option" data-theme="ocean"><i class="fa-solid fa-water" style="color:#38bdf8;"></i> أعماق المحيط</button>
+                    <button class="theme-option" data-theme="coffee"><i class="fa-solid fa-mug-hot" style="color:#d97706;"></i> القهوة الدافئة</button>
+                    <button class="theme-option" data-theme="crimson"><i class="fa-solid fa-heart-pulse" style="color:#f43f5e;"></i> القرمزي العنيف</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 1. الواجهة الرئيسية -->
+    <div id="homePage" class="page-section active">
+        <div class="main-hero">
+            <div style="text-align: center; margin: 15px 0;">
+                <img src="/img/logo.png" alt="Official Logo" style="width: 125px; height: 125px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px var(--accent-glow); border: 2px solid var(--border-color);">
+            </div>
+
+            <h1 style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.3rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
+            <p style="text-align: center; color: var(--text-muted); max-width: 720px; margin: 12px auto; font-size: 1rem; line-height: 1.8;">
+                حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية وتزييف الوسائط.
+            </p>
+
+            <div class="main-actions-grid">
+                <button class="action-card-btn" data-page="scannerPage" data-title="فحص الروابط" data-icon="fa-solid fa-link">
+                    <i class="fa-solid fa-link"></i>
+                    <span>فحص الروابط</span>
+                </button>
+                <button class="action-card-btn" data-page="fileScannerPage" data-title="فحص الملفات والبرمجيات" data-icon="fa-solid fa-file-shield">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>فحص الملفات والبرمجيات</span>
+                </button>
+                <button class="action-card-btn" data-page="textScannerPage" data-title="فحص النصوص والرسائل" data-icon="fa-solid fa-comment-sms">
+                    <i class="fa-solid fa-comment-sms"></i>
+                    <span>فحص النصوص والرسائل</span>
+                </button>
+                <button class="action-card-btn" data-page="mediaScannerPage" data-title="فحص الصوت / الفيديو" data-icon="fa-solid fa-file-video">
+                    <i class="fa-solid fa-file-video"></i>
+                    <span>فحص الصوت / الفيديو</span>
+                </button>
+                <button class="action-card-btn" data-page="awarenessPage" data-title="المسار التوعوي" data-icon="fa-solid fa-graduation-cap">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>المسار التوعوي</span>
+                </button>
+                <button class="action-card-btn" data-action="openCyberBot">
+                    <i class="fa-solid fa-robot" style="color:var(--accent-blue);"></i>
+                    <span>CyberBot AI (المساعد الذكي)</span>
+                </button>
+            </div>
+
+            <div class="team-card">
+                <div class="institution-header">
+                    <h3><a href="https://tu.edu.iq" target="_blank" title="زيارة موقع جامعة تكريت" rel="noopener noreferrer">جامعة تكريت</a></h3>
+                    <p><a href="https://ccms.tu.edu.iq" target="_blank" title="زيارة موقع كلية علوم الحاسوب والرياضيات" rel="noopener noreferrer">كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</a></p>
+                </div>
+                <div class="developers-section">
+                    <h4>إعداد وتطوير المبرمجين:</h4>
+                    <div class="dev-names">
+                        <div class="dev-tag">
+                            <a href="https://www.instagram.com/_f15e?srtk=eDlnNXI4bG10dXF4&utm_source=qr" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> مصعب رمزي
+                            </a>
+                        </div>
+                        <div class="dev-tag">
+                            <a href="https://www.instagram.com/3c3cf?cplk=MXVrOGl2MTJja294NQ==" target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-instagram" style="color:#E1306C;"></i> محمود حكمت
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. صفحة فحص الروابط -->
+    <div id="scannerPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>منظومة التحليل الأمني المباشر وتقييم المخاطر</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">أدخل أي رابط لحسابه وتحليله وعرض التقرير التقني المفصل وسجل التدقيق</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group">
+                    <input type="text" id="urlInput" placeholder="أدخل الرابط الكامل هنا (مثال: https://fasebook.com)...">
+                    <button class="btn-scan" data-action="analyzeUrl">
+                        <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
+                    </button>
+                </div>
+
+                <div class="controls-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="academicDefenseToggle"> وضع الحماية الأكاديمية والحكومية المشددة (.edu.iq / .gov.iq)
+                    </label>
+                    <span style="font-size: 0.75rem;">محرك كشف متعدد الطبقات: انتحال العلامات، Homograph، Punycode، إعادة التوجيه</span>
+                </div>
+
+                <div class="demo-triggers">
+                    <span style="font-size:0.8rem; color:var(--text-muted); align-self:center;">تجربة سريعة:</span>
+                    <button class="btn-quick" data-action="testUrl" data-arg="https://tu.edu.iq">جامعة تكريت</button>
+                    <button class="btn-quick" data-action="testUrl" data-arg="https://facebook.com">فيسبوك الأصلي</button>
+                    <button class="btn-quick" data-action="testUrl" data-arg="https://fasebook.com">تلاعب بفيسبوك</button>
+                    <button class="btn-quick" data-action="testUrl" data-arg="https://g0ogle.com">تلاعب بجوجل</button>
+                </div>
+
+                <div id="reportBox" class="report-box"></div>
+            </div>
+
+            <div class="history-card">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات والفحوصات الأخيرة (Audit Trail)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>الرابط / النص / الملف</th>
+                                <th>نوع الفحص</th>
+                                <th>مؤشر الخطورة</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">لا توجد فحوصات مسجلة في هذه الجلسة بعد.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. صفحة فحص الملفات والبرمجيات الخبيثة -->
+    <div id="fileScannerPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>منظومة فحص الملفات وكشف البرمجيات المفخخة</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">ارفع أي ملف لفحص بصمته الثنائية (Magic Bytes) وكشف التلاعب بالامتدادات الخبيثة</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group" style="padding: 25px; border: 2px dashed var(--border-color); justify-content: center; text-align: center; background: rgba(0,0,0,0.05); border-radius: 12px; cursor: pointer;" data-click-target="fileInput">
+                    <input type="file" id="fileInput" style="display: none;" data-change="updateFileName">
+                    <div style="width: 100%;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
+                        <div id="fileLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف للفحص</div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يدعم كافة الصيغ (EXE, PDF, JPG, ZIP, JAR، وغيرها)</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" data-action="analyzeFile" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-shield-virus"></i> بدء فحص وتحليل الملف الأمني (متقدم)
+                    </button>
+                </div>
+
+                <div id="fileReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. صفحة فحص النصوص والرسائل -->
+    <div id="textScannerPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>فحص النصوص ورسائل التصيد (Social Engineering Scanner)</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">قم بلصق محتوى الرسالة النصية أو البريد الإلكتروني المشبوه لكشف حيل الهندسة الاجتماعية</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group">
+                    <textarea id="textInput" placeholder="الصق نص الرسالة هنا (مثل: عزيزي المستخدم تم تجميد حسابك البنكي يرجى الضغط على الرابط لتحديث بياناتك...)..."></textarea>
+                </div>
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" data-action="analyzeText" style="display: inline-flex;">
+                        <i class="fa-solid fa-file-shield"></i> تحليل النص والرسالة
+                    </button>
+                </div>
+
+                <div id="textReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. صفحة فحص الصوت والفيديو -->
+    <div id="mediaScannerPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>فحص سلامة ملفات الصوت والفيديو</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">يتحقق من البصمة الثنائية للملف (Magic Bytes) ليكشف الملفات التنفيذية المتنكرة بامتداد وسائط، ثم يحاول تشغيل الملف داخل المتصفح لقراءة مدته وأبعاده. يعرض التقرير أيضاً خطوات التحقق اليدوي من التزييف العميق، لأن هذا الفحص لا يكشف التزييف العميق آلياً.</p>
+            </div>
+
+            <div class="scanner-card">
+                <div class="input-group" style="padding: 25px; border: 2px dashed var(--border-color); justify-content: center; text-align: center; background: rgba(0,0,0,0.05); border-radius: 12px; cursor: pointer;" data-click-target="mediaUpload">
+                    <input type="file" id="mediaUpload" accept="audio/*,video/*" style="display: none;" data-change="updateMediaFileName">
+                    <div style="width: 100%;">
+                        <i class="fa-solid fa-file-video" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 10px;"></i>
+                        <div id="mediaLabelText" style="font-weight: 700; color: var(--text-main);">انقر هنا لاختيار ملف صوت أو فيديو</div>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">يتعرف على MP3, WAV, OGG, FLAC, M4A, MP4, MOV, WEBM, MKV, AVI, WMV. يُفحص الملف داخل متصفحك ولا يُرفع إلى أي خادم.</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: left;">
+                    <button class="btn-scan" data-action="uploadAndScan" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-shield-halved"></i> فحص الصوت / الفيديو
+                    </button>
+                </div>
+
+                <div id="mediaReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. صفحة المسار التوعوي الأمني الحصري -->
+    <div id="awarenessPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2>المسار التوعوي والدليل الأمني الشامل</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية</p>
+            </div>
+
+            <div class="scanner-card" style="border-color: var(--accent-blue);">
+                <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات:</p>
+                
+                <div class="sim-tabs-row">
+                    <button class="sim-tab-btn active" data-action="loadSimulation" data-arg="0">السيناريو 1: بريد تزوير الحساب</button>
+                    <button class="sim-tab-btn" data-action="loadSimulation" data-arg="1">السيناريو 2: رسالة بنكية (Smishing)</button>
+                    <button class="sim-tab-btn" data-action="loadSimulation" data-arg="2">السيناريو 3: عرض عمل وهمي (Job Scam)</button>
+                </div>
+
+                <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px; direction: rtl;"></div>
+
+                <div id="simOptions"></div>
+
+                <div id="simFeedback" class="report-box" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="awareness-grid">
+                <div class="awareness-card">
+                    <h3><i class="fa-solid fa-link"></i> قواعد كشف الروابط الخبيثة</h3>
+                    <p>
+                        • تحقق من كتابة اسم الموقع بدقة (إبدال الحروف مثل g0ogle بدلاً من google يُسمى Typosquatting).<br>
+                        • ابحث عن بروتوكول التشافير المشفر HTTPS ورمز القفل.<br>
+                        • تجنب النقر على الروابط المختصرة المجهولة قبل توسيعها وتدقيق نطاقها الأصلي.
+                    </p>
+                </div>
+
+                <div class="awareness-card">
+                    <h3><i class="fa-solid fa-key"></i> المصادقة الثنائية (MFA)</h3>
+                    <p>
+                        • قم بتفعيل التوثيق بخطوتين على كافة حساباتك ومواقعك.<br>
+                        • لا تشارك رمز OTP الخاص بك مع أي شخص إطلاقاً تحت أي مسمى.<br>
+                        • استخدم تطبيقات المصادقة (Google Authenticator) بدلاً من الرسائل النصية القصيرة SMS.
+                    </p>
+                </div>
+
+                <div class="awareness-card">
+                    <h3><i class="fa-solid fa-phone-slash"></i> التصيد الصوتي والهاتفي (Vishing)</h3>
+                    <p>
+                        • البنوك والمؤسسات الرسمية لن تطلب كلمة سرك أو رمز بطاقتك عبر الهاتف.<br>
+                        • إذا وصلك اتصال يدعي أنه من جهة رسمية يطلب بياناتك، أغلق الخط واتصل بالرقم الرسمي المسجل خلف البطاقة.
+                    </p>
+                </div>
+
+                <div class="awareness-card">
+                    <h3><i class="fa-solid fa-user-ninja"></i> كشف التزييف العميق (Deepfake)</h3>
+                    <p>
+                        • انتبه لرفرفة العين غير الطبيعية وحركة الشفاه المطابقة للصوت.<br>
+                        • استمع للترددات الصوتية الرتيبة الخالية من التأثيرات الطبيعية.<br>
+                        • اسأل الشخص المعني سؤالاً شخصياً لا يعلمه إلا هو للتحقق المباشر.
+                    </p>
+                </div>
+            </div>
+
+            <div class="history-card" style="margin-top: 2rem;">
+                <h3 style="color: var(--accent-red);"><i class="fa-solid fa-kit-medical"></i> خطة الاستجابة الطارئة عند التعرض للتصيد (Incident Response Protocol)</h3>
+                <div style="margin-top: 1rem;">
+                    <div class="checklist-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div><strong>تغيير كلمات السر فوراً:</strong> قم بتغيير كلمة سر الحساب المتأثر وجميع الحسابات التي تشترك معها بنفس كلمة المرور.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div><strong>إبلاغ الجهات المالية:</strong> إذا قمت بإدخال بيانات بطاقتك البنكية، تواصل مع المصرف فوراً لتجميد البطاقة المعنية.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div><strong>عزل الجهاز وإجراء فحص:</strong> قم بفصل الاتصال بالإنترنت واعمل فحص شامل عبر برنامج الحماية لمنع انتشار البرمجيات الخبيثة.</div>
+                    </div>
+                    <div class="checklist-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div><strong>تسجيل الجلسات والمراجعة:</strong> قم بإنهاء كافة الجلسات النشطة (Sign out of all devices) وتفعيل المصادقة الثنائية.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. صفحة CyberBot AI (المساعد الأمني الذكي المتطور والمتحاور ببراعة بشرية كاملة) -->
+    <div id="cyberBotPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+
+            <!-- نافذة إدخال الاسم إذا لم يكن محفوظاً -->
+            <div id="namePromptCard" class="scanner-card" style="text-align: center; padding: 3rem 2rem;">
+                <i class="fa-solid fa-id-card-clip" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 1rem;"></i>
+                <h3 style="font-size: 1.4rem; margin-bottom: 10px;">أهلاً بك في CyberBot AI</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">من فضلك، أدخل الاسم أو اللقب الذي تريد أن يناديك به المساعد الذكي:</p>
+                <div style="max-width: 400px; margin: 0 auto; display: flex; gap: 10px;">
+                    <input type="text" id="userNameInput" placeholder="أدخل اسمك هنا..." data-enter="saveUserName" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: #fff; font-family: inherit; text-align: center;">
+                    <button data-action="saveUserName" style="background: linear-gradient(135deg, var(--accent-blue), #0072ff); color: #0a0f1d; border: none; padding: 0 24px; border-radius: 10px; font-weight: 800; cursor: pointer;">
+                        بدء المحادثة
+                    </button>
+                </div>
+            </div>
+
+            <!-- واجهة المحادثة الفعلية (تظهر بعد إدخال الاسم) -->
+            <div id="chatInterfaceCard" class="scanner-card" style="display:none; margin-top:5px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:2rem;">
+                <div class="chat-header">
+                    <div>
+                        <h2><i class="fa-solid fa-robot" style="color:#00f2fe;"></i> CyberBot AI</h2>
+                        <p style="color:var(--text-muted); font-size:.85rem;" id="greetingSubtitle">مساعد محادثة يجيب بوضوح ويصرّح عندما لا يعرف.</p>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-action-button" type="button" data-action="clearCyberBotConversation"><i class="fa-solid fa-rotate"></i> محادثة جديدة</button>
+                        <button class="chat-action-button" type="button" data-action="resetUserName"><i class="fa-solid fa-pen"></i> تغيير الاسم</button>
+                    </div>
+                </div>
+                <div id="chatConnectionStatus" class="chat-status" role="status">جارٍ التحقق من إعداد الاتصال...</div>
+                <div id="chatHistory" class="chat-history" role="log" aria-live="polite" aria-relevant="additions"></div>
+                <form id="chatForm" class="chat-form" data-submit="sendCyberBotMessage">
+                    <input type="text" id="userChatInput" maxlength="8000" autocomplete="off" placeholder="اكتب سؤالك أو تابع الحديث..." data-enter="sendCyberBotMessage">
+                    <button id="chatSendButton" class="chat-send-button" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+                </form>
+                <details class="chat-settings">
+                    <summary><i class="fa-solid fa-sliders"></i> إعدادات اتصال نموذج الذكاء الاصطناعي</summary>
+                    <div class="chat-settings-content">
+                        <p class="chat-settings-note">للإجابات العامة، شغّل <code>server.js</code> بعد إعداد مفتاح API واسم النموذج على الخادم. لا تضع المفتاح في هذه الصفحة أو في الرابط.</p>
+                        <label for="chatEndpointInput">رابط خادم المحادثة:</label>
+                        <input id="chatEndpointInput" type="url" value="/api/chat" placeholder="https://example.com/api/chat" autocomplete="url">
+                        <button class="chat-settings-button" type="button" data-action="saveCyberBotEndpoint">حفظ الرابط</button>
+                        <p class="chat-settings-note">تُرسل الرسائل وسياق الحوار إلى الخادم ثم إلى مزوّد النموذج. لا ترسل كلمات مرور أو معلومات حساسة. للمعلومات الآنية، فعّل OPENAI_WEB_SEARCH=1 على الخادم؛ قد يترتب على البحث استخدام أو رسوم إضافية.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>جامعة تكريت — كلية علوم الحاسوب والرياضيات — قسم الأمن السيبراني</p>
+        <p style="font-size:0.75rem; opacity:0.75; margin-top:6px;">الفحص يتم داخل متصفحك، ولا نحفظ الروابط ولا الرسائل ولا الملفات. نحتفظ بإحصاءات مجهولة فقط (نوع الفحص ونتيجته). رسائل CyberBot تُرسل لمزوّد الذكاء الاصطناعي لتوليد الرد.</p>
+    </footer>
+
+    <script src="/js/detection-engine.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

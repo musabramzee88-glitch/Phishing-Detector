@@ -2,7 +2,7 @@
 // تشغيل الاختبارات:  node --test
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const E = require('./detection-engine.js');
+const E = require('../public/js/detection-engine.js');
 
 const url = (u, o) => E.analyzeUrl(u, o);
 const bytes = (...parts) => Uint8Array.from(parts.flat());

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>دخول الإدارة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="login-body">
+    <main class="login-card">
+        <h1>لوحة الإدارة</h1>
+        <p class="muted">للمشرفين فقط</p>
+
+        <form id="loginForm" novalidate>
+            <label>اسم المستخدم
+                <input id="username" type="text" autocomplete="username" maxlength="64" required>
+            </label>
+            <label>كلمة السر
+                <input id="password" type="password" autocomplete="current-password" maxlength="256" required>
+            </label>
+            <label>رمز التحقق الثنائي (6 أرقام)
+                <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="000000">
+            </label>
+            <button id="submit" type="submit">دخول</button>
+            <p id="message" class="error" role="alert" hidden></p>
+        </form>
+    </main>
+    <script src="/admin/assets/login.js"></script>
+</body>
+</html>

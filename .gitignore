@@ -13,3 +13,7 @@ uploads/
 
 # أسرار ومفاتيح (مثل OPENAI_API_KEY)
 .env
+
+# محلي
+.claude/
+*.log

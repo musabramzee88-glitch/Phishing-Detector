@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>لوحة الإدارة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+    <header class="topbar">
+        <h1>لوحة الإدارة</h1>
+        <div class="actions">
+            <span id="user" class="muted"></span>
+            <span id="updated" class="muted"></span>
+            <button id="logout" class="secondary" type="button">تسجيل الخروج</button>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <section>
+            <h2>نظرة عامة</h2>
+            <div id="cards" class="cards"></div>
+        </section>
+
+        <section>
+            <h2>الفحوصات (مجهولة: النوع والنتيجة فقط)</h2>
+            <div class="table-wrap"><table id="scans"></table></div>
+        </section>
+
+        <section>
+            <h2>الخادم والإعدادات</h2>
+            <dl id="info" class="info-list"></dl>
+        </section>
+
+        <section>
+            <h2>آخر الأحداث الأمنية</h2>
+            <div class="table-wrap"><table id="events"></table></div>
+        </section>
+
+        <p class="note">الإحصاءات محفوظة في ذاكرة الخادم فقط وتتصفّر عند إعادة تشغيله. لا تُحفظ الروابط ولا الرسائل ولا الملفات. تتحدّث الصفحة تلقائياً كل 10 ثوانٍ.</p>
+    </main>
+    <script src="/admin/assets/dashboard.js"></script>
+</body>
+</html>

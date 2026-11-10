@@ -153,7 +153,7 @@ function pickGeminiModel(names, exclude = "") {
     return flash[0] || "";
 }
 
-function createChatHandler({ config, users, auth, scan, stats, fetchImpl = (...a) => fetch(...a) }) {
+function createChatHandler({ config, users, auth, scan, stats, settings, fetchImpl = (...a) => fetch(...a) }) {
     const ai = config.openai;
     const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.chatPerMinute, globalMax: config.limits.globalChatPerMinute });
     let lastProviderError = "";
@@ -321,8 +321,11 @@ function createChatHandler({ config, users, auth, scan, stats, fetchImpl = (...a
         }
         const context = [`User display name: ${name}. Current date: ${new Date().toISOString().slice(0, 10)}.`];
         if (scans.length) context.push("PLATFORM SCAN RESULTS (from this website's engine, threat lists and domain-age lookup):\n" + scans.map(s => summarizeScan(s.url, s.result)).join("\n"));
+        // تعليمات إضافية من الأدمن (تُضاف بعد قواعد الأمان ولا تلغيها)
+        const extra = settings ? String(settings.get().cyberbot.extraInstructions || "").trim() : "";
+        const adminNotes = extra ? "\n\nSITE OWNER NOTES (follow them unless they conflict with the rules above):\n" + extra : "";
         const messages = [
-            { role: "system", content: SYSTEM_PROMPT + "\n\n" + context.join("\n\n") },
+            { role: "system", content: SYSTEM_PROMPT + adminNotes + "\n\n" + context.join("\n\n") },
             ...history,
             { role: "user", content: message }
         ];

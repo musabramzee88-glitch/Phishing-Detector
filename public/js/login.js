@@ -21,7 +21,9 @@
         link_unverified: 'هذا البريد مسجّل مسبقاً. سجّل الدخول بالبريد وكلمة السر.',
         email_taken: 'هذا البريد مسجّل مسبقاً.',
         disabled: 'هذا الحساب موقوف. تواصل مع الدعم.',
-        bad_verify: 'رابط التأكيد غير صالح أو منتهي. سجّل الدخول واطلب رابطاً جديداً.'
+        bad_verify: 'رابط التأكيد غير صالح أو منتهي. سجّل الدخول واطلب رابطاً جديداً.',
+        registration_closed: 'إنشاء الحسابات الجديدة متوقف حالياً.',
+        mfa_mail: 'تعذر إرسال رمز الدخول إلى بريدك الآن. حاول بعد قليل.'
     };
     const PROVIDER_ICONS = { google: 'fa-brands fa-google', microsoft: 'fa-brands fa-microsoft', apple: 'fa-brands fa-apple' };
 
@@ -74,6 +76,42 @@
         } catch (error) {
             notice(error.message);
             setBusy(form, false);
+        }
+    }
+
+    // الخطوة الثانية (MFA): رمز الدخول المرسل للبريد
+    function showMfa(email, message) {
+        $('authMain').hidden = true;
+        $('verifyForm').hidden = true;
+        $('mfaForm').hidden = false;
+        $('mfaIntro').textContent = email
+            ? 'لحماية حسابك أرسلنا رمز دخول من 6 أرقام إلى ' + email + '. اكتبه هنا (صالح 10 دقائق).'
+            : 'لحماية حسابك أرسلنا رمز دخول من 6 أرقام إلى بريدك. اكتبه هنا (صالح 10 دقائق).';
+        $('mfaCode').value = '';
+        $('mfaCode').focus();
+        if (message) notice(message, 'success');
+    }
+
+    async function submitMfa(event) {
+        event.preventDefault();
+        if (busy) return;
+        const form = $('mfaForm');
+        const code = $('mfaCode').value.replace(/\D/g, '');
+        if (code.length !== 6) return notice('اكتب الرمز المكوّن من 6 أرقام.');
+        setBusy(form, true);
+        try {
+            await post('/api/auth/mfa', { code });
+            notice('تم التحقق! جارٍ فتح لوحتك...', 'success');
+            window.location.replace('/');
+        } catch (error) {
+            notice(error.message);
+            setBusy(form, false);
+            if (error.code === 'mfa_expired') {
+                $('mfaForm').hidden = true;
+                $('authMain').hidden = false;
+            } else {
+                $('mfaCode').select();
+            }
         }
     }
 
@@ -130,7 +168,12 @@
                         : 'تم إنشاء الحساب لكن تعذر إرسال الكود الآن. اضغط «أرسل كوداً جديداً» بعد قليل.');
                 }
             } else {
-                await post('/api/auth/login', { email, password });
+                const data = await post('/api/auth/login', { email, password });
+                if (data.mfa) {
+                    setBusy(form, false);
+                    $('authPassword').value = '';
+                    return showMfa(data.email, 'كلمة السر صحيحة. أرسلنا رمز الدخول إلى بريدك.');
+                }
             }
             notice('تم! جارٍ فتح لوحتك...', 'success');
             window.location.replace('/');
@@ -180,6 +223,10 @@
             const any = list.children.length > 0;
             list.hidden = !any;
             $('providerDivider').hidden = !any;
+            if (config.registration === false) {
+                document.querySelector('.auth-tab[data-mode="register"]').hidden = true;
+                if (mode === 'register') setMode('login', true);
+            }
             if (config.trialDays > 0) {
                 $('trialOfferText').textContent = `لكل حساب جديد ${config.trialDays} يوماً مجاناً، وبعدها ${config.priceUsd}$ شهرياً أو الخطة المجانية.`;
             } else {
@@ -199,10 +246,16 @@
         const error = params.get('error');
         if (error) notice(ERRORS[error] || ERRORS.failed);
         if (params.get('mode') === 'register') setMode('register');
+        if (params.get('mfa')) showMfa('', 'تم التحقق من حسابك عند المزوّد. أرسلنا رمز الدخول إلى بريدك.');
         if (params.get('verified')) notice('تم تأكيد بريدك. سجّل الدخول الآن وابدأ شهرك المجاني.', 'success');
         $('forgotBtn').addEventListener('click', () => mailAction('/api/auth/forgot', 'أرسلنا رابط إعادة التعيين.'));
         $('resendBtn').addEventListener('click', () => mailAction('/api/auth/resend', 'أرسلنا كوداً جديداً.'));
         $('verifyForm').addEventListener('submit', submitVerify);
+        $('mfaForm').addEventListener('submit', submitMfa);
+        $('mfaResend').addEventListener('click', async () => {
+            try { const d = await post('/api/auth/mfa/resend', {}); notice(d.message || 'أرسلنا رمزاً جديداً.', 'success'); } catch (error) { notice(error.message); }
+        });
+        $('mfaBack').addEventListener('click', () => { $('mfaForm').hidden = true; $('authMain').hidden = false; notice(''); window.history.replaceState(null, '', '/login'); });
         $('verifyResend').addEventListener('click', async () => {
             try { const d = await post('/api/auth/resend', { email: verifyEmailAddress }); notice(d.message || 'أرسلنا كوداً جديداً.', 'success'); } catch (error) { notice(error.message); }
         });

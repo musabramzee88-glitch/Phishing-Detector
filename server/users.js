@@ -293,6 +293,66 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         return update(user.id, u => { u.emailVerified = true; u.trialEndsAt = trialEndsAt; });
     }
 
+    // ---------- التحقق الثنائي بالبريد (MFA) ----------
+    // بعد العامل الأول (كلمة السر أو Google/Microsoft/Apple) ننشئ «تحدياً» مؤقتاً: رمز عشوائي للمتصفح (كوكي) + كود 6 أرقام للبريد.
+    // الكود يُخزَّن مُجزّأً، صالح 10 دقائق، 5 محاولات خاطئة تلغيه، و3 إعادات إرسال كحد أقصى.
+    const MFA_TTL = 600;
+    const newCode = () => String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+
+    async function createLoginChallenge(userId, via = "password") {
+        const raw = token();
+        const code = newCode();
+        const sha = sha256(raw);
+        await db.pipe([
+            ["SET", k("mfa", sha), JSON.stringify({ uid: userId, code: sha256(sha + ":" + code), via: String(via).slice(0, 20), resends: 0 }), "EX", String(MFA_TTL)],
+            ["DEL", k("mfatry", sha)]
+        ]);
+        return { token: raw, code };
+    }
+
+    async function loadChallenge(raw) {
+        if (typeof raw !== "string" || raw.length < 20 || raw.length > 100) return null;
+        const sha = sha256(raw);
+        const stored = await db.cmd(["GET", k("mfa", sha)]);
+        if (!stored) return null;
+        try { return { sha, data: JSON.parse(stored) }; } catch { return null; }
+    }
+
+    async function resendLoginChallenge(raw) {
+        const found = await loadChallenge(raw);
+        if (!found) throw new UserError("mfa_expired", "انتهت صلاحية رمز الدخول. سجّل الدخول من جديد.", 400);
+        if (found.data.resends >= 3) throw new UserError("mfa_resend_limit", "طلبت رموزاً كثيرة. سجّل الدخول من جديد بعد قليل.", 429);
+        const user = await get(found.data.uid);
+        if (!user || user.disabled) throw new UserError("mfa_expired", "انتهت صلاحية رمز الدخول. سجّل الدخول من جديد.", 400);
+        const code = newCode();
+        await db.pipe([
+            ["SET", k("mfa", found.sha), JSON.stringify({ ...found.data, code: sha256(found.sha + ":" + code), resends: found.data.resends + 1 }), "EX", String(MFA_TTL)],
+            ["DEL", k("mfatry", found.sha)]
+        ]);
+        return { user, code };
+    }
+
+    async function verifyLoginChallenge(raw, rawCode) {
+        const bad = () => new UserError("bad_code", "رمز الدخول غير صحيح أو منتهي.", 400);
+        const code = String(rawCode || "").replace(/\s/g, "");
+        if (!/^\d{6}$/.test(code)) throw bad();
+        const found = await loadChallenge(raw);
+        if (!found) throw new UserError("mfa_expired", "انتهت صلاحية رمز الدخول. سجّل الدخول من جديد.", 400);
+        const [tries] = await db.pipe([["INCR", k("mfatry", found.sha)], ["EXPIRE", k("mfatry", found.sha), String(MFA_TTL)]]);
+        if (Number(tries) > 5) {
+            await db.pipe([["DEL", k("mfa", found.sha)], ["DEL", k("mfatry", found.sha)]]);
+            throw new UserError("mfa_expired", "محاولات خاطئة كثيرة. سجّل الدخول من جديد.", 400);
+        }
+        const a = Buffer.from(found.data.code, "hex");
+        const b = Buffer.from(sha256(found.sha + ":" + code), "hex");
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw bad();
+        await db.pipe([["DEL", k("mfa", found.sha)], ["DEL", k("mfatry", found.sha)]]);
+        const user = await get(found.data.uid);
+        if (!user) throw new UserError("mfa_expired", "انتهت صلاحية رمز الدخول. سجّل الدخول من جديد.", 400);
+        if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+        return { user: await update(user.id, u => { u.lastLoginAt = clock(); }), via: found.data.via };
+    }
+
     async function verifyEmail(raw) {
         if (typeof raw !== "string" || raw.length > 100) throw new UserError("bad_link", "رابط التأكيد غير صالح أو منتهي.", 400);
         const key = k("verify", sha256(raw));
@@ -323,7 +383,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         وإلا نرفض (يمنع الاستيلاء على حساب عبر مزوّد يسمح ببريد غير موثّق).
       - غير ذلك: حساب جديد.
     */
-    async function loginWithProvider({ provider, sub, email: rawEmail, emailVerified, name }) {
+    async function loginWithProvider({ provider, sub, email: rawEmail, emailVerified, name }, { allowCreate = true } = {}) {
         const linkedId = await db.cmd(["GET", k("oauth", provider, sub)]);
         if (linkedId) {
             const user = await get(linkedId);
@@ -348,6 +408,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
             });
             return { user, created: false };
         }
+        if (!allowCreate) throw new UserError("registration_closed", "إنشاء الحسابات الجديدة متوقف حالياً.", 403);
         const user = await create({ email, name, provider, sub, emailVerified });
         return { user, created: true };
     }
@@ -617,7 +678,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     }
 
     return {
-        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createSession, userFromSession, destroySession,
+        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revenue,

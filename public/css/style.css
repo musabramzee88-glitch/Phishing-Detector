@@ -857,18 +857,11 @@ footer {
 .bulk-table th, .bulk-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); }
 .bulk-table .ltr-cell { direction: ltr; text-align: left; word-break: break-all; max-width: 260px; }
 
-/* ---------- الصفحة الرئيسية: مزايا وإحصاءات حية ---------- */
-.trust-badges { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:18px auto 6px; max-width:900px; }
-.trust-badges span { display:inline-flex; align-items:center; gap:6px; font-size:.82rem; color:var(--text-muted); background:var(--nav-bg); border:1px solid var(--border-color); border-radius:999px; padding:6px 12px; }
-.trust-badges i { color:var(--accent-blue); }
-.live-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; max-width:900px; margin:22px auto 0; }
-.live-stats[hidden] { display:none; }
-.live-stat { background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; padding:14px 10px; display:flex; flex-direction:column; align-items:center; gap:2px; }
-.live-stat b { font-size:1.7rem; font-weight:800; color:var(--accent-blue); direction:ltr; font-variant-numeric:tabular-nums; }
-.live-stat.danger b { color:var(--accent-red); }
-.live-stat span { font-size:.8rem; color:var(--text-muted); text-align:center; }
+/* ---------- الصفحة الرئيسية ---------- */
 .action-card-btn .card-desc { font-size:.78rem; font-weight:400; color:var(--text-muted); line-height:1.5; margin-top:-6px; }
-@media (max-width: 700px) {
-    .live-stats { grid-template-columns:repeat(2, 1fr); }
-    .live-stat b { font-size:1.4rem; }
-}
+.site-announcement { max-width:900px; margin:6px auto 4px; padding:10px 16px; border-radius:12px; border:1px solid var(--border-color); font-size:.92rem; line-height:1.8; white-space:pre-line; text-align:center; }
+.site-announcement[hidden] { display:none; }
+.site-announcement.tone-info { border-color:color-mix(in srgb, var(--accent-blue) 45%, transparent); background:color-mix(in srgb, var(--accent-blue) 10%, transparent); }
+.site-announcement.tone-success { border-color:color-mix(in srgb, var(--accent-green) 45%, transparent); background:color-mix(in srgb, var(--accent-green) 10%, transparent); }
+.site-announcement.tone-warn { border-color:color-mix(in srgb, var(--accent-yellow) 50%, transparent); background:color-mix(in srgb, var(--accent-yellow) 12%, transparent); }
+.action-card-btn[hidden] { display:none; }

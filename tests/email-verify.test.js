@@ -25,6 +25,17 @@ const PASSWORD = 'a long safe passphrase';
 const register = (app, email) => request(app, 'POST', '/api/auth/register', { headers: sameOrigin(app), body: { email, password: PASSWORD, name: 'T' } });
 const loginReq = (app, email) => request(app, 'POST', '/api/auth/login', { headers: sameOrigin(app), body: { email, password: PASSWORD } });
 const codeIn = mail => mail.body.subject.match(/^(\d{6})/)[1];
+// الدخول الكامل بخطوتين: كلمة السر ثم الرمز المرسل للبريد (MFA)
+async function loginWithMfa(app, mail, email) {
+    const first = await loginReq(app, email);
+    assert.equal(first.status, 200);
+    assert.equal(first.json.mfa, true);
+    assert.equal(first.json.user, undefined, 'no account data before the second step');
+    const challenge = cookieFrom(first);
+    assert.match(challenge, /^pd_mfa=/);
+    const code = codeIn(mail.sent[mail.sent.length - 1]);
+    return request(app, 'POST', '/api/auth/mfa', { headers: { ...sameOrigin(app), Cookie: challenge }, body: { code } });
+}
 const verifyCode = (app, email, code) => request(app, 'POST', '/api/auth/verify-code', { headers: sameOrigin(app), body: { email, code } });
 const linkIn = mail => (mail.body.htmlContent || mail.body.html).match(/href="([^"]+)"/)[1].replace(/&amp;/g, '&');
 
@@ -77,7 +88,7 @@ test('مع مزوّد البريد: لا جلسة ولا شهر مجاني قب�
     const again = await verifyCode(app, 'new.user@example.com', code);
     assert.equal(again.status, 400);
 
-    const logged = await loginReq(app, 'new.user@example.com');
+    const logged = await loginWithMfa(app, mail, 'new.user@example.com');
     assert.equal(logged.status, 200);
     assert.equal(logged.json.user.emailVerified, true);
     assert.equal(logged.json.user.plan, 'pro');
@@ -99,15 +110,15 @@ test('الشهر المجاني مرة واحدة لكل صندوق: حذف ال
     const verify = async index => { await verifyCode(app, 'repeat@example.com', codeIn(mail.sent[index])); };
     await register(app, 'repeat@example.com');
     await verify(0);
-    const first = await loginReq(app, 'repeat@example.com');
+    const first = await loginWithMfa(app, mail, 'repeat@example.com');
     assert.equal(first.json.user.plan, 'pro');
     const cookie = cookieFrom(first);
     const del = await request(app, 'POST', '/api/account/delete', { headers: authed(app, cookie), body: { confirm: 'repeat@example.com' } });
     assert.ok([200, 204].includes(del.status), 'حذف الحساب: ' + del.status);
     const second = await register(app, 'repeat@example.com');
     assert.equal(second.status, 201);
-    await verify(1);
-    const relogin = await loginReq(app, 'repeat@example.com');
+    await verify(mail.sent.length - 1);
+    const relogin = await loginWithMfa(app, mail, 'repeat@example.com');
     assert.equal(relogin.status, 200);
     assert.equal(relogin.json.user.plan, 'free');
 }));
@@ -185,3 +196,62 @@ test('Mailjet: يرسل كود التحقق بصيغة v3.1 مع Basic auth', as
         assert.equal(ok.status, 200);
     } finally { await app.close(); await mail.close(); }
 });
+
+test('التحقق الثنائي بالبريد: لا جلسة بدون الرمز، الرمز الخاطئ يُرفض، 5 أخطاء تلغي التحدي، وإعادة الإرسال تعمل', () => withMail(async (app, mail) => {
+    await register(app, 'mfa@example.com');
+    await verifyCode(app, 'mfa@example.com', codeIn(mail.sent[0]));
+    assert.equal((await request(app, 'GET', '/api/auth/config')).json.mfa, true);
+
+    const first = await loginReq(app, 'mfa@example.com');
+    assert.equal(first.json.mfa, true);
+    assert.match(first.json.email, /^mf•+@example\.com$/);
+    assert.match(mail.sent[mail.sent.length - 1].body.subject, /رمز الدخول/);
+    const challenge = cookieFrom(first);
+    const code = codeIn(mail.sent[mail.sent.length - 1]);
+    const wrong = code === '000000' ? '111111' : '000000';
+    const mfa = body => request(app, 'POST', '/api/auth/mfa', { headers: { ...sameOrigin(app), Cookie: challenge }, body });
+
+    // بدون كوكي التحدي أو بكود خاطئ: لا جلسة
+    assert.equal((await request(app, 'POST', '/api/auth/mfa', { headers: sameOrigin(app), body: { code } })).status, 400);
+    const bad = await mfa({ code: wrong });
+    assert.equal(bad.status, 400);
+    assert.equal(cookieFrom(bad), '');
+
+    // إعادة الإرسال تلغي الكود القديم
+    const resend = await request(app, 'POST', '/api/auth/mfa/resend', { headers: { ...sameOrigin(app), Cookie: challenge }, body: {} });
+    assert.equal(resend.status, 200);
+    const fresh = codeIn(mail.sent[mail.sent.length - 1]);
+    if (fresh !== code) assert.equal((await mfa({ code })).status, 400);
+    const ok = await mfa({ code: fresh });
+    assert.equal(ok.status, 200);
+    assert.match(cookieFrom(ok), /pd_s=/);
+    assert.equal(ok.json.user.email, 'mfa@example.com');
+    assert.equal((await mfa({ code: fresh })).status, 400, 'one use only');
+
+    // 5 محاولات خاطئة تلغي التحدي حتى لو جاء الكود الصحيح بعدها
+    const second = await loginReq(app, 'mfa@example.com');
+    const ch2 = cookieFrom(second);
+    const code2 = codeIn(mail.sent[mail.sent.length - 1]);
+    const wrong2 = code2 === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) await request(app, 'POST', '/api/auth/mfa', { headers: { ...sameOrigin(app), Cookie: ch2 }, body: { code: wrong2 } });
+    const late = await request(app, 'POST', '/api/auth/mfa', { headers: { ...sameOrigin(app), Cookie: ch2 }, body: { code: code2 } });
+    assert.ok([400, 429].includes(late.status));
+    assert.equal(cookieFrom(late), '');
+}));
+
+test('إعدادات الأدمن: إطفاء MFA يرجع الدخول بخطوة وحدة، وإيقاف التسجيل يمنع الحسابات الجديدة', () => withMail(async (app, mail) => {
+    await register(app, 'plain2@example.com');
+    await verifyCode(app, 'plain2@example.com', codeIn(mail.sent[0]));
+    await app.settings.update({ security: { mfaEmail: false } });
+    const direct = await loginReq(app, 'plain2@example.com');
+    assert.equal(direct.status, 200);
+    assert.equal(direct.json.mfa, undefined);
+    assert.match(cookieFrom(direct), /pd_s=/);
+
+    await app.settings.update({ features: { registration: false } });
+    const closed = await register(app, 'late@example.com');
+    assert.equal(closed.status, 403);
+    assert.equal(closed.json.code, 'registration_closed');
+    assert.equal((await request(app, 'GET', '/api/auth/config')).json.registration, false);
+    await app.settings.reset();
+}));

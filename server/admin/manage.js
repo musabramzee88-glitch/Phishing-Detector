@@ -211,7 +211,7 @@
     $("showAllPayments").addEventListener("change", loadPayments);
 
     // التبويبات: القسم المفتوح يُحفظ بالرابط (#payments) فيبقى بعد التحديث
-    const TABS = ["overview", "payments", "users", "security"];
+    const TABS = ["overview", "payments", "users", "settings", "security"];
     function showTab(name) {
         const tab = TABS.includes(name) ? name : "overview";
         document.querySelectorAll("[data-tab-panel]").forEach(el => { el.hidden = el.dataset.tabPanel !== tab; });

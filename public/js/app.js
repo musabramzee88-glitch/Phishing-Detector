@@ -26,29 +26,32 @@ function setTheme(themeName) {
     document.getElementById('themeMenu').classList.remove('show');
 }
 
-// إحصاءات حية للصفحة الرئيسية (أرقام مجمّعة فقط)
-async function loadLiveStats() {
-    const box = document.getElementById('liveStats');
-    if (!box) return;
+// إعدادات الموقع من لوحة الإدارة: النصوص، الإعلان، الخدمات المفعّلة، CyberBot
+async function applySiteSettings() {
+    let site;
     try {
-        const response = await fetch('/api/public/stats', { credentials: 'same-origin' });
+        const response = await fetch('/api/site', { credentials: 'same-origin', cache: 'no-store' });
         if (!response.ok) return;
-        const data = await response.json();
-        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const nf = new Intl.NumberFormat('en-US');
-        box.hidden = false;
-        box.querySelectorAll('[data-stat]').forEach(node => {
-            const target = Math.max(0, Number(data[node.dataset.stat]) || 0);
-            if (reduce || target < 10) { node.textContent = nf.format(target); return; }
-            const start = performance.now();
-            const tick = now => {
-                const t = Math.min(1, (now - start) / 1200);
-                node.textContent = nf.format(Math.round(target * (1 - Math.pow(1 - t, 3))));
-                if (t < 1) requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
-        });
-    } catch { /* الإحصاءات اختيارية */ }
+        site = await response.json();
+    } catch { return; }
+    const home = site.home || {};
+    if (home.title) document.getElementById('heroTitle').textContent = home.title;
+    if (home.subtitle) document.getElementById('heroSubtitle').textContent = home.subtitle;
+    const banner = document.getElementById('siteAnnouncement');
+    if (banner) {
+        banner.textContent = home.announcement || '';
+        banner.className = 'site-announcement tone-' + (['info', 'warn', 'success'].includes(home.announcementTone) ? home.announcementTone : 'info');
+        banner.hidden = !home.announcement;
+    }
+    const features = site.features || {};
+    document.querySelectorAll('[data-feature]').forEach(el => { el.hidden = features[el.dataset.feature] === false; });
+    const bot = site.cyberbot || {};
+    cyberBotGreetingText = typeof bot.greeting === 'string' ? bot.greeting.trim() : '';
+    if (Array.isArray(bot.suggestions) && bot.suggestions.length) {
+        CYBERBOT_SUGGESTIONS = bot.suggestions.slice(0, 6).map((text, i) => ({ icon: SUGGESTION_ICONS[i % SUGGESTION_ICONS.length], text: String(text) }));
+    }
+    // إذا كانت المحادثة مفتوحة على الترحيب فقط، نحدّثها بالنص الجديد
+    if (cyberBotGreeted && !cyberBotHistory.length) initChatGreeting();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -56,7 +59,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try { savedTheme = localStorage.getItem('selected_theme') || 'dark'; } catch { /* تخزين محجوب */ }
     document.body.setAttribute('data-theme', savedTheme);
     loadSimulation(0);
-    loadLiveStats();
+    applySiteSettings();
 
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.theme-selector-container')) {
@@ -260,8 +263,10 @@ function appendCyberBotMessage(role, content, options = {}) {
     return row;
 }
 
-// أسئلة جاهزة تظهر ببداية المحادثة
-const CYBERBOT_SUGGESTIONS = [
+// أسئلة جاهزة تظهر ببداية المحادثة (يقدر الأدمن يغيّرها من لوحة الإدارة)
+const SUGGESTION_ICONS = ["fa-solid fa-link", "fa-solid fa-gift", "fa-brands fa-whatsapp", "fa-solid fa-key", "fa-solid fa-fish", "fa-solid fa-circle-question"];
+let cyberBotGreetingText = "";
+let CYBERBOT_SUGGESTIONS = [
     { icon: "fa-solid fa-link", text: "افحص هذا الرابط: http://paypa1-account-verify.xyz/login" },
     { icon: "fa-solid fa-gift", text: "وصلتني رسالة تكول ربحت جائزة وتطلب رقم بطاقتي، شسوي؟" },
     { icon: "fa-brands fa-whatsapp", text: "انسرق حسابي بالواتساب، شلون أرجعه؟" },
@@ -304,6 +309,12 @@ function autoGrowChatInput() {
 function initChatGreeting() {
     document.getElementById("chatHistory").replaceChildren();
     cyberBotHistory.length = 0;
+    if (cyberBotGreetingText) {
+        appendCyberBotMessage("assistant", cyberBotGreetingText.replace(/\{name\}/g, currentUserName()), { copy: false });
+        renderCyberBotSuggestions();
+        setCyberBotStatus("جاهز.", true);
+        return;
+    }
     appendCyberBotMessage("assistant", "أهلاً " + currentUserName() + "! أنا **CyberBot**، مساعدك للأمن السيبراني.\n\nأكدر أساعدك بـ:\n- فحص أي **رابط أو رسالة** مشكوك بيها فوراً.\n- خطوات واضحة إذا **انسرق حسابك** أو شاركت رمز أو بيانات.\n- شرح أساليب الاحتيال وشلون تحمي نفسك وعائلتك.\n\nاختار سؤال من تحت أو اكتب سؤالك.", { copy: false });
     renderCyberBotSuggestions();
     setCyberBotStatus("جاهز.", true);

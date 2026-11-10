@@ -10,6 +10,8 @@
     POST /api/auth/logout
     GET  /api/auth/me                المستخدم الحالي واستهلاك اليوم
     POST /api/auth/reset             كلمة سر جديدة برابط يصدره الأدمن
+    POST /api/auth/mfa               الخطوة الثانية: رمز الدخول المرسل للبريد (MFA)
+    POST /api/auth/mfa/resend        إعادة إرسال رمز الدخول
     GET  /auth/<provider>/start      بدء الدخول عبر Google / Microsoft / Apple
     GET|POST /auth/<provider>/callback
   الحساب:
@@ -30,7 +32,17 @@ const { pricingInfo } = require("./plans");
 
 const PROVIDER_IDS = new Set(["google", "microsoft", "apple"]);
 
-function createAuth({ config, users, oauth, stats, mailer }) {
+function maskEmail(email) {
+    const [name, domain] = String(email).split("@");
+    if (!domain) return "";
+    const shown = name.length <= 2 ? name.slice(0, 1) : name.slice(0, 2);
+    return `${shown}${"•".repeat(Math.max(2, Math.min(6, name.length - shown.length)))}@${domain}`;
+}
+
+function createAuth({ config, users, oauth, stats, mailer, settings }) {
+    const feature = name => !settings || settings.get().features[name] !== false;
+    // التحقق الثنائي بالبريد: يعمل عند ضبط مزوّد البريد، ويقدر الأدمن يطفيه من لوحة الإدارة
+    const mfaActive = () => Boolean(mailer.enabled && (!settings || settings.get().security.mfaEmail));
     const authLimiter = createRateLimiter({ windowMs: 60_000, max: config.limits.authPerMinute });
     const registrations = createRateLimiter({ windowMs: 24 * 60 * 60_000, max: config.limits.registrationsPerDay });
     const ipFailures = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.userLoginFailures * 2 });
@@ -50,6 +62,26 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         const parts = [`pd_oauth=${value}`, "Path=/auth/", "HttpOnly", `Max-Age=${maxAge}`];
         parts.push(secure(req) ? "SameSite=None; Secure" : "SameSite=Lax");
         return parts.join("; ");
+    }
+
+    // كوكي التحدي بين الخطوتين (لا يفتح جلسة بحد ذاته)
+    function mfaCookie(req, value, maxAge) {
+        const parts = [`pd_mfa=${value}`, "Path=/api/auth/", "HttpOnly", "SameSite=Lax", `Max-Age=${maxAge}`];
+        if (secure(req)) parts.push("Secure");
+        return parts.join("; ");
+    }
+
+    // ينشئ التحدي ويرسل الرمز. يرمي UserError إذا تعذر الإرسال (لا نتجاوز الخطوة الثانية أبداً)
+    async function beginMfa(user, via, ip) {
+        const { token, code } = await users.createLoginChallenge(user.id, via);
+        try {
+            await mailer.loginCode(user.email, code);
+        } catch {
+            stats.event("mail_error", "تعذر إرسال رمز الدخول (MFA)", ip);
+            throw new UserError("mfa_mail", "تعذر إرسال رمز الدخول إلى بريدك الآن. حاول بعد قليل.", 503);
+        }
+        stats.event("mfa_sent", `إرسال رمز دخول (${via})`, ip);
+        return token;
     }
 
     function sessionToken(req) {
@@ -108,6 +140,7 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
         const body = await jsonBody(req, res);
         if (body === undefined) return;
+        if (!feature("registration")) return h.sendJson(res, 403, { error: "إنشاء الحسابات الجديدة متوقف حالياً.", code: "registration_closed" });
         if (!registrations.take(ip)) {
             stats.event("register_throttled", "تجاوز حد إنشاء الحسابات اليومي", ip);
             return h.sendJson(res, 429, { error: "تم إنشاء حسابات كثيرة من هذا الاتصال اليوم. حاول غداً." });
@@ -228,6 +261,10 @@ function createAuth({ config, users, oauth, stats, mailer }) {
             const user = await users.login({ email: body.email, password: body.password });
             ipFailures.clear(ip);
             emailFailures.clear(emailKey);
+            if (mfaActive()) {
+                const challenge = await beginMfa(user, "password", ip);
+                return h.sendJson(res, 200, { mfa: true, email: maskEmail(user.email) }, { "Set-Cookie": mfaCookie(req, challenge, 600) });
+            }
             stats.count("userLogins");
             await startSession(req, res, user, 200, await me(user));
         } catch (error) {
@@ -236,6 +273,48 @@ function createAuth({ config, users, oauth, stats, mailer }) {
                 emailFailures.fail(emailKey);
                 stats.count("userLoginFailed");
             }
+            sendError(res, error);
+        }
+    }
+
+    // الخطوة الثانية: الرمز المرسل للبريد
+    async function mfaVerify(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        if (ipFailures.isBlocked(ip)) return h.sendJson(res, 429, { error: "محاولات خاطئة كثيرة. حاول لاحقاً." }, { "Retry-After": String(ipFailures.retryAfterSeconds(ip)) });
+        const body = await jsonBody(req, res);
+        if (body === undefined) return;
+        const challenge = h.parseCookies(req.headers.cookie).pd_mfa || "";
+        try {
+            const { user, via } = await users.verifyLoginChallenge(challenge, body.code);
+            ipFailures.clear(ip);
+            stats.count("userLogins");
+            stats.event("mfa_ok", `دخول بتحقق ثنائي (${via})`, ip);
+            const session = await users.createSession(user.id, { ua: req.headers["user-agent"] });
+            h.sendJson(res, 200, await me(user), { "Set-Cookie": [sessionCookie(req, session.token, session.maxAge), mfaCookie(req, "", 0)] });
+        } catch (error) {
+            if (error instanceof UserError) {
+                ipFailures.fail(ip);
+                stats.event("mfa_failed", "رمز دخول خاطئ أو منتهي", ip);
+            }
+            sendError(res, error);
+        }
+    }
+
+    async function mfaResend(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        const body = await jsonBody(req, res);
+        if (body === undefined) return;
+        try {
+            const { user, code } = await users.resendLoginChallenge(h.parseCookies(req.headers.cookie).pd_mfa || "");
+            try {
+                await mailer.loginCode(user.email, code);
+            } catch {
+                return h.sendJson(res, 503, { error: "تعذر إرسال الرمز الآن. حاول بعد قليل." });
+            }
+            h.sendJson(res, 200, { ok: true, message: "أرسلنا رمزاً جديداً إلى بريدك." });
+        } catch (error) {
             sendError(res, error);
         }
     }
@@ -309,10 +388,14 @@ function createAuth({ config, users, oauth, stats, mailer }) {
                 code: params.get("code"), state: params.get("state"),
                 bind: h.parseCookies(req.headers.cookie).pd_oauth, extra
             });
-            const { user, created } = await users.loginWithProvider(identity);
+            const { user, created } = await users.loginWithProvider(identity, { allowCreate: feature("registration") });
             if (created) {
                 stats.count("registrations");
                 stats.event("register", `حساب جديد (${provider})`, ip);
+            }
+            if (mfaActive()) {
+                const challenge = await beginMfa(user, provider, ip);
+                return redirect(res, "/login?mfa=1", [clear, mfaCookie(req, challenge, 600)]);
             }
             stats.count("userLogins");
             const session = await users.createSession(user.id, { ua: req.headers["user-agent"] });
@@ -402,12 +485,17 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         const p = url.pathname;
         if (p === "/api/auth/config") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
-            h.sendJson(res, 200, { providers: oauth.providers, emailVerification: mailer.enabled, trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd });
+            h.sendJson(res, 200, {
+                providers: oauth.providers, emailVerification: mailer.enabled, mfa: mfaActive(), registration: feature("registration"),
+                trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd
+            });
             return true;
         }
         if (p === "/api/auth/register") return await register(req, res), true;
         if (p === "/api/auth/login") return await login(req, res), true;
         if (p === "/api/auth/logout") return await logout(req, res), true;
+        if (p === "/api/auth/mfa") return await mfaVerify(req, res), true;
+        if (p === "/api/auth/mfa/resend") return await mfaResend(req, res), true;
         if (p === "/api/auth/reset") return await resetPassword(req, res), true;
         if (p === "/api/auth/resend") return await resendVerification(req, res), true;
         if (p === "/api/auth/verify-code") return await verifyCodeRoute(req, res), true;
@@ -439,4 +527,4 @@ function createAuth({ config, users, oauth, stats, mailer }) {
     return { handle, currentUser, requireUser, jsonBody, sendError };
 }
 
-module.exports = { createAuth };
+module.exports = { createAuth, maskEmail };

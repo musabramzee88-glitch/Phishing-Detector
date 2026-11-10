@@ -88,6 +88,17 @@
                 <p class="auth-small">ما وصلك الكود؟ <button type="button" class="auth-link" id="verifyResend">أرسل كوداً جديداً</button> · <button type="button" class="auth-link" id="verifyBack">رجوع</button></p>
             </form>
 
+            <form id="mfaForm" class="auth-form" hidden novalidate>
+                <h2 class="auth-title"><i class="fa-solid fa-shield-halved"></i> التحقق الثنائي</h2>
+                <p class="auth-small" id="mfaIntro">لحماية حسابك أرسلنا رمز دخول من 6 أرقام إلى بريدك.</p>
+                <label class="auth-field">
+                    <span>رمز الدخول</span>
+                    <input type="text" id="mfaCode" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" dir="ltr" style="text-align:center;letter-spacing:.5em;font-size:1.4rem" placeholder="------" required>
+                </label>
+                <button type="submit" class="auth-submit">تأكيد الدخول</button>
+                <p class="auth-small">ما وصلك الرمز؟ افحص الرسائل غير المرغوبة، أو <button type="button" class="auth-link" id="mfaResend">أرسل رمزاً جديداً</button> · <button type="button" class="auth-link" id="mfaBack">رجوع</button></p>
+            </form>
+
             <form id="resetForm" class="auth-form" hidden novalidate>
                 <h2 class="auth-title">تعيين كلمة سر جديدة</h2>
                 <label class="auth-field">

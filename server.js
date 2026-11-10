@@ -36,6 +36,7 @@ const { createIntel } = require("./server/intel");
 const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
+const { createSettings } = require("./server/settings");
 const { serveStatic } = require("./server/static");
 
 const CLIENT_ERROR_KINDS = new Set(["error", "promise", "action"]);
@@ -54,10 +55,11 @@ function createApp(config = loadConfig(), overrides = {}) {
     const oauth = createOAuth({ config, db, fetchImpl: overrides.fetch || fetch });
     const intel = overrides.intel || createIntel({ enabled: config.intel.enabled, log: message => stats.event("intel", message, "") });
     const mailer = createMailer(config);
-    const auth = createAuth({ config, users, oauth, stats, mailer });
+    const settings = createSettings({ db, config });
+    const auth = createAuth({ config, users, oauth, stats, mailer, settings });
     const scan = createScan({ config, users, auth, intel, stats });
-    const chat = createChatHandler({ config, users, auth, scan, stats, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status });
+    const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, settings });
 
     const pages = {
         app: fs.readFileSync(path.join(config.publicDir, "index.html")),
@@ -67,6 +69,34 @@ function createApp(config = loadConfig(), overrides = {}) {
     function sendPage(req, res, body) {
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store" });
         res.end(req.method === "HEAD" ? undefined : body);
+    }
+
+    // صفحة الصيانة (يفعّلها الأدمن). لوحة الإدارة تبقى تعمل.
+    function sendMaintenance(req, res) {
+        const message = String(settings.get().features.maintenanceMessage).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        const body = Buffer.from(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>صيانة - Phishing Detector</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0f1d;color:#e8edf9;font-family:Tahoma,system-ui,sans-serif;padding:16px}main{max-width:520px;text-align:center;background:#131b2e;border:1px solid #243152;border-radius:18px;padding:32px 24px}img{width:84px;height:84px;border-radius:18px}h1{font-size:1.4rem;margin:18px 0 8px}p{color:#8e9aaf;line-height:1.9}</style></head>
+<body><main><img src="/img/logo.png" alt="Phishing Detector"><h1>الموقع تحت الصيانة</h1><p>${message}</p></main></body></html>`);
+        res.writeHead(503, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store", "Retry-After": "600" });
+        res.end(req.method === "HEAD" ? undefined : body);
+    }
+
+    // الخدمة المطلوبة متوقفة من الإدارة؟ يرجع رسالة الإيقاف أو ""
+    function featureBlock(pathname) {
+        const f = settings.get().features;
+        if (f.maintenance && (pathname === "/api/chat" || pathname.startsWith("/api/scan/") || pathname.startsWith("/api/v1/"))) return f.maintenanceMessage;
+        const map = [
+            ["/api/chat", "cyberbot", "CyberBot متوقف مؤقتاً."],
+            ["/api/scan/url", "urlScan", "فحص الروابط متوقف مؤقتاً."],
+            ["/api/v1/scan-url", "urlScan", "فحص الروابط متوقف مؤقتاً."],
+            ["/api/scan/text", "textScan", "فحص الرسائل متوقف مؤقتاً."],
+            ["/api/v1/scan-text", "textScan", "فحص الرسائل متوقف مؤقتاً."],
+            ["/api/scan/file", "fileScan", "فحص الملفات متوقف مؤقتاً."],
+            ["/api/scan/clean", "fileScan", "تنظيف الملفات متوقف مؤقتاً."],
+            ["/api/scan/bulk", "bulk", "الفحص الجماعي متوقف مؤقتاً."]
+        ];
+        for (const [route, key, text] of map) if (pathname === route && f[key] === false) return text;
+        return "";
     }
 
     function redirect(res, location) {
@@ -128,9 +158,16 @@ function createApp(config = loadConfig(), overrides = {}) {
                 return h.sendText(res, critical ? 503 : 200, critical ? "unhealthy" : "ok");
             }
 
+            // إعدادات الموقع العامة (نصوص الرئيسية، الخدمات المفعّلة، CyberBot)
+            if (pathname === "/api/site") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                return h.sendJson(res, 200, settings.publicView());
+            }
+
             // الصفحات: الدخول أولاً، والتطبيق للمسجّلين فقط
             if (pathname === "/" || pathname === "/index.html" || pathname === "/login" || pathname === "/login.html") {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                if (settings.get().features.maintenance) return sendMaintenance(req, res);
                 const user = await auth.currentUser(req);
                 const wantsLogin = pathname.startsWith("/login");
                 if (wantsLogin) {
@@ -144,23 +181,8 @@ function createApp(config = loadConfig(), overrides = {}) {
                 return sendPage(req, res, pages.app);
             }
 
-            // أرقام عامة مجمّعة للصفحة الرئيسية (بدون أي بيانات شخصية)
-            if (pathname === "/api/public/stats") {
-                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
-                const snap = stats.snapshot(0);
-                let scansTotal = 0, threats = 0;
-                for (const kind of Object.keys(snap.scans)) {
-                    const s = snap.scans[kind];
-                    scansTotal += s.safe + s.warning + s.danger;
-                    threats += s.warning + s.danger;
-                }
-                const intelStatus = intel.status();
-                return h.sendJson(res, 200, {
-                    scans: scansTotal, threats, chats: snap.counters.chatOk,
-                    threatIntel: intelStatus.enabled ? intelStatus.urls + intelStatus.hosts : 0,
-                    since: snap.since
-                }, { "Cache-Control": "public, max-age=60" });
-            }
+            const blocked = featureBlock(pathname);
+            if (blocked) return h.sendJson(res, 503, { error: blocked, code: "feature_disabled" });
 
             if (await auth.handle(req, res, url)) return;
             if (await scan.handle(req, res, url)) return;
@@ -183,11 +205,17 @@ function createApp(config = loadConfig(), overrides = {}) {
     server.requestTimeout = 60_000;
     server.keepAliveTimeout = 5_000;
     server.maxHeadersCount = 50;
-    server.on("close", () => { health.stop(); intel.stop(); });
+    server.on("close", () => { health.stop(); intel.stop(); settings.stop(); });
 
     // نتأكد أن القاعدة تعمل قبل الاستماع (ونكمل حتى لو فشلت، مع تحذير)
     const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }))
         .then(async state => {
+            // إعدادات الموقع من القاعدة (ثم تُحدَّث كل 30 ثانية)
+            if (state.ok) {
+                const loaded = await settings.load();
+                if (!loaded.ok) state.settingsError = loaded.error;
+            }
+            settings.start();
             // الإحصاءات والزوار تُحفظ في القاعدة حتى لا تتصفّر عند كل نشر
             if (state.ok) {
                 const a = await stats.attach(db);
@@ -198,7 +226,7 @@ function createApp(config = loadConfig(), overrides = {}) {
         });
     const flushAll = () => Promise.all([stats.close(), visitors.close()]);
 
-    return { server, stats, config, admin, visitors, db, users, intel, scan, ready, flushAll };
+    return { server, stats, config, admin, visitors, db, users, intel, scan, settings, ready, flushAll };
 }
 
 async function main() {

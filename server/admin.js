@@ -28,7 +28,8 @@ const ASSETS = {
     "admin.css": { type: "text/css; charset=utf-8", publicAsset: true },
     "login.js": { type: "text/javascript; charset=utf-8", publicAsset: true },
     "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
-    "manage.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
+    "manage.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
+    "settings.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
 };
 
 function sha256(value) {
@@ -271,6 +272,40 @@ function createAdmin(config, stats, extras = {}) {
             try { payload.usersTotal = extras.users && extras.users.count ? await extras.users.count() : null; } catch { payload.usersTotal = null; }
             http.sendJson(res, 200, payload);
             return true;
+        }
+
+        // إعدادات الموقع: قراءة وتعديل وإرجاع للافتراضي
+        if (p === "/api/admin/settings" || p === "/api/admin/settings/reset") {
+            const session = currentSession(req);
+            if (!session) return http.sendJson(res, 401, { error: "Unauthorized" }), true;
+            if (!extras.settings) return http.sendJson(res, 404, { error: "Not found" }), true;
+            if (p === "/api/admin/settings" && req.method === "GET") return http.sendJson(res, 200, extras.settings.adminView()), true;
+            if (req.method !== "POST") return methodNotAllowed(res, p.endsWith("reset") ? "POST" : "GET, POST"), true;
+            const ip = http.getClientIp(req, config);
+            // جسم أكبر قليلاً من بقية الطلبات (نصوص وتعليمات)
+            if (!http.isSameOrigin(req)) return http.sendJson(res, 403, { error: "Forbidden" }), true;
+            if (!http.isJsonRequest(req)) return http.sendJson(res, 415, { error: "Content-Type must be application/json" }), true;
+            let body;
+            try {
+                body = await http.readJsonBody(req, 16 * 1024);
+                if (body === null || typeof body !== "object" || Array.isArray(body)) throw new Error("bad");
+            } catch {
+                return http.sendJson(res, 400, { error: "طلب غير صالح." }), true;
+            }
+            try {
+                if (p.endsWith("reset")) {
+                    const result = await extras.settings.reset(session.user);
+                    stats.event("admin_settings", "إرجاع إعدادات الموقع للافتراضي", ip);
+                    return http.sendJson(res, 200, result), true;
+                }
+                const result = await extras.settings.update(body.values, session.user);
+                if (!result.ok) return http.sendJson(res, 400, { error: "قيم غير صالحة: " + result.errors.join("، "), fields: result.errors }), true;
+                if (result.changed.length) stats.event("admin_settings", `تعديل إعدادات الموقع: ${result.changed.slice(0, 6).join("، ")}${result.changed.length > 6 ? " ..." : ""}`, ip);
+                return http.sendJson(res, 200, result), true;
+            } catch (error) {
+                if (error && error.name === "UpstashError") return http.sendJson(res, 503, { error: "تعذر الحفظ بقاعدة البيانات." }), true;
+                throw error;
+            }
         }
 
         if (p === "/api/admin/ai-test") {

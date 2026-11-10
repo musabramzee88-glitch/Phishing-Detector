@@ -85,52 +85,41 @@
                 <img src="/img/logo.png" alt="Official Logo" style="width: 125px; height: 125px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px var(--accent-glow); border: 2px solid var(--border-color);">
             </div>
 
-            <h1 style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.3rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
-            <p style="text-align: center; color: var(--text-muted); max-width: 720px; margin: 12px auto; font-size: 1rem; line-height: 1.8;">
+            <div id="siteAnnouncement" class="site-announcement" role="status" hidden></div>
+
+            <h1 id="heroTitle" style="text-align: center; margin-top: 15px; font-weight: 800; font-size: 2.3rem;">منظومة كشف ومكافحة التصيد الإلكتروني الذكية</h1>
+            <p id="heroSubtitle" style="text-align: center; color: var(--text-muted); max-width: 720px; margin: 12px auto; font-size: 1rem; line-height: 1.8;">
                 حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية وتزييف الوسائط.
             </p>
 
-            <div class="trust-badges" aria-label="مزايا المنظومة">
-                <span><i class="fa-solid fa-layer-group"></i> تحليل متعدد الطبقات</span>
-                <span><i class="fa-solid fa-globe"></i> قوائم تهديدات عالمية محدّثة</span>
-                <span><i class="fa-solid fa-wand-magic-sparkles"></i> مساعد بالذكاء الاصطناعي</span>
-                <span><i class="fa-solid fa-user-lock"></i> خصوصية: لا نحفظ روابطك أو ملفاتك</span>
-            </div>
-
-            <div class="live-stats" id="liveStats" hidden aria-live="polite">
-                <div class="live-stat"><b data-stat="scans">0</b><span>عملية فحص منجزة</span></div>
-                <div class="live-stat danger"><b data-stat="threats">0</b><span>تهديد مكتشف</span></div>
-                <div class="live-stat"><b data-stat="threatIntel">0</b><span>رابط ونطاق تصيد بقاعدة التهديدات</span></div>
-                <div class="live-stat"><b data-stat="chats">0</b><span>محادثة مع CyberBot</span></div>
-            </div>
 
             <div class="main-actions-grid">
-                <button class="action-card-btn" data-page="scannerPage" data-title="فحص الروابط" data-icon="fa-solid fa-link">
+                <button data-feature="urlScan" class="action-card-btn" data-page="scannerPage" data-title="فحص الروابط" data-icon="fa-solid fa-link">
                     <i class="fa-solid fa-link"></i>
                     <span>فحص الروابط</span>
                     <small class="card-desc">كشف الروابط المزيفة وانتحال المواقع</small>
                 </button>
-                <button class="action-card-btn" data-page="fileScannerPage" data-title="فحص الملفات والبرمجيات" data-icon="fa-solid fa-file-shield">
+                <button data-feature="fileScan" class="action-card-btn" data-page="fileScannerPage" data-title="فحص الملفات والبرمجيات" data-icon="fa-solid fa-file-shield">
                     <i class="fa-solid fa-file-shield"></i>
                     <span>فحص الملفات والبرمجيات</span>
                     <small class="card-desc">تحليل الملفات داخل متصفحك بدون رفعها</small>
                 </button>
-                <button class="action-card-btn" data-page="textScannerPage" data-title="فحص النصوص والرسائل" data-icon="fa-solid fa-comment-sms">
+                <button data-feature="textScan" class="action-card-btn" data-page="textScannerPage" data-title="فحص النصوص والرسائل" data-icon="fa-solid fa-comment-sms">
                     <i class="fa-solid fa-comment-sms"></i>
                     <span>فحص النصوص والرسائل</span>
                     <small class="card-desc">كشف رسائل الاحتيال والهندسة الاجتماعية</small>
                 </button>
-                <button class="action-card-btn" data-page="mediaScannerPage" data-title="فحص الصوت / الفيديو" data-icon="fa-solid fa-file-video">
+                <button data-feature="mediaScan" class="action-card-btn" data-page="mediaScannerPage" data-title="فحص الصوت / الفيديو" data-icon="fa-solid fa-file-video">
                     <i class="fa-solid fa-file-video"></i>
                     <span>فحص الصوت / الفيديو</span>
                     <small class="card-desc">فحص بنية ملفات الوسائط وسلامتها</small>
                 </button>
-                <button class="action-card-btn" data-page="awarenessPage" data-title="المسار التوعوي" data-icon="fa-solid fa-graduation-cap">
+                <button data-feature="awareness" class="action-card-btn" data-page="awarenessPage" data-title="المسار التوعوي" data-icon="fa-solid fa-graduation-cap">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>المسار التوعوي</span>
                     <small class="card-desc">دروس ومحاكي تصيد تفاعلي</small>
                 </button>
-                <button class="action-card-btn" data-action="openCyberBot">
+                <button data-feature="cyberbot" class="action-card-btn" data-action="openCyberBot">
                     <i class="fa-solid fa-robot" style="color:var(--accent-blue);"></i>
                     <span>CyberBot AI (المساعد الذكي)</span>
                     <small class="card-desc">اسأله أو الصق رسالة ويحللها لك</small>
@@ -140,7 +129,7 @@
                     <span>حسابي واشتراكي</span>
                     <small class="card-desc">الخطة والاستهلاك وسجل الفحوصات</small>
                 </button>
-                <button class="action-card-btn" data-page="bulkPage" data-title="الفحص الجماعي (Pro)" data-icon="fa-solid fa-layer-group">
+                <button data-feature="bulk" class="action-card-btn" data-page="bulkPage" data-title="الفحص الجماعي (Pro)" data-icon="fa-solid fa-layer-group">
                     <i class="fa-solid fa-layer-group"></i>
                     <span>الفحص الجماعي (Pro)</span>
                     <small class="card-desc">فحص عشرات الروابط دفعة واحدة</small>

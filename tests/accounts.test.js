@@ -448,6 +448,41 @@ test('Google: دخول كامل، ربط ببريد موجود موثّق، ور
     }, tweak, { fetch: fetchImpl });
 });
 
+test('Google + التحقق الثنائي: بعد Google ما تنفتح جلسة إلا بالرمز المرسل للبريد', async () => {
+    const http = require('node:http');
+    const sent = [];
+    const mailServer = http.createServer((req, res) => {
+        const chunks = [];
+        req.on('data', c => chunks.push(c));
+        req.on('end', () => { sent.push(JSON.parse(Buffer.concat(chunks).toString() || '{}')); res.writeHead(201, { 'Content-Type': 'application/json' }); res.end('{}'); });
+    });
+    await new Promise(r => mailServer.listen(0, '127.0.0.1', r));
+    let currentApp;
+    const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ id_token: fakeIdToken(currentApp.nextClaims) }) });
+    const tweak = config => { config.oauth.google = { clientId: 'gid.apps', clientSecret: 'gsecret' }; };
+    try {
+        await withServer({ BREVO_API_KEY: 'k', MAIL_FROM: 'noreply@example.com', MAIL_API_BASE: 'http://127.0.0.1:' + mailServer.address().port }, async app => {
+            currentApp = app;
+            const claims = nonce => ({ iss: 'https://accounts.google.com', aud: 'gid.apps', exp: Math.floor(Date.now() / 1000) + 600, nonce, sub: 'google-mfa', email: 'gm@example.com', email_verified: true, name: 'GM' });
+            const res = await oauthFlow(app, 'google', claims);
+            assert.equal(res.status, 302);
+            assert.equal(res.headers.location, '/login?mfa=1');
+            const cookies = [].concat(res.headers['set-cookie']);
+            assert.ok(!cookies.some(c => /^(__Host-)?pd_s=[^;]/.test(c)), 'no session before the code');
+            const challenge = cookies.find(c => c.startsWith('pd_mfa=')).split(';')[0];
+            const code = sent[sent.length - 1].subject.match(/^(\d{6})/)[1];
+            assert.equal(sent[sent.length - 1].to[0].email, 'gm@example.com');
+            const ok = await request(app, 'POST', '/api/auth/mfa', { headers: { ...sameOrigin(app), Cookie: challenge }, body: { code } });
+            assert.equal(ok.status, 200);
+            assert.equal(ok.json.user.email, 'gm@example.com');
+            assert.deepEqual(ok.json.user.providers, ['google']);
+        }, tweak, { fetch: fetchImpl });
+    } finally {
+        mailServer.closeAllConnections();
+        await new Promise(r => mailServer.close(r));
+    }
+});
+
 test('Apple: يرجع بـ POST (form_post)، والاسم يُقرأ من أول دخول', async () => {
     const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
     let currentApp;

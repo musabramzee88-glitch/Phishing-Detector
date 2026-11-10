@@ -183,10 +183,16 @@ test('الحساب: تغيير الاسم وكلمة السر، وحذف الح�
     const named = await request(app, 'POST', '/api/account/name', { headers: h, body: { name: '  مصعب‮<b>  ' } });
     assert.equal(named.json.user.name, 'مصعبb');
     assert.equal((await request(app, 'POST', '/api/account/password', { headers: h, body: { current: 'wrong one!!', next: 'another long pass' } })).status, 401);
-    assert.equal((await request(app, 'POST', '/api/account/password', { headers: h, body: { current: PASS, next: 'another long pass' } })).status, 200);
+    const changed = await request(app, 'POST', '/api/account/password', { headers: h, body: { current: PASS, next: 'another long pass' } });
+    assert.equal(changed.status, 200);
+    // تغيير كلمة السر يُسقط الجلسة القديمة (قد تكون مسروقة)، ويصدر جلسة جديدة لهذا المتصفح
+    assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: cookie } })).status, 401, 'old session revoked');
+    const fresh = cookieFrom(changed);
+    assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: fresh } })).status, 200, 'new session works');
+    const h2 = authed(app, fresh);
     assert.equal((await request(app, 'POST', '/api/auth/login', { headers: sameOrigin(app), body: { email: 'acc@example.com', password: 'another long pass' } })).status, 200);
-    assert.equal((await request(app, 'POST', '/api/account/delete', { headers: h, body: { confirm: 'other@example.com' } })).status, 400);
-    assert.equal((await request(app, 'POST', '/api/account/delete', { headers: h, body: { confirm: 'ACC@example.com' } })).status, 200);
+    assert.equal((await request(app, 'POST', '/api/account/delete', { headers: h2, body: { confirm: 'other@example.com' } })).status, 400);
+    assert.equal((await request(app, 'POST', '/api/account/delete', { headers: h2, body: { confirm: 'ACC@example.com' } })).status, 200);
     assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: cookie } })).status, 401);
     assert.equal((await request(app, 'POST', '/api/auth/login', { headers: sameOrigin(app), body: { email: 'acc@example.com', password: 'another long pass' } })).status, 401);
     assert.equal((await registerUser(app, { email: 'acc@example.com' })).res.status, 201, 'email free again');

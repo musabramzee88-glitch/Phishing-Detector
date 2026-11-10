@@ -298,8 +298,8 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const raw = token();
         const sha = sha256(raw);
         const exp = clock() + SESSION_DAYS * DAY_MS;
-        await db.cmd(["SET", k("sess", sha), JSON.stringify({ uid: userId, exp, ua: String(meta.ua || "").slice(0, 120) }), "EX", String(SESSION_DAYS * 86400)]);
-        sessionCache.set(sha, { uid: userId, exp, at: clock() });
+        await db.cmd(["SET", k("sess", sha), JSON.stringify({ uid: userId, exp, iat: clock(), ua: String(meta.ua || "").slice(0, 120) }), "EX", String(SESSION_DAYS * 86400)]);
+        sessionCache.set(sha, { uid: userId, exp, iat: clock(), at: clock() });
         return { token: raw, maxAge: SESSION_DAYS * 86400 };
     }
 
@@ -312,7 +312,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
             if (!stored) { sessionCache.delete(sha); return null; }
             try {
                 const parsed = JSON.parse(stored);
-                entry = { uid: parsed.uid, exp: parsed.exp, at: clock() };
+                entry = { uid: parsed.uid, exp: parsed.exp, iat: Number(parsed.iat) || 0, at: clock() };
             } catch { return null; }
             if (sessionCache.size > 20000) sessionCache.delete(sessionCache.keys().next().value);
             sessionCache.set(sha, entry);
@@ -320,6 +320,11 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (entry.exp <= clock()) return null;
         const user = await get(entry.uid);
         if (!user || user.disabled) return null;
+        // تغيير كلمة السر يُسقط كل الجلسات الأقدم منه (حتى لو سُرقت جلسة قديمة)
+        if (user.pwAt && (entry.iat || 0) < user.pwAt) {
+            sessionCache.delete(sha);
+            return null;
+        }
         return user;
     }
 
@@ -401,7 +406,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const problem = passwordProblem(next, user.email);
         if (problem) throw new UserError("weak_password", problem);
         const pw = await hashPassword(next);
-        return update(user.id, u => { u.pw = pw; });
+        return update(user.id, u => { u.pw = pw; u.pwAt = clock(); });
     }
 
     async function setHistoryEnabled(user, enabled) {
@@ -441,7 +446,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (problem) throw new UserError("weak_password", problem);
         await db.cmd(["DEL", key]);
         const pw = await hashPassword(password);
-        return update(user.id, u => { u.pw = pw; });
+        return update(user.id, u => { u.pw = pw; u.pwAt = clock(); });
     }
 
     // ---------- طلبات الدفع ----------

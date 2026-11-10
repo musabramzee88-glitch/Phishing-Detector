@@ -326,6 +326,9 @@ function createAuth({ config, users, oauth, stats, mailer }) {
             else if (p === "/api/account/password") {
                 updated = await users.changePassword(user, { current: body.current, next: body.next });
                 stats.event("password_change", "تغيير كلمة سر مستخدم", h.getClientIp(req, config));
+                // الجلسات القديمة سقطت بتغيير كلمة السر: نصدر جلسة جديدة لهذا المتصفح ونحذف القديمة
+                await users.destroySession(sessionToken(req)).catch(() => {});
+                return await startSession(req, res, updated, 200, await me(updated));
             } else if (p === "/api/account/history-setting") updated = await users.setHistoryEnabled(user, Boolean(body.enabled));
             else if (p === "/api/account/history/clear") await users.clearHistory(user);
             else if (p === "/api/account/api-key") {

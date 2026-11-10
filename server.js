@@ -168,17 +168,29 @@ function createApp(config = loadConfig(), overrides = {}) {
     server.on("close", () => { health.stop(); intel.stop(); });
 
     // نتأكد أن القاعدة تعمل قبل الاستماع (ونكمل حتى لو فشلت، مع تحذير)
-    const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }));
+    const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }))
+        .then(async state => {
+            // الإحصاءات والزوار تُحفظ في القاعدة حتى لا تتصفّر عند كل نشر
+            if (state.ok) {
+                const a = await stats.attach(db);
+                const b = await visitors.attach(db);
+                if (!a.ok || !b.ok) state.statsError = a.error || b.error;
+            }
+            return state;
+        });
+    const flushAll = () => Promise.all([stats.close(), visitors.close()]);
 
-    return { server, stats, config, admin, visitors, db, users, intel, scan, ready };
+    return { server, stats, config, admin, visitors, db, users, intel, scan, ready, flushAll };
 }
 
 async function main() {
-    const { server, config, admin, db, intel, ready } = createApp();
+    const { server, config, admin, db, intel, ready, flushAll } = createApp();
     const dbState = await ready;
 
     server.listen(config.port, config.host, () => {
         console.log(`Phishing Detector listening at http://${config.host}:${config.port} (public URL: ${config.appUrl})`);
+        if (dbState.statsError) console.log(`Stats persistence problem: ${dbState.statsError}`);
+        else if (dbState.ok && db.persistent) console.log("Stats: persistent (saved to the database).");
         if (db.backend === "upstash") console.log(dbState.ok ? "Database: Upstash (persistent)." : `Database: Upstash UNREACHABLE (${dbState.error}). Logins will fail until it is back.`);
         else console.log(config.onRender ? "WARNING: no UPSTASH_REDIS_REST_URL/TOKEN. Accounts live in memory and are LOST on every deploy." : "Database: in-memory (local development).");
         if (config.billing.upstashError) console.log(config.billing.upstashError);
@@ -191,7 +203,9 @@ async function main() {
 
     const shutdown = signal => {
         console.log(`${signal} received, shutting down.`);
-        server.close(() => process.exit(0));
+        // نحفظ الإحصاءات قبل الإغلاق حتى لا نخسر آخر عدّات قبل النشر
+        const saved = Promise.race([flushAll().catch(() => {}), new Promise(r => setTimeout(r, 4_000))]);
+        saved.then(() => server.close(() => process.exit(0)));
         setTimeout(() => process.exit(0), 10_000).unref();
     };
     process.on("SIGTERM", () => shutdown("SIGTERM"));

@@ -33,6 +33,27 @@ const COMMON_PASSWORDS = new Set([
     "00000000", "iloveyou", "abcd1234", "abc12345", "admin123", "welcome1", "87654321", "12341234",
     "11223344", "1q2w3e4r", "q1w2e3r4", "asdfghjk", "zxcvbnm1", "baghdad1", "iraq1234"
 ]);
+// كلمات أساسية شائعة: نكشفها حتى لو أُضيفت لها أرقام أو استُبدلت حروفها برموز (p@ssw0rd, letmein1)
+const COMMON_BASES = new Set([
+    "password", "passw0rd", "passcode", "letmein", "welcome", "iloveyou", "admin", "administrator", "qwerty", "qwertyuiop", "asdfgh", "asdfghjkl",
+    "zxcvbn", "monkey", "dragon", "football", "baseball", "master", "login", "princess", "sunshine", "shadow", "superman", "trustno", "freedom",
+    "whatever", "starwars", "hello", "abc", "abcd", "abcdef", "secret", "iraq", "baghdad", "basra", "mosul", "tikrit", "apexsec", "phishing", "changeme", "test", "user"
+]);
+const LEET = { "@": "a", "4": "a", "0": "o", "1": "l", "!": "i", "3": "e", "$": "s", "5": "s", "7": "t" };
+
+// تسلسل أرقام صاعد أو نازل أو متكرر بالكامل: 12345678910, 98765432, 123123123
+function isDigitPattern(value) {
+    if (!/^\d+$/.test(value)) return false;
+    let asc = true, desc = true;
+    for (let i = 1; i < value.length; i++) {
+        const d = Number(value[i]) - Number(value[i - 1]);
+        if (d !== 1 && !(Number(value[i - 1]) === 9 && Number(value[i]) === 0)) asc = false;
+        if (d !== -1 && !(Number(value[i - 1]) === 0 && Number(value[i]) === 9)) desc = false;
+    }
+    if (asc || desc) return true;
+    for (let size = 1; size <= 4; size++) if (value.length % size === 0 && value.slice(0, size).repeat(value.length / size) === value) return true;
+    return /^12345678910\d*$/.test(value);
+}
 
 // مزوّدو بريد مؤقت شائعون: يُرفضون عند التسجيل بالبريد (لا يؤثر على الدخول عبر Google/Microsoft/Apple)
 const DISPOSABLE_DOMAINS = new Set([
@@ -89,7 +110,13 @@ function passwordProblem(password, email) {
     if (typeof password !== "string" || password.length < 8) return "كلمة السر يجب أن تكون 8 أحرف على الأقل.";
     if (password.length > 200) return "كلمة السر طويلة جداً.";
     const lower = password.toLowerCase();
-    if (COMMON_PASSWORDS.has(lower) || /^(.)\1+$/.test(password)) return "كلمة السر هذه شائعة جداً وسهلة التخمين. اختر غيرها.";
+    const unleet = lower.replace(/[@4013!$57]/g, c => LEET[c]);
+    // نزيل الأرقام والرموز من الأطراف لنصل للكلمة الأساسية
+    const trim = value => value.replace(/^[^a-z\u0600-\u06ff]+|[^a-z\u0600-\u06ff]+$/g, "");
+    const base = trim(lower);
+    if (COMMON_PASSWORDS.has(lower) || /^(.)\1+$/.test(password) || isDigitPattern(password) || COMMON_BASES.has(base) || COMMON_BASES.has(trim(unleet)) || COMMON_BASES.has(unleet.replace(/[^a-z]/g, ""))) {
+        return "كلمة السر هذه شائعة جداً وسهلة التخمين. اختر غيرها.";
+    }
     if (email && lower === email.split("@")[0]) return "لا تستخدم اسم بريدك ككلمة سر.";
     return "";
 }

@@ -191,6 +191,7 @@
         { name: 'ستيم', keys: ['steamcommunity', 'steampowered'], domains: ['steamcommunity.com', 'steampowered.com'] },
         { name: 'زين كاش', keys: ['zaincash'], domains: ['zaincash.iq'] },
         { name: 'آسياسيل', keys: ['asiacell'], domains: ['asiacell.com'] },
+        { name: 'كورك تليكوم', keys: ['korek', 'korektel'], domains: ['korektel.com'] },
         { name: 'أدوبي', keys: ['adobe'], domains: ['adobe.com', 'adobe.io', 'adobelogin.com'] },
         { name: 'DocuSign', keys: ['docusign'], domains: ['docusign.com', 'docusign.net'] },
         { name: 'ديسكورد', keys: ['discord'], domains: ['discord.com', 'discord.gg', 'discordapp.com', 'discordapp.net', 'discord.media'] },
@@ -640,10 +641,10 @@
         },
         {
             id: 'prize', label: 'وعد بجائزة أو ربح', weight: 0.35, patterns: [
-                rx('مبروك|مبارك'), rx('ربحت|فزت|كسبت'), rx('جايزه|جوايز|جائزه'), rx('سحب\\s*(على|ال)'),
+                rx(`مبروك\\s*${W}{0,2}?(ربحت|فزت|كسبت|فوز|جايزه|جائزه|اختيار|السحب)`), rx('ربحت|فزت|كسبت'), rx('جايزه|جوايز|جائزه'), rx('سحب\\s*(على|ال)'),
                 rx('(هديه|هدايا|رصيد|انترنت|باقه)\\s*مجاني'), rx('مكافاه|مكافيه'), rx('تم\\s*اختيار(ك|كم)'), rx('الفايز|الفائز|الرابح'),
                 rx('ايفون\\s*\\d*\\s*مجان|مجانا'),
-                rx('you (have )?won|\\bwinner\\b|congratulations|\\bprize\\b|free gift|claim (your|now)|\\breward\\b|lottery|giveaway')
+                rx('you (have )?won|\\bwinner\\b|congratulations[,!]?\\s+(you|your|dear)|\\bprize\\b|free gift|claim (your|now)|\\breward\\b|lottery|giveaway')
             ]
         },
         {
@@ -671,6 +672,18 @@
                 rx('(سجل|تسجيل)\\s*(ال)?دخول'), rx(`(حدث|تحديث)\\s*${W}{0,1}?(ال)?(بيانات|معلومات|حساب)`),
                 rx(`(تاكيد|اكد|تحقق من)\\s*${W}{0,1}?(ال)?(هويت|حساب|بيانات|معلومات)`),
                 rx('click (here|the link|below|on the link)|log ?in (now|here|to)|sign ?in to|verify (your )?(account|identity|information)|update your (details|information|account|payment)|confirm your (account|identity|details)')
+            ]
+        },
+        {
+            id: 'windfall', label: 'ثروة أو ميراث أو أموال مجمّدة (احتيال الدفع المقدم)', weight: 0.4, patterns: [
+                rx('(ميراث|تركه|وصيه)\\s*${W}{0,3}?(مليون|الاف|ملايين|دولار|\\$)'), rx('(مليون|ملايين)\\s*(دولار|يورو|دينار)'),
+                rx('(نسبه|حصه)\\s*\\d+\\s*%'), rx('(اموال|مبلغ|حساب)\\s*(مجمد|مهمل|غير مطالب)'),
+                rx('next of kin|inheritance|beneficiary|unclaimed (funds?|money)|(\\$|usd)\\s?\\d[\\d,.]*\\s*(million|m\\b)|\\d+(\\.\\d+)?\\s*million (usd|dollars|us|\\$)|barrister|late (husband|client|father)|(transfer|move|release) (of )?(the )?(funds?|money|\\$)|\\d+\\s?% (of|for|share|commission)|(your|a) (foreign|trusted) (partner|account)|(dear|beloved) (friend|one|sir|madam)|(business|urgent) (proposal|proposition)|(help|assist) (me )?(to )?(transfer|move|claim)')
+            ]
+        },
+        {
+            id: 'macro', label: 'يطلب تفعيل الماكرو أو التحرير لفتح المستند', weight: 0.45, patterns: [
+                rx('enable (the )?(macros?|content|editing)|enable macros'), rx('(فعل|تفعيل|تمكين|اتاحه)\\s*(ال)?(ماكرو|ماكروز|المحتوي|التحرير|التعديل)')
             ]
         },
         {
@@ -715,12 +728,16 @@
         { all: 'credentials', any: ['threat', 'urgency', 'impersonation'], weight: 0.4, text: 'طلب بيانات سرية مع تهديد أو استعجال أو باسم جهة رسمية: هذا نمط التصيد الكلاسيكي.' },
         { all: 'prize', any: ['payment', 'credentials', 'action'], weight: 0.35, text: 'وعد بجائزة يتطلب دفع رسوم أو إدخال بيانات: أسلوب احتيال معروف.' },
         { all: 'threat', any: ['action'], weight: 0.3, text: 'تهديد بإيقاف الحساب مع دفعك للضغط على رابط أو تسجيل الدخول.' },
+        { all: 'windfall', any: ['payment', 'secrecy', 'channel', 'credentials', 'urgency', 'action', 'link'], weight: 0.4, text: 'قصة ثروة أو ميراث أو أموال عالقة مع طلب مساعدة أو تواصل: احتيال الدفع المقدم المعروف (419).' },
+        { all: 'macro', any: ['urgency', 'impersonation', 'action', 'payment', 'threat'], weight: 0.35, text: 'مستند يطلب تفعيل الماكرو مع صيغة استعجال أو انتحال: أسلوب شائع لنشر البرمجيات الخبيثة.' },
         { all: 'job', any: ['payment'], weight: 0.35, text: 'عرض عمل أو استثمار يطلب دفع مبلغ مقدماً (Advance-fee scam).' },
         { all: 'impersonation', any: ['payment'], weight: 0.25, text: 'جهة تدّعي أنها رسمية وتطلب تحويل أموال.' },
         { all: 'grant', any: ['action', 'credentials', 'payment', 'link'], weight: 0.35, text: 'منحة أو قرض يُطلب التقديم عليه عبر رابط أو بإدخال بيانات: من أكثر أساليب الاحتيال انتشاراً بالعراق.' }
     ];
 
     const TEXT_ADVICE = {
+        windfall: 'لا أحد يمنحك ميراثاً أو نسبة من ملايين الدولارات عبر رسالة. تجاهل الرسالة ولا ترسل أي رسوم.',
+        macro: 'لا تفعّل الماكرو أو التحرير في مستند وصلك من مصدر غير موثوق.',
         credentials: 'لا تشارك أي رمز تحقق أو كلمة سر مع أي شخص، حتى لو قال إنه من الدعم الفني أو البنك.',
         payment: 'لا تحوّل أي مبلغ قبل التحقق من الجهة عبر قناتها الرسمية.',
         threat: 'تواصل مع الجهة عبر رقمها أو تطبيقها الرسمي، وليس عبر الرابط أو الرقم الموجود في الرسالة.',
@@ -729,7 +746,9 @@
         link: 'لا تفتح الرابط الموجود في الرسالة.'
     };
 
-    const URL_IN_TEXT = /((?:hxxps?|https?):\/\/[^\s<>"'،]+|www\.[^\s<>"'،]+|(?:[a-z0-9-]+\.)+(?:com|net|org|info|xyz|top|iq|io|me|co|app|site|online|shop|click|link|ly|gl|tk|ml|ga|cf|gq|ru|cn|ws|cc|biz|live|support)(?:\/[^\s<>"'،]*)?)/gi;
+    const MAX_TEXT_CHARS = 20000;
+
+    const URL_IN_TEXT = /((?:hxxps?|https?):\/\/[^\s<>"'،]+|www\.[^\s<>"'،]+|(?:[a-z0-9-]{1,63}\.){1,6}(?:com|net|org|info|xyz|top|iq|io|me|co|app|site|online|shop|click|link|ly|gl|tk|ml|ga|cf|gq|ru|cn|ws|cc|biz|live|support)(?:\/[^\s<>"'،]*)?)/gi;
 
     function extractUrls(text) {
         const found = [];
@@ -742,7 +761,8 @@
     }
 
     function analyzeText(rawText) {
-        const original = String(rawText || '').trim();
+        // نقصّ النص الطويل جداً: يمنع إبطاء الفحص (ReDoS)، والاحتيال لا يحتاج أكثر من هذا
+        const original = String(rawText || '').slice(0, MAX_TEXT_CHARS).trim();
         if (!original) return { error: 'empty' };
         const normalized = normalizeArabic(original);
         const signals = [];
@@ -792,7 +812,7 @@
         }
 
         const advice = [];
-        for (const id of ['credentials', 'payment', 'threat', 'prize', 'job']) if (hits.has(id)) advice.push(TEXT_ADVICE[id]);
+        for (const id of ['credentials', 'payment', 'threat', 'prize', 'job', 'windfall', 'macro']) if (hits.has(id)) advice.push(TEXT_ADVICE[id]);
         if (urls.some(u => u.result.level !== 'safe')) advice.push(TEXT_ADVICE.link);
 
         return finish(signals, THRESHOLDS, {
@@ -991,11 +1011,13 @@
         if (hexAt(head, 0, 3) === 'FFD8FF') return { kind: 'image', label: 'صورة JPG' };
         if (h4 === '89504E47') return { kind: 'image', label: 'صورة PNG' };
         if (asciiAt(head, 0, 4) === 'GIF8') return { kind: 'image', label: 'صورة GIF' };
+        if (asciiAt(head, 0, 2) === 'BM' && head.length >= 14 && head[6] === 0 && head[7] === 0 && head[8] === 0 && head[9] === 0) return { kind: 'image', label: 'صورة BMP' };
+        if (h4 === '00000100' && head.length >= 6 && head[4] > 0) return { kind: 'image', label: 'أيقونة ICO' };
         if (asciiAt(head, 0, 4) === 'RIFF' && asciiAt(head, 8, 4) === 'WEBP') return { kind: 'image', label: 'صورة WEBP' };
         if (asciiAt(head, 0, 5) === '#!AMR') return { kind: 'audio', label: 'صوت AMR' };
         if (asciiAt(head, 0, 3) === 'ID3') return { kind: 'audio', label: 'صوت MP3 (يحتوي وسم ID3)' };
         if (head[0] === 0xFF && (head[1] & 0xF6) === 0xF0) return { kind: 'audio', label: 'صوت AAC (ADTS)' };
-        if (head[0] === 0xFF && (head[1] & 0xE0) === 0xE0) return { kind: 'audio', label: 'صوت MP3 (إطارات MPEG)' };
+        if (head[0] === 0xFF && (head[1] & 0xE0) === 0xE0 && ((head[1] >> 3) & 3) !== 1 && ((head[1] >> 1) & 3) !== 0 && (head[2] >> 4) !== 15 && ((head[2] >> 2) & 3) !== 3) return { kind: 'audio', label: 'صوت MP3 (إطارات MPEG)' };
         if (asciiAt(head, 0, 4) === 'RIFF') {
             const riffType = asciiAt(head, 8, 4);
             if (riffType === 'WAVE') return { kind: 'audio', label: 'صوت WAV' };
@@ -1004,7 +1026,7 @@
         }
         if (asciiAt(head, 0, 4) === 'OggS') return { kind: 'media', label: 'حاوية Ogg (صوت أو فيديو)' };
         if (asciiAt(head, 0, 4) === 'fLaC') return { kind: 'audio', label: 'صوت FLAC' };
-        if (asciiAt(head, 4, 4) === 'ftyp') {
+        if (head.length >= 12 && asciiAt(head, 4, 4) === 'ftyp') {
             const brand = asciiAt(head, 8, 4);
             if (brand.startsWith('M4A') || brand.startsWith('M4B')) return { kind: 'audio', label: 'صوت M4A' };
             if (brand === 'qt  ') return { kind: 'video', label: 'فيديو QuickTime (MOV)' };
@@ -1055,6 +1077,7 @@
 
     // fileInfo = { name, size, head: Uint8Array (أول 1MB تقريباً), tail: Uint8Array (آخر 64KB) }
     function analyzeFile(fileInfo) {
+        if (!fileInfo || typeof fileInfo !== 'object') return { error: 'invalid' };
         const name = String(fileInfo.name || '');
         const lower = name.toLowerCase().trim();
         const head = fileInfo.head || new Uint8Array(0);
@@ -1088,6 +1111,7 @@
         if (family === 'script') add(0.55, 'danger', `ملف سكربت (.${ext}) ينفّذ أوامر على الجهاز مباشرة عند فتحه.`);
         else if (family === 'shortcut') add(0.6, 'danger', `ملف اختصار (.${ext}) يمكنه تشغيل أي أمر، ويكثر استخدامه في المرفقات الخبيثة.`);
         else if (family === 'disk') add(0.35, 'warning', `صورة قرص (.${ext}): تُستخدم لتمرير برامج خبيثة وتجاوز تحذيرات ويندوز للملفات المنزّلة.`);
+        else if (family === 'executable' && ['scr', 'pif', 'com', 'cpl'].includes(ext)) add(0.55, 'danger', `الامتداد .${ext} قديم ونادر الاستخدام المشروع، ويُستعمل غالباً لإخفاء برمجيات خبيثة داخل مرفقات.`);
         else if (family === 'executable') add(0.3, 'warning', `ملف تنفيذي (.${ext}). شغّله فقط إذا نزّلته بنفسك من الموقع الرسمي للبرنامج.`);
         if (MACRO_EXTENSIONS.includes(ext)) add(0.4, 'warning', `مستند Office يدعم الماكرو (.${ext})، والماكرو من أشهر طرق نشر البرمجيات الخبيثة.`);
 

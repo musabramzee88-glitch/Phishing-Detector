@@ -645,22 +645,27 @@ function detectMediaSignature(bytes) {
     if (ascii(0, 4) === 'Rar!') return { kind: 'archive', label: 'أرشيف مضغوط (RAR)' };
     if (hex(0, 6) === '377ABCAF271C') return { kind: 'archive', label: 'أرشيف مضغوط (7z)' };
     if (hex(0, 4) === '25504446') return { kind: 'document', label: 'مستند PDF' };
+    if (ascii(0, 5) === '{\\rtf') return { kind: 'document', label: 'مستند RTF' };
+    if (hex(0, 8) === 'D0CF11E0A1B11AE1') return { kind: 'document', label: 'مستند Office قديم (DOC / XLS / PPT)' };
+    if (ascii(0, 2) === 'BM' && bytes.length >= 14 && bytes[6] === 0 && bytes[7] === 0 && bytes[8] === 0 && bytes[9] === 0) return { kind: 'image', label: 'صورة BMP' };
+    if (hex(0, 4) === '00000100' && bytes.length >= 6 && bytes[4] > 0) return { kind: 'image', label: 'أيقونة ICO' };
     if (hex(0, 3) === 'FFD8FF' || hex(0, 4) === '89504E47' || ascii(0, 4) === 'GIF8') {
         return { kind: 'image', label: 'صورة (JPG / PNG / GIF)' };
     }
     if (ascii(0, 5) === '#!AMR') return { kind: 'audio', label: 'صوت AMR' };
     if (ascii(0, 3) === 'ID3') return { kind: 'audio', label: 'صوت MP3 (يحتوي وسم ID3)' };
     if (bytes[0] === 0xFF && (bytes[1] & 0xF6) === 0xF0) return { kind: 'audio', label: 'صوت AAC (ADTS)' };
-    if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return { kind: 'audio', label: 'صوت MP3 (إطارات MPEG)' };
+    if (bytes.length >= 4 && bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0 && ((bytes[1] >> 3) & 3) !== 1 && ((bytes[1] >> 1) & 3) !== 0 && (bytes[2] >> 4) !== 15 && ((bytes[2] >> 2) & 3) !== 3) return { kind: 'audio', label: 'صوت MP3 (إطارات MPEG)' };
     if (ascii(0, 4) === 'RIFF') {
         const riffType = ascii(8, 4);
         if (riffType === 'WAVE') return { kind: 'audio', label: 'صوت WAV' };
         if (riffType === 'AVI ') return { kind: 'video', label: 'فيديو AVI' };
+        if (riffType === 'WEBP') return { kind: 'image', label: 'صورة WEBP' };
         return { kind: 'unknown', label: 'حاوية RIFF غير معروفة' };
     }
     if (ascii(0, 4) === 'OggS') return { kind: 'media', label: 'حاوية Ogg (صوت أو فيديو)' };
     if (ascii(0, 4) === 'fLaC') return { kind: 'audio', label: 'صوت FLAC' };
-    if (ascii(4, 4) === 'ftyp') {
+    if (bytes.length >= 12 && ascii(4, 4) === 'ftyp') {
         const brand = ascii(8, 4);
         if (brand.startsWith('M4A') || brand.startsWith('M4B')) return { kind: 'audio', label: 'صوت M4A' };
         if (brand === 'qt  ') return { kind: 'video', label: 'فيديو QuickTime (MOV)' };

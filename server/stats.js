@@ -40,7 +40,7 @@ function hashToFlat(raw) {
 function createStats({ audit } = {}) {
     const startedAt = Date.now();
     const counters = {
-        requests: 0, chatOk: 0, chatErrors: 0, rateLimited: 0,
+        requests: 0, chatOk: 0, chatAi: 0, chatErrors: 0, rateLimited: 0,
         loginOk: 0, loginFailed: 0, blockedRequests: 0,
         clientErrors: 0, serverErrors: 0,
         registrations: 0, userLogins: 0, userLoginFailed: 0, paymentRequests: 0, quotaExceeded: 0, bulkScans: 0, filesCleaned: 0

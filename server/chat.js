@@ -15,7 +15,7 @@
 
 const h = require("./http");
 const engine = require("../public/js/detection-engine.js");
-const { smartFallback, TOPICS } = require("./chat-topics");
+const { smartFallback, TOPICS, VAGUE_HELP } = require("./chat-topics");
 const { route } = require("./chat-router");
 const { createRateLimiter } = require("./rate-limit");
 const { limitsFor } = require("./plans");
@@ -123,7 +123,7 @@ function offlineReply(message, scans, name, history = []) {
         return intro + soft + bodies.map(t => t.answer.replace("{name}", name)).join("\n\n");
     }
     // متابعة قصيرة («وبعدين؟»، «شسوي؟»، «اكمل»): نرجع لآخر موضوع تكلمنا به بالمحادثة
-    if (text.length <= 40 && Array.isArray(history)) {
+    if (text.length <= 40 && Array.isArray(history) && !VAGUE_HELP.test(text)) {
         for (let i = history.length - 1; i >= 0; i--) {
             const item = history[i];
             if (!item || item.role !== "user" || typeof item.content !== "string") continue;
@@ -135,10 +135,32 @@ function offlineReply(message, scans, name, history = []) {
     return smartFallback(String(message || ""), name).replace(/\{name\}/g, name);
 }
 
-function createChatHandler({ config, users, auth, scan, stats }) {
+// نماذج Gemini المفضّلة بالترتيب (يُختار أول متاح إذا رجع النموذج المضبوط 404)
+const GEMINI_PREFERRED = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+
+function extractGeminiText(data) {
+    const cand = data && Array.isArray(data.candidates) ? data.candidates[0] : null;
+    const parts = cand && cand.content && Array.isArray(cand.content.parts) ? cand.content.parts : [];
+    return parts.filter(p => p && typeof p.text === "string" && !p.thought).map(p => p.text).join("").trim();
+}
+
+// يختار أفضل نموذج متاح من قائمة النماذج (models.list)
+function pickGeminiModel(names, exclude = "") {
+    const ok = names.filter(n => n !== exclude);
+    for (const pref of GEMINI_PREFERRED) if (ok.includes(pref)) return pref;
+    const version = n => Number((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    const flash = ok.filter(n => /^gemini-[\d.]+-flash(-lite)?$/.test(n)).sort((a, b) => version(b) - version(a) || a.length - b.length);
+    return flash[0] || "";
+}
+
+function createChatHandler({ config, users, auth, scan, stats, fetchImpl = (...a) => fetch(...a) }) {
     const ai = config.openai;
     const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.chatPerMinute, globalMax: config.limits.globalChatPerMinute });
     let lastProviderError = "";
+    let lastOkAt = 0;
+    let lastLatencyMs = 0;
+    let activeModel = ai.model;
+    let discoveredAt = 0;
 
     function endpoint() {
         const url = new URL(ai.baseUrl + (ai.style === "responses" ? "/responses" : "/chat/completions"));
@@ -146,26 +168,78 @@ function createChatHandler({ config, users, auth, scan, stats }) {
         return url;
     }
 
+    function providerError(status, payload) {
+        const error = new Error(describeProviderError(status, payload));
+        error.provider = true;
+        error.status = status;
+        error.transient = status === 429 || status >= 500;
+        return error;
+    }
+
+    // قائمة نماذج Gemini المتاحة لهذا المفتاح (تدعم generateContent)
+    async function listGeminiModels(signal) {
+        const response = await fetchImpl(ai.baseUrl + "/models?pageSize=200", { headers: { "x-goog-api-key": ai.apiKey }, signal });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw providerError(response.status, payload);
+        return (Array.isArray(payload.models) ? payload.models : [])
+            .filter(m => m && typeof m.name === "string" && (!Array.isArray(m.supportedGenerationMethods) || m.supportedGenerationMethods.includes("generateContent")))
+            .map(m => m.name.replace(/^models\//, ""));
+    }
+
+    async function callGemini(instructions, convo, signal, model) {
+        const contents = convo.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+        const body = {
+            systemInstruction: { parts: [{ text: instructions }] },
+            contents,
+            generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+        };
+        const response = await fetchImpl(`${ai.baseUrl}/models/${encodeURIComponent(model)}:generateContent`, {
+            method: "POST",
+            headers: { "x-goog-api-key": ai.apiKey, "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            signal
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw providerError(response.status, payload);
+        const text = extractGeminiText(payload);
+        if (!text) {
+            const blocked = payload && payload.promptFeedback && payload.promptFeedback.blockReason;
+            const error = new Error(blocked ? `حجب Gemini الرد (${blocked}).` : "المزوّد رجّع رداً فارغاً (قد يكون بسبب فلتر المحتوى أو حد الطول).");
+            error.provider = true;
+            throw error;
+        }
+        return text;
+    }
+
     async function callModel(messages, signal) {
         const instructions = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
         const convo = messages.filter(m => m.role !== "system");
+        if (ai.style === "gemini") {
+            try {
+                return await callGemini(instructions, convo, signal, activeModel);
+            } catch (error) {
+                // النموذج غير موجود/متقاعد: نكتشف أفضل نموذج متاح لهذا المفتاح ونعيد المحاولة مرة
+                const missing = error.status === 404 || (error.status === 400 && /not found|not supported|unsupported model/i.test(error.message));
+                if (!missing || Date.now() - discoveredAt < 60_000) throw error;
+                discoveredAt = Date.now();
+                const next = pickGeminiModel(await listGeminiModels(signal), activeModel);
+                if (!next) throw error;
+                console.log(`CyberBot: model ${activeModel} unavailable, switching to ${next}.`);
+                activeModel = next;
+                return await callGemini(instructions, convo, signal, activeModel);
+            }
+        }
         const body = ai.style === "responses"
             ? { model: ai.model, instructions, input: convo, max_output_tokens: 900, store: false, ...(ai.webSearch ? { tools: [{ type: "web_search" }], tool_choice: "auto" } : {}) }
             : { model: ai.model, messages: [{ role: "system", content: instructions }, ...convo], max_tokens: 900, temperature: 0.4 };
-        const response = await fetch(endpoint(), {
+        const response = await fetchImpl(endpoint(), {
             method: "POST",
             headers: { Authorization: "Bearer " + ai.apiKey, "Content-Type": "application/json" },
             body: JSON.stringify(body),
             signal
         });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-            const reason = describeProviderError(response.status, payload);
-            const error = new Error(reason);
-            error.provider = true;
-            error.transient = response.status === 429 || response.status >= 500;
-            throw error;
-        }
+        if (!response.ok) throw providerError(response.status, payload);
         const { text, sources } = ai.style === "responses" ? extractResponsesText(payload) : extractChatText(payload);
         if (!text) {
             const error = new Error("المزوّد رجّع رداً فارغاً (قد يكون بسبب فلتر المحتوى أو حد الطول).");
@@ -173,6 +247,25 @@ function createChatHandler({ config, users, auth, scan, stats }) {
             throw error;
         }
         return sources.length ? text + "\n\nالمصادر:\n" + sources.map(([u, t]) => "- " + t + ": " + u).join("\n") : text;
+    }
+
+    // اختبار سريع من لوحة الأدمن: هل المزوّد يرد فعلاً؟
+    async function test() {
+        if (!ai.apiKey || !ai.model) return { ok: false, error: "لم يُضبط مفتاح ذكاء اصطناعي (GEMINI_API_KEY)." };
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 25_000);
+        const started = Date.now();
+        try {
+            const reply = await callModel([{ role: "system", content: "Reply with one short Arabic sentence." }, { role: "user", content: "قل: CyberBot جاهز." }], controller.signal);
+            lastOkAt = Date.now(); lastLatencyMs = lastOkAt - started; lastProviderError = "";
+            return { ok: true, model: activeModel, ms: lastLatencyMs, reply: reply.slice(0, 200) };
+        } catch (error) {
+            const reason = error.name === "AbortError" ? "انتهت المهلة (25 ثانية)." : error.provider ? error.message : "تعذر الاتصال: " + String(error.message).slice(0, 80);
+            lastProviderError = reason;
+            return { ok: false, model: activeModel, error: reason };
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     async function handle(req, res) {
@@ -248,7 +341,9 @@ function createChatHandler({ config, users, auth, scan, stats }) {
                 reply = await callModel(messages, controller.signal);
             }
             stats.count("chatOk");
+            stats.count("chatAi");
             lastProviderError = "";
+            lastOkAt = Date.now();
             h.sendJson(res, 200, { reply, mode: "ai", used: q.used, limit: q.limit });
         } catch (error) {
             const reason = error.name === "AbortError" ? "انتهت مهلة المزوّد (45 ثانية)." : error.provider ? error.message : "تعذر الاتصال بالمزوّد: " + String(error.message).slice(0, 80);
@@ -263,7 +358,10 @@ function createChatHandler({ config, users, auth, scan, stats }) {
         }
     }
 
-    return { handle, status: () => ({ configured: Boolean(ai.apiKey && ai.model), style: ai.style, model: ai.model, lastError: lastProviderError }) };
+    return {
+        handle, test,
+        status: () => ({ configured: Boolean(ai.apiKey && ai.model), style: ai.style, model: activeModel, lastError: lastProviderError, lastOkAt: lastOkAt ? new Date(lastOkAt).toISOString() : null, latencyMs: lastLatencyMs })
+    };
 }
 
-module.exports = { createChatHandler, extractResponseText, extractChatText, describeProviderError, offlineReply };
+module.exports = { createChatHandler, pickGeminiModel, extractGeminiText, extractResponseText, extractChatText, describeProviderError, offlineReply };

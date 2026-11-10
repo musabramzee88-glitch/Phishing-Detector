@@ -58,20 +58,24 @@ test('قوائم التهديدات: تطابق الرابط والنطاق، و
         if (fail) throw new Error('down');
         const body = url.includes('openphish')
             ? 'https://evil-login.example/paypal/\nhttps://docs.google.com/forms/d/abc\n# comment\n'
-            : 'http://malware.example/payload.exe\n';
+            : '# Phishing Army\nbad-domain.example\nwww.other-bad.example\ngithub.io\n';
         return { ok: true, status: 200, text: async () => body };
     };
     const intel = createIntel({ fetchImpl });
     await intel.refresh();
-    assert.equal(intel.status().urls, 3);
+    assert.equal(intel.status().urls, 2);
     assert.equal(intel.lookup('https://www.evil-login.example/paypal', 'www.evil-login.example')[0].weight, 0.97);
     assert.equal(intel.lookup('https://evil-login.example/other', 'evil-login.example')[0].weight, 0.7);
     assert.equal(intel.lookup('https://docs.google.com/forms/d/zzz', 'docs.google.com').length, 0, 'shared platform must not be flagged by host');
     assert.equal(intel.lookup('https://docs.google.com/forms/d/abc', 'docs.google.com').length, 1);
-    assert.match(intel.lookup('http://malware.example/payload.exe', 'malware.example')[0].text, /برمجيات خبيثة/);
+    assert.match(intel.lookup('https://bad-domain.example/x', 'bad-domain.example')[0].text, /Phishing Army/);
+    assert.equal(intel.lookup('https://other-bad.example/', 'other-bad.example')[0].weight, 0.7);
+    assert.equal(intel.lookup('https://login.bad-domain.example/', 'login.bad-domain.example')[0].weight, 0.5);
+    assert.equal(intel.lookup('https://me.github.io/', 'me.github.io').length, 0, 'shared platform in domain list is ignored');
     fail = true;
     await intel.refresh();
-    assert.equal(intel.status().urls, 3, 'keeps last good copy');
+    assert.equal(intel.status().urls, 2, 'keeps last good copy');
+    assert.equal(intel.status().hosts >= 3, true);
     assert.ok(intel.status().feeds.openphish.error);
     assert.deepEqual(createIntel({ enabled: false }).lookup('https://evil-login.example/paypal', 'evil-login.example'), []);
 });
@@ -549,7 +553,7 @@ test('إعداد الذكاء الاصطناعي: OpenAI يستخدم Responses�
     assert.equal(loadConfig({ OPENAI_API_KEY: 'k', OPENAI_MODEL: 'm' }).openai.style, 'responses');
     assert.equal(loadConfig({ AI_API_KEY: 'k', AI_MODEL: 'm', AI_BASE_URL: 'https://api.groq.com/openai/v1' }).openai.style, 'chat');
     const gemini = loadConfig({ GEMINI_API_KEY: 'g' }).openai;
-    assert.equal(gemini.style, 'chat');
+    assert.equal(gemini.style, 'gemini');
     assert.match(gemini.baseUrl, /generativelanguage\.googleapis\.com/);
     assert.ok(gemini.model);
     assert.equal(loadConfig({ AI_API_KEY: 'k', AI_MODEL: 'm', AI_API_STYLE: 'responses', AI_BASE_URL: 'https://x.example/v1' }).openai.style, 'responses');

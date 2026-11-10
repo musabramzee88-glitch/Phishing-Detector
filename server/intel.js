@@ -5,7 +5,8 @@
 
   1) قوائم التهديدات المفتوحة، تُحمَّل بالذاكرة وتتحدّث كل 3 ساعات:
        OpenPhish (community feed)   روابط تصيد نشطة
-       URLhaus (abuse.ch)           روابط توزّع برمجيات خبيثة
+       Phishing Army                ~140 ألف نطاق تصيد (يجمع PhishTank, OpenPhish, CERT.PL, urlscan.io...)
+     (URLhaus أوقف رابط text_online بخطأ 410، فاستُبدل.)
      الفحص محلي تماماً (لا نرسل روابط المستخدمين لأي جهة).
   2) عمر النطاق عبر RDAP (rdap.org): النطاقات المسجّلة حديثاً من أقوى مؤشرات التصيد.
      هنا يُرسل اسم النطاق فقط (وليس الرابط كاملاً) لسجل النطاقات، ونخزّن النتيجة 24 ساعة.
@@ -15,7 +16,7 @@
 
 const FEEDS = [
     { id: "openphish", label: "OpenPhish", url: "https://openphish.com/feed.txt", kind: "phishing" },
-    { id: "urlhaus", label: "URLhaus", url: "https://urlhaus.abuse.ch/downloads/text_online/", kind: "malware" }
+    { id: "phishingarmy", label: "Phishing Army", url: "https://phishing.army/download/phishing_army_blocklist.txt", kind: "phishing", format: "domains" }
 ];
 const REFRESH_MS = 3 * 60 * 60 * 1000;
 const MAX_FEED_BYTES = 15 * 1024 * 1024;
@@ -71,6 +72,14 @@ function createIntel({ enabled = true, fetchImpl = fetch, feeds = FEEDS, now = (
                 for (const line of text.split(/\r?\n/)) {
                     const value = line.trim();
                     if (!value || value.startsWith("#")) continue;
+                    if (feed.format === "domains") {
+                        // قائمة نطاقات: سطر = نطاق (أو رابط نأخذ منه النطاق)
+                        const host = (value.includes("/") ? normalizeUrl(value).split("/")[0] : value.toLowerCase()).replace(/^www\./, "");
+                        if (!/^[a-z0-9.-]+\.[a-z0-9-]{2,}$/.test(host) || SHARED_PLATFORMS.test(host) || /(^|\.)amiprotected\.it$/.test(host)) continue;
+                        nextHosts.set(host, feed.id);
+                        count++;
+                        continue;
+                    }
                     const n = normalizeUrl(value);
                     if (!n) continue;
                     nextUrls.set(n, feed.id);
@@ -119,6 +128,16 @@ function createIntel({ enabled = true, fetchImpl = fetch, feeds = FEEDS, now = (
         } else if (cleanHost && hosts.has(cleanHost)) {
             const id = hosts.get(cleanHost);
             signals.push({ weight: 0.7, type: "danger", text: `النطاق ${cleanHost} ظهر في قائمة ${feedLabel(id)} لروابط ضارة نشطة.` });
+        } else if (cleanHost && !SHARED_PLATFORMS.test(cleanHost)) {
+            // نطاق فرعي لنطاق مُدرج (login.bad.example ← bad.example)
+            const parts = cleanHost.split(".");
+            for (let i = 1; i < parts.length - 1; i++) {
+                const parent = parts.slice(i).join(".");
+                if (hosts.has(parent) && !SHARED_PLATFORMS.test(parent)) {
+                    signals.push({ weight: 0.5, type: "danger", text: `هذا النطاق فرعي من ${parent} المُدرج في قائمة ${feedLabel(hosts.get(parent))} للتصيد.` });
+                    break;
+                }
+            }
         }
         return signals;
     }

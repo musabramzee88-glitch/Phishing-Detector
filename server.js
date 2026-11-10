@@ -57,7 +57,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     const auth = createAuth({ config, users, oauth, stats, mailer });
     const scan = createScan({ config, users, auth, intel, stats });
     const chat = createChatHandler({ config, users, auth, scan, stats });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, mail: mailer.status });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status });
 
     const pages = {
         app: fs.readFileSync(path.join(config.publicDir, "index.html")),
@@ -196,7 +196,7 @@ async function main() {
         if (config.billing.upstashError) console.log(config.billing.upstashError);
         const providers = Object.keys(config.oauth).filter(k => config.oauth[k]);
         console.log(`Sign-in providers: email${providers.length ? ", " + providers.join(", ") : ""}.`);
-        console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
+        console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style === "gemini" ? "Gemini native" : config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
         console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
         intel.start();
     });

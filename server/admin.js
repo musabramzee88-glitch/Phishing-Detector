@@ -271,6 +271,18 @@ function createAdmin(config, stats, extras = {}) {
             return true;
         }
 
+        if (p === "/api/admin/ai-test") {
+            if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
+            const session = currentSession(req);
+            if (!session) return http.sendJson(res, 401, { error: "Unauthorized" }), true;
+            const body = await adminPostBody(req, res);
+            if (body === undefined) return true;
+            const result = extras.chatTest ? await extras.chatTest() : { ok: false, error: "غير متاح." };
+            stats.event("admin_ai_test", result.ok ? `اختبار الذكاء الاصطناعي ناجح (${result.model}، ${result.ms}ms)` : `فشل اختبار الذكاء الاصطناعي: ${result.error}`, http.getClientIp(req, config));
+            http.sendJson(res, 200, result);
+            return true;
+        }
+
         // ---------- المستخدمون والمدفوعات والإيرادات (تتطلب جلسة أدمن) ----------
         if (p.startsWith("/api/admin/users") || p.startsWith("/api/admin/payments") || p === "/api/admin/revenue" || p.startsWith("/api/admin/export/")) {
             return await manageRoutes(req, res, p, url), true;

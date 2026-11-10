@@ -77,16 +77,20 @@ function parseAi(env) {
     let baseUrl = env.AI_BASE_URL || env.OPENAI_BASE_URL || "";
     if (!apiKey && env.GEMINI_API_KEY) {
         apiKey = env.GEMINI_API_KEY;
-        baseUrl = baseUrl || "https://generativelanguage.googleapis.com/v1beta/openai";
-        model = model || "gemini-2.5-flash";
+        model = model || env.GEMINI_MODEL || "gemini-2.5-flash";
+    }
+    apiKey = String(apiKey).trim();
+    model = String(model).trim();
+    let style = String(env.AI_API_STYLE || "").toLowerCase();
+    let host = "";
+    try { host = new URL(baseUrl).hostname; } catch { /* افتراضي أدناه */ }
+    // Gemini: نستخدم الواجهة الأصلية (generateContent). مفاتيح Google الجديدة (AQ.) لا تعمل على واجهة OpenAI-compat.
+    const geminiKey = Boolean(env.GEMINI_API_KEY && apiKey === String(env.GEMINI_API_KEY).trim());
+    if (style === "gemini" || (style !== "chat" && (host === "generativelanguage.googleapis.com" || (!baseUrl && geminiKey)))) {
+        return { apiKey, model: model || "gemini-2.5-flash", baseUrl: "https://generativelanguage.googleapis.com/v1beta", style: "gemini", webSearch: false };
     }
     baseUrl = (baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
-    let style = String(env.AI_API_STYLE || "").toLowerCase();
-    if (!["responses", "chat"].includes(style)) {
-        let host = "";
-        try { host = new URL(baseUrl).hostname; } catch { /* يُرفض لاحقاً */ }
-        style = host === "api.openai.com" ? "responses" : "chat";
-    }
+    if (!["responses", "chat"].includes(style)) style = host === "api.openai.com" || !host ? "responses" : "chat";
     return { apiKey, model, baseUrl, style, webSearch: env.OPENAI_WEB_SEARCH === "1" || env.AI_WEB_SEARCH === "1" };
 }
 

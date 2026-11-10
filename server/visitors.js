@@ -7,6 +7,8 @@
   (الملح اليومي مشتق من سر عشوائي محفوظ، فتبقى البصمة ثابتة خلال اليوم الواحد حتى بعد إعادة التشغيل).
 */
 
+// متصفحات آلية لا تُحسب كزوار (مراقبة الموقع، محركات البحث، أدوات سطر الأوامر)
+const BOT_UA = /(bot|crawl|spider|slurp|uptime|monitor|pingdom|statuscake|healthcheck|curl\/|wget|python-requests|python-urllib|go-http-client|okhttp|axios|node-fetch|headlesschrome|lighthouse|render\/)/i;
 const crypto = require("node:crypto");
 
 const ACTIVE_WINDOW_MS = 5 * 60_000;
@@ -113,6 +115,8 @@ function createVisitorCounter() {
     return {
         attach, flush, close,
         hit(ip, userAgent, time = Date.now()) {
+            // أدوات المراقبة والزواحف (UptimeRobot وغيرها) ليست زواراً: لا نحسبها
+            if (BOT_UA.test(String(userAgent || ""))) return false;
             const entry = bucket(time);
             const id = crypto.createHmac("sha256", entry.salt).update(String(ip) + "|" + String(userAgent || "").slice(0, 200)).digest("hex").slice(0, 16);
             entry.views += 1;

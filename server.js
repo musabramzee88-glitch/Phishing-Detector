@@ -56,7 +56,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     const mailer = createMailer(config);
     const auth = createAuth({ config, users, oauth, stats, mailer });
     const scan = createScan({ config, users, auth, intel, stats });
-    const chat = createChatHandler({ config, users, auth, scan, stats });
+    const chat = createChatHandler({ config, users, auth, scan, stats, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
     const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status });
 
     const pages = {
@@ -142,6 +142,24 @@ function createApp(config = loadConfig(), overrides = {}) {
                 if (!user) return redirect(res, "/login");
                 if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
                 return sendPage(req, res, pages.app);
+            }
+
+            // أرقام عامة مجمّعة للصفحة الرئيسية (بدون أي بيانات شخصية)
+            if (pathname === "/api/public/stats") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                const snap = stats.snapshot(0);
+                let scansTotal = 0, threats = 0;
+                for (const kind of Object.keys(snap.scans)) {
+                    const s = snap.scans[kind];
+                    scansTotal += s.safe + s.warning + s.danger;
+                    threats += s.warning + s.danger;
+                }
+                const intelStatus = intel.status();
+                return h.sendJson(res, 200, {
+                    scans: scansTotal, threats, chats: snap.counters.chatOk,
+                    threatIntel: intelStatus.enabled ? intelStatus.urls + intelStatus.hosts : 0,
+                    since: snap.since
+                }, { "Cache-Control": "public, max-age=60" });
             }
 
             if (await auth.handle(req, res, url)) return;

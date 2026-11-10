@@ -589,6 +589,10 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         return { total, users };
     }
 
+    async function count() {
+        return Number(await db.cmd(["ZCARD", k("users")])) || 0;
+    }
+
     async function setDisabled(userId, disabled) {
         const user = await update(userId, u => { u.disabled = Boolean(disabled); });
         if (disabled) for (const [sha, entry] of sessionCache) if (entry.uid === userId) sessionCache.delete(sha);
@@ -616,7 +620,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
-        createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, setDisabled, revenue,
+        createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revenue,
         publicUser: user => publicUser(user, clock())
     };
 }

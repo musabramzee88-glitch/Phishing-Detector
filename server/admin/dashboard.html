@@ -10,7 +10,7 @@
 </head>
 <body>
     <header class="topbar">
-        <h1>لوحة الإدارة</h1>
+        <h1><span class="brand">Phishing Detector</span> لوحة الإدارة</h1>
         <div class="actions">
             <span id="user" class="muted"></span>
             <span id="updated" class="muted"></span>
@@ -27,23 +27,53 @@
 
     <main class="dashboard">
         <section data-tab-panel="overview">
-            <h2>نظرة عامة</h2>
-            <div id="cards" class="cards"></div>
+            <div class="section-head">
+                <h2>نظرة عامة</h2>
+                <span class="live"><span class="live-dot"></span> مباشر، يتحدّث كل 10 ثوانٍ</span>
+            </div>
+            <div id="kpis" class="kpis"></div>
+        </section>
+
+        <section data-tab-panel="overview" class="grid-2">
+            <div class="panel">
+                <h3>الزوار الفريدون يومياً</h3>
+                <div id="visitorsChart" class="chart"></div>
+            </div>
+            <div class="panel">
+                <h3>نتائج كل الفحوصات</h3>
+                <div id="outcomeChart" class="chart"></div>
+            </div>
+        </section>
+
+        <section data-tab-panel="overview" class="grid-2">
+            <div class="panel">
+                <h3>الفحوصات حسب النوع</h3>
+                <div id="kindsChart"></div>
+            </div>
+            <div class="panel">
+                <h3>حالة الخدمات</h3>
+                <ul id="services" class="services"></ul>
+                <div class="actions-row">
+                    <button type="button" id="aiTest" class="secondary">اختبار CyberBot الآن</button>
+                    <span id="aiTestResult" class="muted"></span>
+                </div>
+            </div>
         </section>
 
         <section data-tab-panel="overview">
-            <h2>صحة النظام</h2>
+            <h2>صحة الخادم</h2>
             <div id="health" class="health"></div>
         </section>
 
         <section data-tab-panel="overview">
-            <h2>الزوار (تقريبي، بدون حفظ العناوين)</h2>
-            <div class="table-wrap"><table id="visitors"></table></div>
-        </section>
-
-        <section data-tab-panel="overview">
-            <h2>الفحوصات (مجهولة: النوع والنتيجة فقط)</h2>
-            <div class="table-wrap"><table id="scans"></table></div>
+            <details class="more">
+                <summary>كل العدادات والجداول التفصيلية</summary>
+                <div id="cards" class="cards spaced"></div>
+                <h3>الزوار (تقريبي، بدون حفظ العناوين)</h3>
+                <div class="table-wrap"><table id="visitors"></table></div>
+                <h3>الفحوصات (مجهولة: النوع والنتيجة فقط)</h3>
+                <div class="table-wrap"><table id="scans"></table></div>
+            </details>
         </section>
 
         <section id="payments" data-tab-panel="payments">
@@ -84,7 +114,7 @@
             <div class="table-wrap"><table id="events"></table></div>
         </section>
 
-        <p class="note">الإحصاءات محفوظة في ذاكرة الخادم فقط وتتصفّر عند إعادة تشغيله. لا تُحفظ الروابط ولا الرسائل ولا الملفات. تتحدّث الصفحة تلقائياً كل 10 ثوانٍ.</p>
+        <p class="note">الإحصاءات محفوظة بقاعدة البيانات وتبقى بعد كل نشر (إذا كانت Upstash مضبوطة). لا تُحفظ الروابط ولا الرسائل ولا الملفات، فقط أعداد مجهولة. تتحدّث الصفحة تلقائياً كل 10 ثوانٍ.</p>
     </main>
     <script src="/admin/assets/dashboard.js"></script>
     <script src="/admin/assets/manage.js"></script>

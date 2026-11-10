@@ -15,11 +15,6 @@ function switchPage(pageId, tabName, iconClasses) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function openCyberBot() {
-    switchPage('cyberBotPage', 'CyberBot AI', 'fa-solid fa-robot');
-    checkUserSession();
-}
-
 function toggleThemeMenu() {
     const menu = document.getElementById('themeMenu');
     menu.classList.toggle('show');
@@ -27,14 +22,41 @@ function toggleThemeMenu() {
 
 function setTheme(themeName) {
     document.body.setAttribute('data-theme', themeName);
-    localStorage.setItem('selected_theme', themeName);
+    try { localStorage.setItem('selected_theme', themeName); } catch { /* تخزين محجوب */ }
     document.getElementById('themeMenu').classList.remove('show');
 }
 
+// إحصاءات حية للصفحة الرئيسية (أرقام مجمّعة فقط)
+async function loadLiveStats() {
+    const box = document.getElementById('liveStats');
+    if (!box) return;
+    try {
+        const response = await fetch('/api/public/stats', { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const data = await response.json();
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const nf = new Intl.NumberFormat('en-US');
+        box.hidden = false;
+        box.querySelectorAll('[data-stat]').forEach(node => {
+            const target = Math.max(0, Number(data[node.dataset.stat]) || 0);
+            if (reduce || target < 10) { node.textContent = nf.format(target); return; }
+            const start = performance.now();
+            const tick = now => {
+                const t = Math.min(1, (now - start) / 1200);
+                node.textContent = nf.format(Math.round(target * (1 - Math.pow(1 - t, 3))));
+                if (t < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        });
+    } catch { /* الإحصاءات اختيارية */ }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('selected_theme') || 'dark';
+    let savedTheme = 'dark';
+    try { savedTheme = localStorage.getItem('selected_theme') || 'dark'; } catch { /* تخزين محجوب */ }
     document.body.setAttribute('data-theme', savedTheme);
     loadSimulation(0);
+    loadLiveStats();
 
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.theme-selector-container')) {
@@ -99,27 +121,191 @@ function currentUserName() {
     return (window.PDAccount && window.PDAccount.user && window.PDAccount.user.name) || "صديقي";
 }
 
+// تنسيق آمن للرد: عناوين، قوائم نقطية ومرقّمة، **غامق**، `كود`. كل النص يمر عبر textContent فقط (لا innerHTML)
+function appendInline(parent, text) {
+    for (const part of String(text).split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/)) {
+        if (!part) continue;
+        if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+            const b = document.createElement('strong');
+            b.textContent = part.slice(2, -2);
+            parent.appendChild(b);
+        } else if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+            const c = document.createElement('code');
+            c.textContent = part.slice(1, -1);
+            parent.appendChild(c);
+        } else {
+            parent.appendChild(document.createTextNode(part.replace(/\*\*/g, '')));
+        }
+    }
+}
+
+function renderRichText(container, text) {
+    const lines = String(text).replace(/\r/g, '').split('\n');
+    let list = null;
+    let para = null;
+    const flushPara = () => { para = null; };
+    for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) { list = null; flushPara(); continue; }
+        const bullet = line.match(/^(?:[-*•▪◦]|\u2022)\s+(.*)$/);
+        const numbered = line.match(/^(\d{1,2})[.)\-]\s+(.*)$/);
+        const heading = line.match(/^#{1,4}\s+(.*)$/);
+        if (bullet || numbered) {
+            const tag = numbered ? 'ol' : 'ul';
+            if (!list || list.tagName.toLowerCase() !== tag) {
+                list = document.createElement(tag);
+                if (numbered && numbered[1] !== '1') list.start = Number(numbered[1]);
+                container.appendChild(list);
+            }
+            const li = document.createElement('li');
+            appendInline(li, numbered ? numbered[2] : bullet[1]);
+            list.appendChild(li);
+            flushPara();
+            continue;
+        }
+        list = null;
+        if (heading) {
+            const h = document.createElement('p');
+            h.className = 'chat-heading';
+            appendInline(h, heading[1]);
+            container.appendChild(h);
+            flushPara();
+            continue;
+        }
+        if (!para) {
+            para = document.createElement('p');
+            container.appendChild(para);
+        } else {
+            para.appendChild(document.createElement('br'));
+        }
+        appendInline(para, line);
+    }
+}
+
+const CHAT_MODE_BADGES = {
+    ai: ['chat-badge-ai', 'fa-solid fa-wand-magic-sparkles', 'ذكاء اصطناعي'],
+    offline: ['chat-badge-local', 'fa-solid fa-microchip', 'المساعد المحلي'],
+    fallback: ['chat-badge-local', 'fa-solid fa-microchip', 'المساعد المحلي']
+};
+
 function appendCyberBotMessage(role, content, options = {}) {
     const history = document.getElementById("chatHistory");
+    const row = document.createElement("div");
+    row.className = "chat-row " + (role === "user" ? "chat-row-user" : "chat-row-assistant");
+    const avatar = document.createElement("div");
+    avatar.className = "chat-avatar";
+    if (role === "user") {
+        avatar.textContent = currentUserName().trim().charAt(0) || "؟";
+    } else {
+        const icon = document.createElement("i");
+        icon.className = "fa-solid fa-robot";
+        avatar.appendChild(icon);
+    }
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble " + (role === "user" ? "chat-bubble-user" : "chat-bubble-assistant");
-    if (options.typing) bubble.classList.add("chat-typing");
+    if (options.error) bubble.classList.add("chat-bubble-error");
+    const head = document.createElement("div");
+    head.className = "chat-bubble-head";
     const label = document.createElement("strong");
     label.className = "chat-bubble-label";
-    label.textContent = role === "user" ? currentUserName() + ":" : "CyberBot AI:";
-    bubble.appendChild(label);
-    const body = document.createElement("span");
-    body.textContent = String(content);
+    label.textContent = role === "user" ? currentUserName() : "CyberBot";
+    head.appendChild(label);
+    const badge = options.mode && CHAT_MODE_BADGES[options.mode];
+    if (badge) {
+        const b = document.createElement("span");
+        b.className = "chat-badge " + badge[0];
+        const i = document.createElement("i");
+        i.className = badge[1];
+        b.append(i, " " + badge[2]);
+        head.appendChild(b);
+    }
+    bubble.appendChild(head);
+    const body = document.createElement("div");
+    body.className = "chat-body";
+    if (options.typing) {
+        bubble.classList.add("chat-typing");
+        const dots = document.createElement("span");
+        dots.className = "typing-dots";
+        dots.setAttribute("aria-label", "CyberBot يكتب");
+        for (let i = 0; i < 3; i++) dots.appendChild(document.createElement("span"));
+        body.appendChild(dots);
+    } else if (role === "assistant") {
+        renderRichText(body, content);
+    } else {
+        body.textContent = String(content);
+    }
     bubble.appendChild(body);
-    history.appendChild(bubble);
+    if (role === "assistant" && !options.typing && !options.error && options.copy !== false) {
+        const copy = document.createElement("button");
+        copy.type = "button";
+        copy.className = "chat-copy";
+        copy.title = "نسخ الرد";
+        const ci = document.createElement("i");
+        ci.className = "fa-regular fa-copy";
+        copy.append(ci, " نسخ");
+        copy.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(String(content));
+                copy.textContent = "تم النسخ ✓";
+            } catch {
+                copy.textContent = "تعذر النسخ";
+            }
+            window.setTimeout(() => { copy.replaceChildren(ci, " نسخ"); }, 1800);
+        });
+        bubble.appendChild(copy);
+    }
+    row.append(avatar, bubble);
+    history.appendChild(row);
     history.scrollTop = history.scrollHeight;
-    return bubble;
+    return row;
+}
+
+// أسئلة جاهزة تظهر ببداية المحادثة
+const CYBERBOT_SUGGESTIONS = [
+    { icon: "fa-solid fa-link", text: "افحص هذا الرابط: http://paypa1-account-verify.xyz/login" },
+    { icon: "fa-solid fa-gift", text: "وصلتني رسالة تكول ربحت جائزة وتطلب رقم بطاقتي، شسوي؟" },
+    { icon: "fa-brands fa-whatsapp", text: "انسرق حسابي بالواتساب، شلون أرجعه؟" },
+    { icon: "fa-solid fa-key", text: "شلون أسوي كلمة سر قوية وأحمي حساباتي؟" },
+    { icon: "fa-solid fa-fish", text: "شنو هو التصيد الإلكتروني وشلون أكشفه؟" }
+];
+
+function renderCyberBotSuggestions() {
+    const box = document.getElementById("chatSuggestions");
+    if (!box) return;
+    box.replaceChildren(...CYBERBOT_SUGGESTIONS.map((s, index) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chat-chip";
+        chip.dataset.action = "useCyberBotSuggestion";
+        chip.dataset.arg = String(index);
+        const icon = document.createElement("i");
+        icon.className = s.icon;
+        chip.append(icon, " " + s.text);
+        return chip;
+    }));
+    box.hidden = false;
+}
+
+function useCyberBotSuggestion(index) {
+    const item = CYBERBOT_SUGGESTIONS[index];
+    if (!item || cyberBotSending) return;
+    const input = document.getElementById("userChatInput");
+    input.value = item.text;
+    sendCyberBotMessage();
+}
+
+function autoGrowChatInput() {
+    const input = document.getElementById("userChatInput");
+    if (!input || input.tagName !== "TEXTAREA") return;
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 160) + "px";
 }
 
 function initChatGreeting() {
     document.getElementById("chatHistory").replaceChildren();
     cyberBotHistory.length = 0;
-    appendCyberBotMessage("assistant", "أهلاً " + currentUserName() + "! أنا CyberBot. ألصق أي رابط أو رسالة مشكوك بيها وأفحصها لك فوراً، أو اسألني عن أي شي بالأمن السيبراني.");
+    appendCyberBotMessage("assistant", "أهلاً " + currentUserName() + "! أنا **CyberBot**، مساعدك للأمن السيبراني.\n\nأكدر أساعدك بـ:\n- فحص أي **رابط أو رسالة** مشكوك بيها فوراً.\n- خطوات واضحة إذا **انسرق حسابك** أو شاركت رمز أو بيانات.\n- شرح أساليب الاحتيال وشلون تحمي نفسك وعائلتك.\n\nاختار سؤال من تحت أو اكتب سؤالك.", { copy: false });
+    renderCyberBotSuggestions();
     setCyberBotStatus("جاهز.", true);
 }
 
@@ -145,16 +331,20 @@ async function sendCyberBotMessage() {
     const userText = inputField.value.trim();
     if (!userText) return;
 
+    const chips = document.getElementById("chatSuggestions");
+    if (chips) chips.hidden = true;
     appendCyberBotMessage("user", userText);
     const previous = cyberBotHistory.slice(-10).map(item => ({ role: item.role, content: item.content.slice(-1500) }));
     cyberBotHistory.push({ role: "user", content: userText });
     inputField.value = "";
+    autoGrowChatInput();
     cyberBotSending = true;
     inputField.disabled = true;
     sendButton.disabled = true;
-    const typingBubble = appendCyberBotMessage("assistant", "يكتب الآن...", { typing: true });
+    const typingBubble = appendCyberBotMessage("assistant", "", { typing: true });
     let answer = "";
     let failed = false;
+    let mode = "";
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 60000);
@@ -166,9 +356,10 @@ async function sendCyberBotMessage() {
             if (data.code === "quota") setCyberBotStatus("وصلت للحد اليومي. الترقية إلى Pro ترفع الحد.");
         } else {
             answer = String(data.reply || "").trim() || "لم يصل رد. حاول مرة أخرى.";
+            mode = data.mode || "";
             if (data.mode === "ai") setCyberBotStatus("متصل بالذكاء الاصطناعي.", true);
-            else if (data.mode === "fallback") setCyberBotStatus("المزوّد لم يرد الآن؛ هذه إجابة محلية مختصرة. حاول بعد قليل.");
-            else setCyberBotStatus("يعمل بإجابات محلية (الذكاء الاصطناعي غير مفعّل على الخادم).");
+            else if (data.mode === "fallback") setCyberBotStatus("الذكاء الاصطناعي مشغول حالياً؛ أجابك المساعد المحلي. حاول بعد قليل.");
+            else setCyberBotStatus("يعمل بالمساعد المحلي.", true);
         }
     } catch (error) {
         failed = true;
@@ -177,7 +368,7 @@ async function sendCyberBotMessage() {
     } finally {
         window.clearTimeout(timeout);
         typingBubble.remove();
-        appendCyberBotMessage("assistant", answer);
+        appendCyberBotMessage("assistant", answer, { mode: failed ? "" : mode, error: failed });
         // ردود الأخطاء لا تدخل سياق المحادثة
         if (failed) cyberBotHistory.pop();
         else cyberBotHistory.push({ role: "assistant", content: answer });
@@ -850,7 +1041,7 @@ async function uploadAndScan() {
 // ==========================================================
 const ACTIONS = {
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
-    clearCyberBotConversation, sendCyberBotMessage, testUrl, loadSimulation, checkSimulation,
+    clearCyberBotConversation, sendCyberBotMessage, useCyberBotSuggestion, testUrl, loadSimulation, checkSimulation,
     updateFileName, updateMediaFileName, cleanScannedFile
 };
 
@@ -899,6 +1090,10 @@ document.addEventListener('change', event => {
     if (name) runAction(name, event.target);
 });
 
+document.addEventListener('input', event => {
+    if (event.target && event.target.id === 'userChatInput') autoGrowChatInput();
+});
+
 document.addEventListener('submit', event => {
     const name = event.target.dataset && event.target.dataset.submit;
     if (name) {
@@ -909,7 +1104,7 @@ document.addEventListener('submit', event => {
 
 document.addEventListener('keydown', event => {
     const name = event.target.dataset && event.target.dataset.enter;
-    if (name && event.key === 'Enter') {
+    if (name && event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         runAction(name);
     }

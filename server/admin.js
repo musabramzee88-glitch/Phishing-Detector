@@ -267,7 +267,9 @@ function createAdmin(config, stats, extras = {}) {
                 http.sendJson(res, 401, { error: "Unauthorized" });
                 return true;
             }
-            http.sendJson(res, 200, statsPayload(req, session));
+            const payload = statsPayload(req, session);
+            try { payload.usersTotal = extras.users && extras.users.count ? await extras.users.count() : null; } catch { payload.usersTotal = null; }
+            http.sendJson(res, 200, payload);
             return true;
         }
 

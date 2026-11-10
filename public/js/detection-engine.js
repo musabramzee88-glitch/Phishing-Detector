@@ -190,6 +190,9 @@
         { name: 'دروب بوكس', keys: ['dropbox'], domains: ['dropbox.com'] },
         { name: 'ستيم', keys: ['steamcommunity', 'steampowered'], domains: ['steamcommunity.com', 'steampowered.com'] },
         { name: 'زين كاش', keys: ['zaincash'], domains: ['zaincash.iq'] },
+        { name: 'مصرف الرافدين', keys: ['rafidain', 'alrafidain'], domains: ['rafidain-bank.gov.iq'], govIq: true },
+        { name: 'مصرف الرشيد', keys: ['rasheedbank', 'alrasheedbank'], domains: ['rasheedbank.gov.iq'], govIq: true },
+        { name: 'المصرف العراقي الأول (FIB)', keys: ['firstiraqibank', 'fib'], domains: ['fib.iq'] },
         { name: 'آسياسيل', keys: ['asiacell'], domains: ['asiacell.com'] },
         { name: 'كورك تليكوم', keys: ['korek', 'korektel'], domains: ['korektel.com'] },
         { name: 'أدوبي', keys: ['adobe'], domains: ['adobe.com', 'adobe.io', 'adobelogin.com'] },
@@ -342,6 +345,8 @@
         const subdomainText = parts.subdomains.join('.');
 
         for (const brand of BRANDS) {
+            // مصارف حكومية عراقية: أي نطاق .gov.iq لا يُعتبر انتحالاً لها (قد يكون لها أكثر من نطاق رسمي)
+            if (brand.govIq && parts.suffix === 'gov.iq') continue;
             // نطاق رسمي كامل موضوع كنطاق فرعي: paypal.com.secure-login.xyz
             for (const domain of brand.domains) {
                 if (subdomainText && (subdomainText === domain || subdomainText.endsWith('.' + domain) || subdomainText.includes(domain + '.') || subdomainText.startsWith(domain))) {
@@ -643,7 +648,7 @@
             id: 'prize', label: 'وعد بجائزة أو ربح', weight: 0.35, patterns: [
                 rx(`مبروك\\s*${W}{0,2}?(ربحت|فزت|كسبت|فوز|جايزه|جائزه|اختيار|السحب)`), rx('ربحت|فزت|كسبت'), rx('جايزه|جوايز|جائزه'), rx('سحب\\s*(على|ال)'),
                 rx('(هديه|هدايا|رصيد|انترنت|باقه)\\s*مجاني'), rx('مكافاه|مكافيه'), rx('تم\\s*اختيار(ك|كم)'), rx('الفايز|الفائز|الرابح'),
-                rx('ايفون\\s*\\d*\\s*مجان|مجانا'),
+                rx('ايفون\\s*\\d*\\s*مجان|مجانا'), rx('تهانينا|تهانيا'), rx('اختيار\\s*(رقمك|حسابك|اسمك|هاتفك)'), rx('(للفوز|بالفوز)\\s*ب'),
                 rx('you (have )?won|\\bwinner\\b|congratulations[,!]?\\s+(you|your|dear)|\\bprize\\b|free gift|claim (your|now)|\\breward\\b|lottery|giveaway')
             ]
         },
@@ -672,6 +677,13 @@
                 rx('(سجل|تسجيل)\\s*(ال)?دخول'), rx(`(حدث|تحديث)\\s*${W}{0,1}?(ال)?(بيانات|معلومات|حساب)`),
                 rx(`(تاكيد|اكد|تحقق من)\\s*${W}{0,1}?(ال)?(هويت|حساب|بيانات|معلومات)`),
                 rx('click (here|the link|below|on the link)|log ?in (now|here|to)|sign ?in to|verify (your )?(account|identity|information)|update your (details|information|account|payment)|confirm your (account|identity|details)')
+            ]
+        },
+        {
+            id: 'claim', label: 'يطلب التواصل لاستلام المكسب', weight: 0.1, patterns: [
+                rx('(اتصل|تواصل|راسل|كلم)\\s*(بنا|معنا|علينا|على\\s*(ال)?رقم)'),
+                rx('(لاستلام|لتسلم|استلام|لاستلامها)\\s*(ال)?(جايزه|جائزه|جوايز|الهديه|هديتك|المبلغ|المكافاه|السياره|ربحك)'),
+                rx('to claim|claim (it|the prize|your reward)|call (us|now) to')
             ]
         },
         {
@@ -726,6 +738,7 @@
 
     const TEXT_COMBOS = [
         { all: 'credentials', any: ['threat', 'urgency', 'impersonation'], weight: 0.4, text: 'طلب بيانات سرية مع تهديد أو استعجال أو باسم جهة رسمية: هذا نمط التصيد الكلاسيكي.' },
+        { all: 'prize', any: ['claim'], weight: 0.3, text: 'إعلان فوز بجائزة لم تشارك بها مع طلب التواصل لاستلامها: بداية احتيال معروف ينتهي بطلب رسوم أو بيانات.' },
         { all: 'prize', any: ['payment', 'credentials', 'action'], weight: 0.35, text: 'وعد بجائزة يتطلب دفع رسوم أو إدخال بيانات: أسلوب احتيال معروف.' },
         { all: 'threat', any: ['action'], weight: 0.3, text: 'تهديد بإيقاف الحساب مع دفعك للضغط على رابط أو تسجيل الدخول.' },
         { all: 'windfall', any: ['payment', 'secrecy', 'channel', 'credentials', 'urgency', 'action', 'link'], weight: 0.4, text: 'قصة ثروة أو ميراث أو أموال عالقة مع طلب مساعدة أو تواصل: احتيال الدفع المقدم المعروف (419).' },
@@ -795,6 +808,19 @@
             } else if (worst.result.level === 'warning') {
                 add(0.25, 'warning', `الرابط ${worst.url} عليه مؤشرات مخاطرة (${worst.result.score}%).`);
             }
+        }
+
+        // رسالة رمز تحقق حقيقية (رمز + «لا تشاركه» بدون طلب إرساله ولا رابط): معلومة وليست احتيالاً
+        const otpNotice = hits.has('credentials') && !urls.length && /(^|\D)\d{4,8}(\D|$)/.test(normalized)
+            && /(لا\s*(تشارك|تعطي|تنطي|ترسل|تدز|تخبر)|لاتشارك|do\s*n[o']?t share|never share|do not share)/.test(normalized)
+            && !/(دز|ارسل|ابعث|اعطيني|انطيني|زودنا|زودني|حول|ادفع|send (it|the code|us|me)|reply with|اضغط|سجل دخول)/.test(normalized)
+            && Array.from(hits).every(id => ['credentials', 'secrecy', 'greeting'].includes(id));
+        if (otpNotice) {
+            for (let i = signals.length - 1; i >= 0; i--) if (signals[i].weight >= 0.1) signals.splice(i, 1);
+            hits.delete('credentials');
+            hits.delete('secrecy');
+            hits.add('otp_notice');
+            add(0.05, 'info', 'تبدو رسالة رمز تحقق حقيقية تصل عند تسجيل الدخول. إذا ما طلبت الرمز بنفسك، فأحد يحاول يدخل حسابك: لا تشاركه مع أي شخص وغيّر كلمة السر.');
         }
 
         // الأنماط المركّبة (بعد فحص الروابط حتى تدخل الروابط ضمنها)

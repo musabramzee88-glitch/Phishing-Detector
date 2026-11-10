@@ -323,3 +323,16 @@ test('ملف فارغ لا يسبب خطأ', () => {
     const r = E.analyzeFile({ name: 'empty.txt', size: 0, head: new Uint8Array(0), tail: new Uint8Array(0) });
     assert.ok(typeof r.score === 'number');
 });
+
+test('صورة بحمولة ملحقة بعد نهايتها: تنبيه، وإذا كانت سكربتاً فخطر، والصورة النظيفة آمنة', () => {
+    const png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
+    const clean = file('photo.png', bytes(png));
+    assert.equal(clean.level, 'safe');
+    const script = file('photo.png', bytes(png, ascii('<script>alert(1)</script>' + 'A'.repeat(50))));
+    assert.equal(script.level, 'danger');
+    assert.ok(script.reasons.some(r => /بعد نهايتها/.test(r.text)));
+    const blob = file('photo.png', bytes(png, new Array(200).fill(7)));
+    assert.equal(blob.level, 'warning');
+    const exe = file('photo.png', bytes(png, ascii('MZ'), new Array(100).fill(0)));
+    assert.equal(exe.level, 'danger');
+});

@@ -931,6 +931,38 @@
     }
 
     // تحديد نوع الملف الحقيقي من بايتاته الأولى (Magic Bytes)
+    // يرجع البايتات التي تلي نهاية الصورة الفعلية (PNG: بعد IEND، JPEG: بعد EOI، GIF: بعد 0x3B)
+    function imageTrailingData(bytes) {
+        if (!bytes || bytes.length < 12) return null;
+        const find = (marker, fromEnd) => {
+            for (let i = bytes.length - marker.length; i >= 0; i--) {
+                let ok = true;
+                for (let j = 0; j < marker.length; j++) if (bytes[i + j] !== marker[j]) { ok = false; break; }
+                if (ok) return i;
+            }
+            return -1;
+        };
+        const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 || find([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82]) >= 0;
+        if (isPng) {
+            const i = find([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82]);   // IEND + CRC
+            return i >= 0 ? bytes.subarray(i + 8) : null;
+        }
+        if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+            const i = find([0xFF, 0xD9]);
+            return i >= 0 ? bytes.subarray(i + 2) : null;
+        }
+        return null;
+    }
+
+    function hasEmbeddedPayloadMarkers(bytes) {
+        const text = decodeText(bytes, 64 * 1024).toLowerCase();
+        if (/<script|<\?php|powershell|cmd\.exe|eval\(|wscript|javascript:/.test(text)) return 'كوداً برمجياً (سكربت)';
+        if (bytes[0] === 0x4D && bytes[1] === 0x5A) return 'برنامجاً تنفيذياً';
+        if (containsAscii(bytes, 'MZ') && containsAscii(bytes, 'This program')) return 'برنامجاً تنفيذياً';
+        if (bytes[0] === 0x50 && bytes[1] === 0x4B) return 'أرشيفاً مضغوطاً';
+        return '';
+    }
+
     function detectFileType(bytes, tail) {
         const head = bytes || new Uint8Array(0);
         const names = (needle) => containsAscii(head, needle) || containsAscii(tail, needle);
@@ -1101,6 +1133,16 @@
                 else if (entropy > 7.2) add(0.25, 'warning', `عشوائية بيانات الملف عالية (${entropy.toFixed(2)} من 8)، وقد يدل ذلك على تشفير أو ضغط لإخفاء الكود.`);
             } else {
                 add(0.3, 'warning', 'ترويسة الملف التنفيذي تالفة أو غير مكتملة.');
+            }
+        }
+
+        // بيانات ملحقة بعد نهاية الصورة: طريقة معروفة لإخفاء كود أو ملف تنفيذي داخل صورة عادية
+        if (type.kind === 'image') {
+            const trailing = imageTrailingData(tail.length ? tail : head);
+            if (trailing && trailing.length > 16) {
+                const hidden = hasEmbeddedPayloadMarkers(trailing);
+                if (hidden) add(0.7, 'danger', `الصورة تحمل بعد نهايتها ${trailing.length} بايت إضافية تبدو ${hidden}. هذه حيلة لإخفاء كود داخل صورة عادية.`);
+                else add(0.35, 'warning', `الصورة تحمل بعد نهايتها ${trailing.length} بايت إضافية غير ظاهرة. قد تكون بيانات مخفية؛ يمكن تنظيفها (Pro) بإعادة بناء الصورة.`);
             }
         }
 

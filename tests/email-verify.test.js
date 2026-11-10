@@ -167,3 +167,21 @@ test('كود التحقق: 5 محاولات خاطئة تُلغي الكود ح�
     assert.equal((await verifyCode(app, 'brute@example.com', code)).status, 400, 'الكود أُلغي');
     assert.equal((await verifyCode(app, 'brute@example.com', 'abcdef')).status, 400);
 }));
+
+test('Mailjet: يرسل كود التحقق بصيغة v3.1 مع Basic auth', async () => {
+    const mail = await fakeMailServer(200);
+    const app = await startServer({ MAILJET_API_KEY: 'pub', MAILJET_SECRET_KEY: 'sec', MAIL_FROM: 'noreply@example.com', MAIL_API_BASE: mail.base, TRIAL_DAYS: '30' }, c => { c.limits.registrationsPerDay = 100; });
+    try {
+        const res = await register(app, 'mj@example.com');
+        assert.equal(res.status, 201);
+        assert.equal(res.json.needsVerification, true);
+        assert.equal(mail.sent.length, 1);
+        assert.equal(mail.sent[0].url, '/v3.1/send');
+        assert.equal(mail.sent[0].headers.authorization, 'Basic ' + Buffer.from('pub:sec').toString('base64'));
+        const msg = mail.sent[0].body.Messages[0];
+        assert.equal(msg.To[0].Email, 'mj@example.com');
+        assert.match(msg.Subject, /^\d{6}/);
+        const ok = await verifyCode(app, 'mj@example.com', msg.Subject.slice(0, 6));
+        assert.equal(ok.status, 200);
+    } finally { await app.close(); await mail.close(); }
+});

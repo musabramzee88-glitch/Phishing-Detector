@@ -18,7 +18,7 @@
     APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
   الخطط والدفع:
     PRICE_USD (2), PRICE_IQD (3000), TRIAL_DAYS (30)
-    BREVO_API_KEY أو RESEND_API_KEY + MAIL_FROM (+ MAIL_FROM_NAME)   تفعيل التحقق من البريد وإرسال روابط كلمة السر
+    BREVO_API_KEY أو RESEND_API_KEY أو (MAILJET_API_KEY + MAILJET_SECRET_KEY) + MAIL_FROM (+ MAIL_FROM_NAME)   تفعيل التحقق من البريد وإرسال روابط كلمة السر
     PAY_QICARD                       رقم بطاقة الماستر كارد (Qi Card) لاستلام الدفع، يظهر للمشترك (الطريقة الوحيدة)
     CONTACT_WHATSAPP, CONTACT_TELEGRAM, PAYMENT_NOTE
   أخرى:
@@ -92,10 +92,14 @@ function parseAi(env) {
 
 // البريد (التحقق من الإيميل وروابط كلمة السر). يعمل فقط إذا ضُبط المفتاح وعنوان المرسل.
 function parseMail(env) {
-    const provider = env.BREVO_API_KEY ? "brevo" : env.RESEND_API_KEY ? "resend" : "";
-    const apiKey = String(env.BREVO_API_KEY || env.RESEND_API_KEY || "").trim();
+    const mailjet = env.MAILJET_API_KEY && env.MAILJET_SECRET_KEY;
+    const provider = env.BREVO_API_KEY ? "brevo" : env.RESEND_API_KEY ? "resend" : mailjet ? "mailjet" : "";
+    // Mailjet يستخدم مفتاحاً عاماً وسرياً (Basic auth): نخزّنهما معاً بصيغة key:secret
+    const apiKey = provider === "mailjet"
+        ? `${String(env.MAILJET_API_KEY).trim()}:${String(env.MAILJET_SECRET_KEY).trim()}`
+        : String(env.BREVO_API_KEY || env.RESEND_API_KEY || "").trim();
     const from = /^[^\s@"<>]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(String(env.MAIL_FROM || "").trim()) ? String(env.MAIL_FROM).trim() : "";
-    let apiBase = provider === "brevo" ? "https://api.brevo.com" : "https://api.resend.com";
+    let apiBase = provider === "brevo" ? "https://api.brevo.com" : provider === "mailjet" ? "https://api.mailjet.com" : "https://api.resend.com";
     if (env.MAIL_API_BASE) {
         try {
             const u = new URL(env.MAIL_API_BASE);

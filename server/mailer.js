@@ -2,6 +2,7 @@
 
 /*
   إرسال البريد عبر واجهة HTTPS لمزوّد جاهز (بدون مكتبات):
+    MAILJET_API_KEY + MAILJET_SECRET_KEY  (Mailjet: مجاني 200 رسالة يومياً، يكفي توثيق عنوان مرسل واحد)
     BREVO_API_KEY   (Brevo: مجاني 300 رسالة يومياً، يكفي توثيق عنوان مرسل واحد بدون نطاق خاص)
     RESEND_API_KEY  (Resend: يحتاج نطاقاً موثّقاً للإرسال لأي مستخدم)
     MAIL_FROM       عنوان المرسل (يجب أن يكون موثّقاً عند المزوّد)،  MAIL_FROM_NAME اختياري
@@ -22,12 +23,15 @@ function createMailer(config) {
 
     async function send({ to, subject, text, html }) {
         if (!enabled) throw new Error("mail_disabled");
-        const url = m.provider === "brevo" ? `${m.apiBase}/v3/smtp/email` : `${m.apiBase}/emails`;
+        const url = m.provider === "brevo" ? `${m.apiBase}/v3/smtp/email` : m.provider === "mailjet" ? `${m.apiBase}/v3.1/send` : `${m.apiBase}/emails`;
         const headers = { "Content-Type": "application/json", Accept: "application/json" };
         let body;
         if (m.provider === "brevo") {
             headers["api-key"] = m.apiKey;
             body = { sender: { name: m.fromName, email: m.from }, to: [{ email: to }], subject, textContent: text, htmlContent: html };
+        } else if (m.provider === "mailjet") {
+            headers.Authorization = "Basic " + Buffer.from(m.apiKey).toString("base64");
+            body = { Messages: [{ From: { Email: m.from, Name: m.fromName }, To: [{ Email: to }], Subject: subject, TextPart: text, HTMLPart: html }] };
         } else {
             headers.Authorization = "Bearer " + m.apiKey;
             body = { from: `${m.fromName} <${m.from}>`, to: [to], subject, text, html };

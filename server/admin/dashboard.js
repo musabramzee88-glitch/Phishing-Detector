@@ -51,14 +51,15 @@ function renderCards(data) {
     const c = data.counters;
     const v = data.visitors || { uniqueToday: 0, activeNow: 0, viewsToday: 0 };
     const cards = [
-        ["مدة التشغيل", formatDuration(data.uptimeSeconds), "ok"],
+        ["مدة تشغيل النسخة الحالية", formatDuration(data.uptimeSeconds), "ok"],
+        ["حفظ الإحصائيات", data.persistent ? "دائم (تبقى بعد النشر)" : "مؤقت (تضيع عند النشر)", data.persistent ? "ok" : "bad"],
         ["زوار اليوم (تقريبي)", v.uniqueToday, ""],
         ["نشطون الآن (آخر 5 دقائق)", v.activeNow, "ok"],
         ["مشاهدات الصفحة اليوم", v.viewsToday, ""],
         ["كل الطلبات", c.requests, ""],
         ["أخطاء متصفحات الزوار", c.clientErrors, c.clientErrors ? "warn" : ""],
         ["أخطاء الخادم", c.serverErrors, c.serverErrors ? "bad" : ""],
-        ["حسابات جديدة (منذ التشغيل)", c.registrations, "ok"],
+        ["حسابات جديدة (إجمالي)", c.registrations, "ok"],
         ["تسجيلات دخول المستخدمين", c.userLogins, ""],
         ["طلبات دفع جديدة", c.paymentRequests, c.paymentRequests ? "ok" : ""],
         ["مرات الوصول للحد اليومي", c.quotaExceeded, ""],

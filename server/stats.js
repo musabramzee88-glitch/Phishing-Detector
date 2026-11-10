@@ -55,6 +55,7 @@ function createStats({ audit } = {}) {
     let since = new Date(startedAt).toISOString();
     let timer = null;
     let flushing = null;
+    let loaded = false;
     let seq = 0;      // يرتّب الأحداث التي وقعت في نفس الميلي ثانية
 
     function bump(map, key) { map[key] = (map[key] || 0) + 1; }
@@ -85,7 +86,7 @@ function createStats({ audit } = {}) {
             return true;
         },
         // نربط الإحصاءات بقاعدة البيانات: نحمّل القيم المحفوظة ونبدأ الحفظ الدوري
-        async attach(db, { intervalMs = 10_000 } = {}) {
+        async attach(db, { intervalMs = 5_000 } = {}) {
             const kc = db.key("stats", "counters");
             const ks = db.key("stats", "scans");
             const ke = db.key("stats", "events");
@@ -116,6 +117,7 @@ function createStats({ audit } = {}) {
                 return { ok: false, error: db.describeError ? db.describeError(error) : String(error && error.message) };
             }
             store = { db, kc, ks, ke };
+            loaded = true;
             if (intervalMs > 0 && !timer) {
                 timer = setInterval(() => { this.flush().catch(() => {}); }, intervalMs);
                 if (timer.unref) timer.unref();
@@ -165,7 +167,7 @@ function createStats({ audit } = {}) {
             return {
                 startedAt: new Date(startedAt).toISOString(),
                 since,
-                persistent: !!(store && store.db.persistent),
+                persistent: !!(store && loaded && store.db.persistent),
                 uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
                 counters: { ...counters },
                 scans: JSON.parse(JSON.stringify(scans)),

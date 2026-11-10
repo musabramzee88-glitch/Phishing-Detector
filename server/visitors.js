@@ -38,7 +38,7 @@ function createVisitorCounter() {
         return entry;
     }
 
-    async function attach(db, { intervalMs = 10_000, now = Date.now() } = {}) {
+    async function attach(db, { intervalMs = 5_000, now = Date.now() } = {}) {
         const keyTotal = db.key("visitors", "total");
         const keyDay = day => db.key("visitors", "day", day);
         try {

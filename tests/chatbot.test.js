@@ -67,3 +67,13 @@ test('الموجّه (قواعد + مصنّف أمثلة) يفهم صياغات 
     for (const [q, want] of ok) assert.ok(route(q).topics.some(t => t.id === want), q);
     for (const q of ['شنو رايك بالطقس', 'احتاج وصفة كبة', 'تمام', 'شنو اسم عاصمة فرنسا']) assert.equal(route(q).topics.length, 0, q);
 });
+
+test('سؤال "بشنو تكدر تخدمني" بعد تحية يعرّف بالخدمات، ولا يكرر التحية كمتابعة', () => {
+    const history = [{ role: 'user', content: 'هلو' }, { role: 'assistant', content: 'أهلاً' }];
+    for (const q of ['بشنو تكدر تخدمني؟', 'شنو تكدر تسوي', 'كيف تساعدني']) {
+        const reply = offlineReply(q, [], 'x', history);
+        assert.match(reply, /CyberBot/, q);
+        assert.ok(!/بخصوص موضوعك السابق/.test(reply), q);
+    }
+    assert.ok(!/بخصوص موضوعك السابق/.test(offlineReply('وبعدين', [], 'x', history)));
+});

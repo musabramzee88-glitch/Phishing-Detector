@@ -114,9 +114,8 @@ function offlineReply(message, scans, name, history = []) {
     const routed = route(message);
     const latin = (String(message).match(/[A-Za-z]/g) || []).length > (String(message).match(/[\u0600-\u06FF]/g) || []).length;
     const intro = latin ? "(I answer in Arabic. Key advice below. Paste a link or message and I will scan it.)\n\n" : "";
-    const shortFollowUp = text.length <= 25 && Array.isArray(history) && history.some(m => m && m.role === "user");
-    if (routed.topics.length && (!shortFollowUp || routed.confidence >= 0.6)) {
-        const soft = routed.confidence < 0.55 ? "أفهم أن سؤالك قريب من هذا الموضوع، وإذا قصدت شي ثاني وضّح لي أكثر:\n\n" : "";
+    if (routed.topics.length) {
+        const soft = routed.confidence < 0.55 && !routed.topics.some(t => ["what", "hello", "thanks", "who"].includes(t.id)) ? "أفهم أن سؤالك قريب من هذا الموضوع، وإذا قصدت شي ثاني وضّح لي أكثر:\n\n" : "";
         // إذا المستخدم يقول إنه فعلاً أعطى بيانات أو ضغط أو حوّل، نبدأ بخطوات الطوارئ ثم الموضوع
         const happened = /(اعطيته|اعطيتهم|اعطيتها|دخلت بياناتي|دخلت معلوماتي|ارسلت لهم|ارسلت له|حولت|ضغطت|فتحت الرابط|شاركت)/.test(text);
         const emergency = happened && !routed.topics.some(t => t.id === "clicked" || t.id === "sentmoney") ? TOPICS.find(t => t.id === "clicked") : null;
@@ -128,7 +127,8 @@ function offlineReply(message, scans, name, history = []) {
         for (let i = history.length - 1; i >= 0; i--) {
             const item = history[i];
             if (!item || item.role !== "user" || typeof item.content !== "string") continue;
-            const earlier = route(item.content).topics;
+            // نتجاهل المواضيع غير الجوهرية (تحية، شكر، تعريف) حتى لا نكرر «أهلاً» كجواب متابعة
+            const earlier = route(item.content).topics.filter(t => !["hello", "thanks", "who", "what", "phishing"].includes(t.id));
             if (earlier.length) return "بخصوص موضوعك السابق، هذي الخطوات المهمة:\n\n" + earlier[0].answer.replace("{name}", name) + "\n\nإذا صار شي جديد أو وصلتك رسالة أو رابط، أرسله لي وأفحصه فوراً.";
         }
     }

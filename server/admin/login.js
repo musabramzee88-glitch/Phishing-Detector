@@ -20,8 +20,7 @@ form.addEventListener("submit", async event => {
             credentials: "same-origin",
             body: JSON.stringify({
                 username: document.getElementById("username").value,
-                password: document.getElementById("password").value,
-                code: document.getElementById("code").value
+                password: document.getElementById("password").value
             })
         });
         const data = await response.json().catch(() => ({}));
@@ -35,6 +34,5 @@ form.addEventListener("submit", async event => {
     } finally {
         button.disabled = false;
         document.getElementById("password").value = "";   // لا نترك كلمة السر في الحقل
-        document.getElementById("code").value = "";
     }
 });

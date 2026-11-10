@@ -62,6 +62,7 @@ function renderCards(data) {
         ["تسجيلات دخول المستخدمين", c.userLogins, ""],
         ["طلبات دفع جديدة", c.paymentRequests, c.paymentRequests ? "ok" : ""],
         ["مرات الوصول للحد اليومي", c.quotaExceeded, ""],
+        ["صور نُظّفت (Pro)", c.filesCleaned || 0, ""],
         ["رسائل CyberBot الناجحة", c.chatOk, "ok"],
         ["أخطاء CyberBot", c.chatErrors, c.chatErrors ? "warn" : ""],
         ["طلبات رُفضت بالحد", c.rateLimited, c.rateLimited ? "warn" : ""],

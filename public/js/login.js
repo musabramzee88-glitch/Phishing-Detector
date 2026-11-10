@@ -49,6 +49,34 @@
         if (!keepNotice) notice('');
     }
 
+    let verifyEmailAddress = '';
+    function showVerify(email, message) {
+        verifyEmailAddress = email;
+        $('authMain').hidden = true;
+        $('verifyForm').hidden = false;
+        $('verifyIntro').textContent = 'أرسلنا كوداً من 6 أرقام إلى ' + email + '. اكتبه هنا (صالح 15 دقيقة).';
+        $('verifyCode').value = '';
+        $('verifyCode').focus();
+        if (message) notice(message, 'success');
+    }
+
+    async function submitVerify(event) {
+        event.preventDefault();
+        if (busy) return;
+        const form = $('verifyForm');
+        const code = $('verifyCode').value.replace(/\D/g, '');
+        if (code.length !== 6) return notice('اكتب الكود المكوّن من 6 أرقام.');
+        setBusy(form, true);
+        try {
+            await post('/api/auth/verify-code', { email: verifyEmailAddress, code });
+            notice('تم تأكيد بريدك! جارٍ فتح لوحتك...', 'success');
+            window.location.replace('/');
+        } catch (error) {
+            notice(error.message);
+            setBusy(form, false);
+        }
+    }
+
     async function mailAction(path, text) {
         const email = $('authEmail').value.trim();
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) return notice('اكتب بريدك في الحقل أولاً.');
@@ -96,12 +124,10 @@
             if (mode === 'register') {
                 const data = await post('/api/auth/register', { email, password, name: $('authName').value.trim() });
                 if (data.needsVerification) {
-                    $('resendRow').hidden = false;
-                    notice(data.sent
-                        ? 'أرسلنا رابط التفعيل إلى ' + data.email + '. افتح بريدك (وافحص الرسائل غير المرغوبة) واضغط الرابط، ثم سجّل الدخول.'
-                        : 'تم إنشاء الحساب لكن تعذر إرسال الرابط الآن. اضغط «أعد الإرسال» بعد قليل.', 'success');
                     setBusy(form, false);
-                    return setMode('login', true);
+                    return showVerify(data.email, data.sent
+                        ? 'أرسلنا كود التحقق. افتح بريدك (وافحص الرسائل غير المرغوبة).'
+                        : 'تم إنشاء الحساب لكن تعذر إرسال الكود الآن. اضغط «أرسل كوداً جديداً» بعد قليل.');
                 }
             } else {
                 await post('/api/auth/login', { email, password });
@@ -109,7 +135,11 @@
             notice('تم! جارٍ فتح لوحتك...', 'success');
             window.location.replace('/');
         } catch (error) {
-            if (error.code === 'email_unverified') $('resendRow').hidden = false;
+            if (error.code === 'email_unverified') {
+                setBusy(form, false);
+                post('/api/auth/resend', { email }).catch(() => {});
+                return showVerify(email, 'حسابك غير مؤكَّد. أرسلنا لك كوداً جديداً.');
+            }
             notice(error.message);
             setBusy(form, false);
         }
@@ -171,7 +201,12 @@
         if (params.get('mode') === 'register') setMode('register');
         if (params.get('verified')) notice('تم تأكيد بريدك. سجّل الدخول الآن وابدأ شهرك المجاني.', 'success');
         $('forgotBtn').addEventListener('click', () => mailAction('/api/auth/forgot', 'أرسلنا رابط إعادة التعيين.'));
-        $('resendBtn').addEventListener('click', () => mailAction('/api/auth/resend', 'أرسلنا رابطاً جديداً.'));
+        $('resendBtn').addEventListener('click', () => mailAction('/api/auth/resend', 'أرسلنا كوداً جديداً.'));
+        $('verifyForm').addEventListener('submit', submitVerify);
+        $('verifyResend').addEventListener('click', async () => {
+            try { const d = await post('/api/auth/resend', { email: verifyEmailAddress }); notice(d.message || 'أرسلنا كوداً جديداً.', 'success'); } catch (error) { notice(error.message); }
+        });
+        $('verifyBack').addEventListener('click', () => { $('verifyForm').hidden = true; $('authMain').hidden = false; notice(''); });
 
         document.querySelectorAll('.auth-tab').forEach(tab => tab.addEventListener('click', () => setMode(tab.dataset.mode)));
         $('authForm').addEventListener('submit', submitAuth);

@@ -222,6 +222,9 @@ test('الخطة المجانية: 20 فحصاً يومياً و10 رسائل، 
     assert.deepEqual([me.json.usage.scan, me.json.usage.scanLimit], [20, 20]);
     assert.equal((await request(app, 'POST', '/api/scan/bulk', { headers: h, body: { urls: ['https://a.com'] } })).status, 403);
     assert.equal((await request(app, 'POST', '/api/account/api-key', { headers: h, body: {} })).status, 403);
+    const noClean = await request(app, 'POST', '/api/scan/clean', { headers: h, body: { kind: 'image', size: 1000 } });
+    assert.equal(noClean.status, 403);
+    assert.equal(noClean.json.code, 'pro_only');
     const chats = [];
     for (let i = 0; i < 11; i++) chats.push((await request(app, 'POST', '/api/chat', { headers: h, body: { message: 'hi ' + i } })).status);
     assert.equal(chats.filter(c => c === 200).length, 10);
@@ -249,6 +252,10 @@ test('Pro: فحص جماعي، سجل الفحوصات، ومفتاح API يعم
     assert.equal(bulk.status, 200);
     assert.equal(bulk.json.count, 3);
     assert.equal(bulk.json.results[1].level, 'danger');
+    const clean = h2 => request(app, 'POST', '/api/scan/clean', { headers: h, body: h2 });
+    assert.equal((await clean({ kind: 'image', size: 5000 })).status, 200);
+    assert.equal((await clean({ kind: 'exe', size: 5000 })).status, 400, 'الملفات التنفيذية لا تُنظَّف');
+    assert.equal((await clean({ kind: 'image', size: 30 * 1024 * 1024 })).status, 413);
     assert.equal((await request(app, 'POST', '/api/scan/bulk', { headers: h, body: { urls: Array.from({ length: 51 }, (_, i) => `https://e${i}.com`) } })).status, 413);
 
     await request(app, 'POST', '/api/scan/url', { headers: h, body: { url: 'https://paypa1.com/login' } });

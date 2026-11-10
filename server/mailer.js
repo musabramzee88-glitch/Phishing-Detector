@@ -62,6 +62,18 @@ function createMailer(config) {
         return { html, text: plain };
     }
 
+    const verifyCode = (to, code) => {
+        const title = "كود التحقق من بريدك";
+        const intro = "اكتب هذا الكود في صفحة التسجيل لتفعيل حسابك. الكود صالح 15 دقيقة.";
+        const footer = "إذا لم تنشئ حساباً بهذا البريد تجاهل الرسالة، ولا تشارك الكود مع أحد.";
+        const html = `<!doctype html><html lang="ar" dir="rtl"><body style="font-family:Tahoma,Arial,sans-serif;background:#f4f6f8;padding:24px">
+<div style="max-width:480px;margin:auto;background:#fff;border-radius:12px;padding:28px;text-align:right">
+<h2 style="margin-top:0;color:#111">${escapeHtml(title)}</h2>
+<p style="color:#333;line-height:1.8">${escapeHtml(intro)}</p>
+<p style="text-align:center;margin:28px 0;font-size:34px;letter-spacing:10px;font-weight:bold;color:#0a84ff" dir="ltr">${escapeHtml(code)}</p>
+<p style="color:#888;font-size:12px">${escapeHtml(footer)}</p></div></body></html>`;
+        return send({ to, subject: `${code} هو كود التحقق - Phishing Detector`, text: `${title}\n\n${intro}\n\n${code}\n\n${footer}`, html });
+    };
     const verifyEmail = (to, link) => send({
         to, subject: "فعّل حسابك في Phishing Detector",
         ...layout("تأكيد البريد الإلكتروني", "اضغط الزر لتأكيد بريدك وتفعيل حسابك. الرابط صالح 24 ساعة ولمرة واحدة.", "تأكيد البريد", link, "إذا لم تنشئ حساباً بهذا البريد تجاهل الرسالة.")
@@ -71,7 +83,7 @@ function createMailer(config) {
         ...layout("إعادة تعيين كلمة السر", "وصلنا طلب لتغيير كلمة سر حسابك. الرابط صالح ساعة واحدة ولمرة واحدة.", "تعيين كلمة سر جديدة", link, "إذا لم تطلب هذا تجاهل الرسالة؛ كلمة سرك ما تغيّرت.")
     });
 
-    return { enabled, provider: m.provider || "", send, verifyEmail, resetEmail, status: () => ({ enabled, provider: m.provider || "", lastError }) };
+    return { enabled, provider: m.provider || "", send, verifyCode, verifyEmail, resetEmail, status: () => ({ enabled, provider: m.provider || "", lastError }) };
 }
 
 module.exports = { createMailer };

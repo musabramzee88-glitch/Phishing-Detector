@@ -538,9 +538,82 @@ async function analyzeFile() {
         extra = '<p style="font-size:0.78rem; color:var(--text-muted); margin-top:10px;">لم تُحسب بصمة SHA-256 لأن حجم الملف يتجاوز 64MB.</p>';
     }
 
+    cleanCandidate = result.type.kind === 'image' ? { file, type: result.type.label } : null;
+    extra += cleanSectionHtml(result.type.kind);
     renderReport(reportBox, 'file', 'مؤشر الخطورة', result, meta, extra);
     addToHistory(file.name, 'فحص ملف', result.score, LEVEL_STATUS[result.level]);
     recordScan('file', file.name, result.score, result.level);
+}
+
+// ---- تنظيف الملفات (Pro) ----
+// الصورة تُعاد رسمها وترميزها من البكسلات فقط، فتسقط كل البيانات المخفية (EXIF، تعليقات، أكواد ملحقة بنهاية الملف، ملفات متعددة الصيغ).
+// الملفات التنفيذية لا يمكن تنظيفها بأمان: الخطر فيها هو الملف نفسه، فنوصي بحذفها.
+let cleanCandidate = null;
+const CLEAN_MAX_BYTES = 25 * 1024 * 1024;
+
+function cleanSectionHtml(kind) {
+    const box = 'margin-top:14px; padding:12px 14px; border:1px dashed var(--border-color); border-radius:10px;';
+    if (kind === 'image') {
+        return `<div style="${box}">
+            <strong><i class="fa-solid fa-broom"></i> تنظيف الصورة <span class="pro-badge" style="color:#ffab00;">Pro</span></strong>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:6px 0;">نعيد بناء الصورة من البكسلات فقط، فتُزال بيانات EXIF والموقع والتعليقات وأي كود مخفي ملحق بالملف، ونسلّمك نسخة سليمة. (الصور المتحركة تتحول لصورة ثابتة.)</p>
+            <button class="app-btn small" type="button" data-action="cleanScannedFile"><i class="fa-solid fa-broom"></i> نظّف الصورة وحمّلها</button>
+            <div id="cleanStatus" style="margin-top:10px; font-size:0.9rem;"></div>
+        </div>`;
+    }
+    if (['executable', 'script', 'shortcut', 'disk'].includes(kind)) {
+        return `<div style="${box}">
+            <strong><i class="fa-solid fa-ban"></i> لا يمكن تنظيف هذا النوع من الملفات</strong>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:6px 0;">الملف التنفيذي هو البرنامج نفسه، فلا يوجد جزء «مصاب» نشيله ونبقي الباقي. إذا كان الملف مشبوهاً: لا تشغّله، احذفه، واحصل على نسخة من المصدر الرسمي.</p>
+        </div>`;
+    }
+    return '';
+}
+
+async function cleanScannedFile() {
+    const status = document.getElementById('cleanStatus');
+    if (!status || !cleanCandidate) return;
+    const { file } = cleanCandidate;
+    if (file.size > CLEAN_MAX_BYTES) { status.innerHTML = errorHtml('الحد الأقصى لحجم الصورة 25MB.'); return; }
+    status.textContent = 'جارٍ التحقق من الخطة...';
+    try {
+        const { ok, data } = await api('/api/scan/clean', { kind: 'image', size: file.size });
+        if (!ok) {
+            status.innerHTML = data.code === 'pro_only' ? quotaHtml(data.error) : errorHtml(data.error || 'تعذر بدء التنظيف.');
+            return;
+        }
+    } catch {
+        status.innerHTML = errorHtml('تعذر الاتصال بالخادم.');
+        return;
+    }
+    status.textContent = 'جارٍ تنظيف الصورة...';
+    try {
+        const bitmap = await createImageBitmap(file);
+        if (bitmap.width * bitmap.height > 80_000_000) throw new Error('too large');
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext('2d');
+        const isJpeg = /JPG|JPEG/i.test(cleanCandidate.type);
+        if (isJpeg) { context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+        context.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        const mime = isJpeg ? 'image/jpeg' : 'image/png';
+        const blob = await new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('encode'))), mime, 0.95));
+        const base = file.name.replace(/\.[^.\\/]*$/, '').replace(/[\u0000-\u001f\\/:*?"<>|\u202a-\u202e\u2066-\u2069]/g, '').slice(0, 80) || 'image';
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${base}-clean.${isJpeg ? 'jpg' : 'png'}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+        const saved = file.size - blob.size;
+        status.innerHTML = `<span style="color:var(--accent-green);"><i class="fa-solid fa-circle-check"></i> تم التنظيف وتنزيل النسخة السليمة (${escapeHtml(link.download)}).</span>`
+            + (saved > 0 ? ` أُزيل ${(saved / 1024).toFixed(1)} KB من البيانات الإضافية.` : '');
+    } catch {
+        status.innerHTML = errorHtml('تعذر تنظيف هذه الصورة: قد تكون تالفة أو بصيغة غير مدعومة في متصفحك.');
+    }
 }
 
 function updateMediaFileName(input) {
@@ -773,7 +846,7 @@ async function uploadAndScan() {
 const ACTIONS = {
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
     clearCyberBotConversation, sendCyberBotMessage, testUrl, loadSimulation, checkSimulation,
-    updateFileName, updateMediaFileName
+    updateFileName, updateMediaFileName, cleanScannedFile
 };
 
 // يبلّغ حارس الأخطاء (error-guard.js) ويبقي الصفحة تعمل

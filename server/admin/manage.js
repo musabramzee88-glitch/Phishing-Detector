@@ -52,6 +52,8 @@
                 ["الإجمالي", `${num(r.totalUsd)}$ ≈ ${num(r.totalIqd)} د.ع`, ""],
                 ["اشتراكات مدفوعة مفعّلة", r.approvedCount, ""]
             ];
+            const badge = $("pendingBadge");
+            if (badge) { badge.textContent = String(r.pendingCount || 0); badge.hidden = !r.pendingCount; }
             $("revenue").replaceChildren(...cards.map(([label, value, tone]) => {
                 const card = node("div", "stat " + tone);
                 card.append(node("div", "value", value), node("div", "label", label));
@@ -207,6 +209,18 @@
     $("usersPrev").addEventListener("click", () => { offset = Math.max(0, offset - 50); loadUsers(); });
     $("usersNext").addEventListener("click", () => { offset += 50; loadUsers(); });
     $("showAllPayments").addEventListener("change", loadPayments);
+
+    // التبويبات: القسم المفتوح يُحفظ بالرابط (#payments) فيبقى بعد التحديث
+    const TABS = ["overview", "payments", "users", "security"];
+    function showTab(name) {
+        const tab = TABS.includes(name) ? name : "overview";
+        document.querySelectorAll("[data-tab-panel]").forEach(el => { el.hidden = el.dataset.tabPanel !== tab; });
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+        if (window.location.hash.slice(1) !== tab) history.replaceState(null, "", "#" + tab);
+    }
+    document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+    window.addEventListener("hashchange", () => showTab(window.location.hash.slice(1)));
+    showTab(window.location.hash.slice(1));
 
     loadRevenue();
     loadPayments();

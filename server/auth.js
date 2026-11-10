@@ -131,8 +131,8 @@ function createAuth({ config, users, oauth, stats, mailer }) {
     async function sendVerification(user) {
         try {
             if (!(await users.mailAllowed(user.email, "verify"))) return false;
-            const raw = await users.createVerifyToken(user.id);
-            await mailer.verifyEmail(user.email, `${config.appUrl}/auth/verify?token=${encodeURIComponent(raw)}`);
+            const code = await users.createVerifyCode(user.id);
+            await mailer.verifyCode(user.email, code);
             return true;
         } catch (error) {
             stats.event("mail_error", "تعذر إرسال رسالة التأكيد", "");
@@ -150,7 +150,7 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         try {
             const user = await users.findByEmail(String(body.email || "").trim().toLowerCase());
             if (user && users.needsVerification(user) && !user.disabled) await sendVerification(user);
-            h.sendJson(res, 200, { ok: true, message: "إذا كان البريد مسجّلاً وغير مؤكَّد أرسلنا لك رابطاً جديداً. افحص صندوق الوارد والرسائل غير المرغوبة." });
+            h.sendJson(res, 200, { ok: true, message: "إذا كان البريد مسجّلاً وغير مؤكَّد أرسلنا لك كوداً جديداً. افحص صندوق الوارد والرسائل غير المرغوبة." });
         } catch (error) {
             sendError(res, error);
         }
@@ -181,7 +181,25 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         }
     }
 
-    // رابط التأكيد من البريد
+    // إدخال كود التحقق: عند النجاح يُفعَّل الحساب وتبدأ الجلسة
+    async function verifyCodeRoute(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        if (ipFailures.isBlocked(ip)) return h.sendJson(res, 429, { error: "محاولات خاطئة كثيرة. حاول لاحقاً." }, { "Retry-After": String(ipFailures.retryAfterSeconds(ip)) });
+        const body = await jsonBody(req, res);
+        if (body === undefined) return;
+        try {
+            const user = await users.verifyCode(body.email, body.code);
+            ipFailures.clear(ip);
+            stats.event("email_verified", "تأكيد بريد بالكود", ip);
+            await startSession(req, res, user, 200, await me(user));
+        } catch (error) {
+            if (error instanceof UserError) ipFailures.fail(ip);
+            sendError(res, error);
+        }
+    }
+
+    // رابط التأكيد من البريد (قديم، يبقى للرسائل المرسلة سابقاً)
     async function verifyLink(req, res, url) {
         const ip = h.getClientIp(req, config);
         if (!authLimiter.take(ip)) return redirect(res, "/login.html?error=rate");
@@ -392,6 +410,7 @@ function createAuth({ config, users, oauth, stats, mailer }) {
         if (p === "/api/auth/logout") return await logout(req, res), true;
         if (p === "/api/auth/reset") return await resetPassword(req, res), true;
         if (p === "/api/auth/resend") return await resendVerification(req, res), true;
+        if (p === "/api/auth/verify-code") return await verifyCodeRoute(req, res), true;
         if (p === "/api/auth/forgot") return await forgotPassword(req, res), true;
         if (p === "/auth/verify") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;

@@ -17,7 +17,8 @@ const LIMITS = {
         bulkMaxUrls: 0,           // الفحص الجماعي غير متاح
         deepChecks: false,        // عمر النطاق (RDAP)
         history: false,
-        api: false
+        api: false,
+        clean: false              // تنظيف الملفات (الصور) غير متاح
     },
     pro: {
         scansPerDay: 1000,        // "بلا حدود" عملياً مع سقف يمنع الإساءة
@@ -25,7 +26,8 @@ const LIMITS = {
         bulkMaxUrls: 50,
         deepChecks: true,
         history: true,
-        api: true
+        api: true,
+        clean: true
     }
 };
 
@@ -41,6 +43,7 @@ const FEATURES = {
         "CyberBot بلا حدود عملياً (حتى 200 رسالة يومياً)",
         "فحص عميق: عمر النطاق وتاريخ تسجيله",
         "فحص جماعي حتى 50 رابطاً دفعة واحدة + تصدير CSV",
+        "تنظيف الصور: إزالة البيانات المخفية والأكواد الملحقة وتسليم نسخة سليمة",
         "سجل فحوصاتك محفوظ بحسابك",
         "مفتاح API لربط أنظمتك"
     ]

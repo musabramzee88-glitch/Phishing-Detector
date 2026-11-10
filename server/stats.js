@@ -31,7 +31,7 @@ function createStats({ audit } = {}) {
         requests: 0, chatOk: 0, chatErrors: 0, rateLimited: 0,
         loginOk: 0, loginFailed: 0, blockedRequests: 0,
         clientErrors: 0, serverErrors: 0,
-        registrations: 0, userLogins: 0, userLoginFailed: 0, paymentRequests: 0, quotaExceeded: 0, bulkScans: 0
+        registrations: 0, userLogins: 0, userLoginFailed: 0, paymentRequests: 0, quotaExceeded: 0, bulkScans: 0, filesCleaned: 0
     };
     const scans = {};
     for (const kind of SCAN_KINDS) scans[kind] = { safe: 0, warning: 0, danger: 0 };

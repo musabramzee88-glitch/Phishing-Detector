@@ -162,3 +162,28 @@ button.danger { color: #fff; background: #b3263e; }
 #userQuery { max-width: 320px; }
 .actions-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 #showAllPayments { display: inline-block; width: auto; margin: 0 6px; }
+
+/* ---------- تبويبات اللوحة ---------- */
+.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    padding: 9px 16px;
+}
+.tab-btn.active { color: #06101c; background: linear-gradient(135deg, var(--accent), #0072ff); border-color: transparent; }
+.tab-badge { display: inline-block; min-width: 20px; margin-inline-start: 6px; padding: 0 6px; border-radius: 999px; background: var(--yellow); color: #06101c; font-size: 0.75rem; text-align: center; }
+[data-tab-panel][hidden] { display: none; }
+main.dashboard section:first-of-type { margin-top: 8px; }
+.tab-badge[hidden] { display: none; }

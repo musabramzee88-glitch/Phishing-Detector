@@ -18,28 +18,35 @@
         </div>
     </header>
 
+    <nav class="tabs" id="tabs" aria-label="أقسام اللوحة">
+        <button type="button" class="tab-btn" data-tab="overview">نظرة عامة</button>
+        <button type="button" class="tab-btn" data-tab="payments">المدفوعات <span id="pendingBadge" class="tab-badge" hidden>0</span></button>
+        <button type="button" class="tab-btn" data-tab="users">المستخدمون</button>
+        <button type="button" class="tab-btn" data-tab="security">الأمان والنظام</button>
+    </nav>
+
     <main class="dashboard">
-        <section>
+        <section data-tab-panel="overview">
             <h2>نظرة عامة</h2>
             <div id="cards" class="cards"></div>
         </section>
 
-        <section>
+        <section data-tab-panel="overview">
             <h2>صحة النظام</h2>
             <div id="health" class="health"></div>
         </section>
 
-        <section>
+        <section data-tab-panel="overview">
             <h2>الزوار (تقريبي، بدون حفظ العناوين)</h2>
             <div class="table-wrap"><table id="visitors"></table></div>
         </section>
 
-        <section>
+        <section data-tab-panel="overview">
             <h2>الفحوصات (مجهولة: النوع والنتيجة فقط)</h2>
             <div class="table-wrap"><table id="scans"></table></div>
         </section>
 
-        <section id="payments">
+        <section id="payments" data-tab-panel="payments">
             <h2>طلبات الدفع والإيرادات</h2>
             <div id="revenue" class="cards"></div>
             <div class="actions-row">
@@ -49,7 +56,7 @@
             <p class="note">قبل الموافقة: تأكد من وصول المبلغ فعلاً بحسابك (ماستر كارد / Qi Card) وطابق رقم العملية. الموافقة تمدد اشتراك المستخدم تلقائياً من تاريخ انتهائه الحالي.</p>
         </section>
 
-        <section id="usersSection">
+        <section id="usersSection" data-tab-panel="users">
             <h2>المستخدمون</h2>
             <form id="userSearch" class="actions-row" autocomplete="off">
                 <input id="userQuery" type="email" placeholder="ابحث بالبريد الإلكتروني" dir="ltr">
@@ -67,12 +74,12 @@
             </p>
         </section>
 
-        <section>
+        <section data-tab-panel="security">
             <h2>الخادم والإعدادات</h2>
             <dl id="info" class="info-list"></dl>
         </section>
 
-        <section>
+        <section data-tab-panel="security">
             <h2>آخر الأحداث الأمنية</h2>
             <div class="table-wrap"><table id="events"></table></div>
         </section>

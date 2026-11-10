@@ -73,9 +73,20 @@
                     </button>
                     <p class="auth-small" id="registerTerms" hidden>بإنشاء الحساب توافق على استخدام الموقع لأغراض الحماية والتوعية فقط.</p>
                     <p class="auth-small" id="forgotHint">نسيت كلمة السر؟ <button type="button" class="auth-link" id="forgotBtn">أرسل لي رابطاً على بريدي</button></p>
-                    <p class="auth-small" id="resendRow" hidden>ما وصلك رابط التفعيل؟ <button type="button" class="auth-link" id="resendBtn">أعد الإرسال</button></p>
+                    <p class="auth-small" id="resendRow" hidden>ما وصلك كود التفعيل؟ <button type="button" class="auth-link" id="resendBtn">أعد الإرسال</button></p>
                 </form>
             </div>
+
+            <form id="verifyForm" class="auth-form" hidden novalidate>
+                <h2 class="auth-title">أكّد بريدك الإلكتروني</h2>
+                <p class="auth-small" id="verifyIntro">أرسلنا كوداً من 6 أرقام إلى بريدك.</p>
+                <label class="auth-field">
+                    <span>كود التحقق</span>
+                    <input type="text" id="verifyCode" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" dir="ltr" style="text-align:center;letter-spacing:.5em;font-size:1.4rem" placeholder="------" required>
+                </label>
+                <button type="submit" class="auth-submit">تأكيد وفتح الحساب</button>
+                <p class="auth-small">ما وصلك الكود؟ <button type="button" class="auth-link" id="verifyResend">أرسل كوداً جديداً</button> · <button type="button" class="auth-link" id="verifyBack">رجوع</button></p>
+            </form>
 
             <form id="resetForm" class="auth-form" hidden novalidate>
                 <h2 class="auth-title">تعيين كلمة سر جديدة</h2>

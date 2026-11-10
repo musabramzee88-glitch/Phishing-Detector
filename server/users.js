@@ -234,6 +234,38 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         return raw;
     }
 
+    // كود تحقق من 6 أرقام (صالح 15 دقيقة، 5 محاولات خاطئة كحد أقصى ثم يُلغى)
+    async function createVerifyCode(userId) {
+        const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+        await db.pipe([
+            ["SET", k("vcode", userId), sha256(userId + ":" + code), "EX", "900"],
+            ["DEL", k("vtry", userId)]
+        ]);
+        return code;
+    }
+
+    async function verifyCode(rawEmail, rawCode) {
+        const bad = () => new UserError("bad_code", "الكود غير صحيح أو منتهي. اطلب كوداً جديداً.", 400);
+        const code = String(rawCode || "").replace(/\s/g, "");
+        if (!/^\d{6}$/.test(code)) throw bad();
+        const user = await findByEmail(String(rawEmail || "").trim().toLowerCase());
+        if (!user || user.disabled) throw bad();
+        const stored = await db.cmd(["GET", k("vcode", user.id)]);
+        if (!stored) throw bad();
+        const [tries] = await db.pipe([["INCR", k("vtry", user.id)], ["EXPIRE", k("vtry", user.id), "900"]]);
+        if (Number(tries) > 5) {
+            await db.cmd(["DEL", k("vcode", user.id)]);
+            throw bad();
+        }
+        const a = Buffer.from(stored, "hex");
+        const b = Buffer.from(sha256(user.id + ":" + code), "hex");
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw bad();
+        await db.pipe([["DEL", k("vcode", user.id)], ["DEL", k("vtry", user.id)]]);
+        if (user.emailVerified) return user;
+        const trialEndsAt = user.trialEndsAt || await claimTrial(user.email);
+        return update(user.id, u => { u.emailVerified = true; u.trialEndsAt = trialEndsAt; });
+    }
+
     async function verifyEmail(raw) {
         if (typeof raw !== "string" || raw.length > 100) throw new UserError("bad_link", "رابط التأكيد غير صالح أو منتهي.", 400);
         const key = k("verify", sha256(raw));
@@ -253,7 +285,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const ok = await verifyPassword(String(password || ""), user && user.pw ? user.pw : DUMMY_HASH);
         if (!user || !user.pw || !ok) throw new UserError("bad_login", "البريد أو كلمة السر غير صحيحة.", 401);
         if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
-        if (needsVerification(user)) throw new UserError("email_unverified", "أكّد بريدك الإلكتروني أولاً: أرسلنا لك رابط التفعيل. إذا ما وصلك اطلب إرساله مرة ثانية.", 403);
+        if (needsVerification(user)) throw new UserError("email_unverified", "أكّد بريدك الإلكتروني أولاً: أرسلنا لك كود تحقق من 6 أرقام. إذا ما وصلك اطلب كوداً جديداً.", 403);
         return update(user.id, u => { u.lastLoginAt = clock(); });
     }
 
@@ -554,7 +586,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     }
 
     return {
-        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, verifyEmail, createSession, userFromSession, destroySession,
+        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, setDisabled, revenue,

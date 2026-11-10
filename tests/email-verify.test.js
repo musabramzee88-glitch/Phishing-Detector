@@ -24,6 +24,8 @@ async function fakeMailServer(status = 201) {
 const PASSWORD = 'a long safe passphrase';
 const register = (app, email) => request(app, 'POST', '/api/auth/register', { headers: sameOrigin(app), body: { email, password: PASSWORD, name: 'T' } });
 const loginReq = (app, email) => request(app, 'POST', '/api/auth/login', { headers: sameOrigin(app), body: { email, password: PASSWORD } });
+const codeIn = mail => mail.body.subject.match(/^(\d{6})/)[1];
+const verifyCode = (app, email, code) => request(app, 'POST', '/api/auth/verify-code', { headers: sameOrigin(app), body: { email, code } });
 const linkIn = mail => (mail.body.htmlContent || mail.body.html).match(/href="([^"]+)"/)[1].replace(/&amp;/g, '&');
 
 async function withMail(fn, { status } = {}) {
@@ -59,18 +61,21 @@ test('مع مزوّد البريد: لا جلسة ولا شهر مجاني قب�
     assert.equal(early.status, 403);
     assert.equal(early.json.code, 'email_unverified');
 
-    // رابط خاطئ
-    const bad = await request(app, 'GET', '/auth/verify?token=nope');
-    assert.equal(bad.status, 302);
-    assert.match(bad.headers.location, /error=bad_verify/);
+    // كود خاطئ
+    const code = codeIn(mail.sent[0]);
+    const wrong = code === '000000' ? '111111' : '000000';
+    const bad = await verifyCode(app, 'new.user@example.com', wrong);
+    assert.equal(bad.status, 400);
+    assert.equal(bad.json.code, 'bad_code');
+    assert.equal(cookieFrom(bad), '');
 
-    // الرابط الصحيح مرة واحدة فقط
-    const link = new URL(linkIn(mail.sent[0]));
-    const ok = await request(app, 'GET', link.pathname + link.search);
-    assert.equal(ok.status, 302);
-    assert.match(ok.headers.location, /verified=1/);
-    const again = await request(app, 'GET', link.pathname + link.search);
-    assert.match(again.headers.location, /error=bad_verify/);
+    // الكود الصحيح مرة واحدة فقط، ويفتح الجلسة
+    const ok = await verifyCode(app, 'new.user@example.com', code);
+    assert.equal(ok.status, 200);
+    assert.ok(cookieFrom(ok));
+    assert.equal(ok.json.user.emailVerified, true);
+    const again = await verifyCode(app, 'new.user@example.com', code);
+    assert.equal(again.status, 400);
 
     const logged = await loginReq(app, 'new.user@example.com');
     assert.equal(logged.status, 200);
@@ -91,7 +96,7 @@ test('نفس الصندوق بشكل آخر (نقاط Gmail و +tag) والبر�
 }));
 
 test('الشهر المجاني مرة واحدة لكل صندوق: حذف الحساب وإعادة التسجيل لا يعطي شهراً ثانياً', () => withMail(async (app, mail) => {
-    const verify = async index => { const l = new URL(linkIn(mail.sent[index])); await request(app, 'GET', l.pathname + l.search); };
+    const verify = async index => { await verifyCode(app, 'repeat@example.com', codeIn(mail.sent[index])); };
     await register(app, 'repeat@example.com');
     await verify(0);
     const first = await loginReq(app, 'repeat@example.com');
@@ -120,8 +125,8 @@ test('إعادة الإرسال ونسيت كلمة السر: رد موحّد، 
     assert.equal(mail.sent.length, 3, 'الحد 3 رسائل بالساعة لكل صندوق');
 
     // تأكيد البريد ثم نسيان كلمة السر
-    const l = new URL(linkIn(mail.sent[0]));
-    await request(app, 'GET', l.pathname + l.search);
+    assert.equal((await verifyCode(app, 'forgot@example.com', codeIn(mail.sent[0]))).status, 400, 'الكود القديم يُلغى عند طلب كود جديد');
+    assert.equal((await verifyCode(app, 'forgot@example.com', codeIn(mail.sent[2]))).status, 200);
     const before = mail.sent.length;
     const forgot = await request(app, 'POST', '/api/auth/forgot', { headers: sameOrigin(app), body: { email: 'forgot@example.com' } });
     assert.equal(forgot.status, 200);
@@ -153,3 +158,12 @@ test('Resend يُستخدم عند ضبط RESEND_API_KEY', async () => {
         assert.equal(mail.sent[0].body.from, 'ApexSec <noreply@example.com>');
     } finally { await app.close(); await mail.close(); }
 });
+
+test('كود التحقق: 5 محاولات خاطئة تُلغي الكود حتى لو أُدخل الصحيح بعدها', () => withMail(async (app, mail) => {
+    await register(app, 'brute@example.com');
+    const code = codeIn(mail.sent[0]);
+    const wrong = code === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) assert.equal((await verifyCode(app, 'brute@example.com', wrong)).status, 400);
+    assert.equal((await verifyCode(app, 'brute@example.com', code)).status, 400, 'الكود أُلغي');
+    assert.equal((await verifyCode(app, 'brute@example.com', 'abcdef')).status, 400);
+}));

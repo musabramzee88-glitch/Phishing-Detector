@@ -130,7 +130,7 @@ function createScan({ config, users, auth, intel, stats }) {
     async function handle(req, res, url) {
         const p = url.pathname;
         const viaApi = p.startsWith("/api/v1/");
-        const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/v1/scan-url", "/api/v1/scan-text"];
+        const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/scan/clean", "/api/v1/scan-url", "/api/v1/scan-text"];
         if (!routes.includes(p)) return false;
         if (viaApi && req.method === "OPTIONS") {
             res.writeHead(204, { Allow: "POST" });
@@ -173,6 +173,16 @@ function createScan({ config, users, auth, intel, stats }) {
                 const q = await quota(res, user, "scan");
                 if (!q) return true;
                 h.sendJson(res, 200, { ok: true, used: q.used, limit: q.limit });
+                return true;
+            }
+            // تنظيف الملفات (Pro): المعالجة نفسها داخل المتصفح، والخادم يتحقق من الخطة ويسجّل العملية
+            if (p === "/api/scan/clean") {
+                if (!limits.clean) return h.sendJson(res, 403, { error: "تنظيف الملفات متاح لمشتركي Pro.", code: "pro_only" }), true;
+                if (input.kind !== "image") return h.sendJson(res, 400, { error: "تنظيف هذا النوع من الملفات غير مدعوم.", code: "unsupported" }), true;
+                const size = Number(input.size);
+                if (!Number.isFinite(size) || size <= 0 || size > 25 * 1024 * 1024) return h.sendJson(res, 413, { error: "الحد الأقصى لحجم الصورة 25MB." }), true;
+                stats.count("filesCleaned");
+                h.sendJson(res, 200, { ok: true });
                 return true;
             }
             if (p === "/api/scan/record") {

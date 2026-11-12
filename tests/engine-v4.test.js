@@ -77,3 +77,18 @@ test('بريد الضحية داخل الرابط (عادي أو Base64)', () =>
     assert.equal(E.analyzeUrl('https://accounts.google.com/signin?email=ali@gmail.com').level, 'safe');
     assert.equal(E.analyzeUrl('https://example.com/?token=dGhpcyBpcyBub3QgYW4gZW1haWw').level, 'safe');
 });
+
+test("the site's own domain is trusted, lookalikes are not", () => {
+    const self = "phishing-detector-x1-iq.onrender.com";
+    E.setSiteHosts([self]);
+    try {
+        assert.equal(E.analyzeUrl(`https://${self}/admin`).level, "safe");
+        assert.equal(E.analyzeUrl(`https://www.${self}`).level, "safe");
+        assert.notEqual(E.analyzeUrl(`https://evil-${self}`).level, "safe");
+        assert.equal(E.analyzeUrl(`https://${self}.evil.com`).level, "danger");
+        assert.notEqual(E.analyzeUrl(`https://x@${self}`).level, "safe");
+    } finally {
+        E.setSiteHosts([]);
+    }
+    assert.notEqual(E.analyzeUrl(`https://${self}`).level, "safe");
+});

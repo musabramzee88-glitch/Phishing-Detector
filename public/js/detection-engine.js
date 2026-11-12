@@ -332,6 +332,20 @@
         return null;
     }
 
+    // نطاق الموقع نفسه (يُضبط من APP_URL على الخادم ومن عنوان الصفحة بالمتصفح)،
+    // حتى لا يحذّر الفحص من رابط موقعنا لمجرد أنه مستضاف على منصة مجانية مثل onrender.com
+    const siteHosts = new Set();
+    function setSiteHosts(hosts) {
+        siteHosts.clear();
+        for (const h of [].concat(hosts || [])) {
+            const host = String(h || '').trim().toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
+            if (host && host.includes('.') && !isIPv4(host)) siteHosts.add(host);
+        }
+    }
+    function isSiteHost(host) {
+        return siteHosts.has(host.replace(/^www\./, ''));
+    }
+
     function isIPv4(host) {
         return /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(host) && host.split('.').every(p => Number(p) <= 255);
     }
@@ -483,7 +497,7 @@
         const host = url.hostname.toLowerCase().replace(/\.$/, '');
         const unicodeHost = hostToUnicode(host);
         const parts = splitDomain(host);
-        const official = officialBrandFor(host);
+        const official = officialBrandFor(host) || (isSiteHost(host) ? { brand: { name: 'هذا الموقع (Phishing Detector)' }, domain: host, self: true } : null);
         const pathAndQuery = (url.pathname + url.search).toLowerCase();
 
         // 1. البروتوكول
@@ -523,6 +537,10 @@
             add(0.15, 'warning', `الرابط يُنزّل ملفاً مضغوطاً (.${fileExt.toLowerCase()})، وقد يحتوي برامج تنفيذية.`);
         }
 
+        if (official && official.self) {
+            add(0, 'safe', `${host} هو نطاق هذا الموقع نفسه (Phishing Detector).`);
+            return finish(signals, thresholds, { input: url.href, host, unicodeHost, registrable: parts.registrable, official: official.brand.name });
+        }
         if (official) {
             const userContent = USER_CONTENT_HOSTS.find(d => host === d || host.endsWith('.' + d));
             if (userContent) {
@@ -1359,7 +1377,10 @@
         return result;
     }
 
+    if (typeof location !== 'undefined' && location.hostname) setSiteHosts([location.hostname]);
+
     return {
+        setSiteHosts,
         analyzeUrl,
         analyzeText,
         analyzeFile,

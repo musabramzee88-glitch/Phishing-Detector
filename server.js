@@ -43,6 +43,8 @@ const { serveStatic } = require("./server/static");
 const CLIENT_ERROR_KINDS = new Set(["error", "promise", "action"]);
 
 function createApp(config = loadConfig(), overrides = {}) {
+    // نطاق الموقع نفسه يُعتبر موثوقاً بالفحص (ما نحذّر من رابطنا لأنه على onrender.com)
+    require("./public/js/detection-engine.js").setSiteHosts([new URL(config.appUrl).hostname]);
     const audit = config.auditStdout ? entry => console.log(JSON.stringify({ audit: true, ...entry })) : undefined;
     const stats = createStats({ audit });
     const visitors = createVisitorCounter();

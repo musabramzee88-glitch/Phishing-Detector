@@ -26,7 +26,10 @@ const EVENT_LABELS = {
     admin_ai_test: ["اختبار الذكاء الاصطناعي", ""],
     db_error: ["عطل قاعدة البيانات", "bad"],
     intel: ["قوائم التهديدات", "warn"],
-    export: ["تصدير بيانات", ""]
+    export: ["تصدير بيانات", ""],
+    admin_code_sent: ["إرسال رمز دخول الإدارة", ""],
+    admin_code_failed: ["فشل إرسال رمز الإدارة", "bad"],
+    admin_code_unknown: ["طلب رمز لبريد غير أدمن", "warn"]
 };
 const HEALTH_LABELS = { ok: ["سليم", "ok"], degraded: ["متدهور (تحذير)", "warn"], critical: ["حرج (ستُعاد الخدمة تلقائياً)", "bad"] };
 
@@ -161,7 +164,8 @@ function renderInfo(data) {
         ["حد CyberBot لكل زائر بالدقيقة", data.config.chatPerMinute],
         ["الحد العام لـ CyberBot بالدقيقة", data.config.globalChatPerMinute],
         ["عدد حسابات الأدمن", data.config.adminCount],
-        ["رمز التحقق الثنائي لحسابك", yesNo(data.config.totpEnabled)],
+        ["طريقة دخولك", data.config.loginMethod || (data.config.totpEnabled ? "كلمة سر + تطبيق مصادقة" : "كلمة سر فقط")],
+        ["الدخول برمز البريد", yesNo(data.config.emailLogin)],
         ["جلسات أدمن نشطة", data.config.activeSessions]
     ];
     document.getElementById("info").replaceChildren(...items.map(([label, value]) => {
@@ -443,7 +447,8 @@ async function refresh() {
         }
         if (!response.ok) throw new Error("bad status");
         const data = await response.json();
-        document.getElementById("user").textContent = "المستخدم: " + data.user;
+        document.getElementById("user").textContent = data.user;
+        document.getElementById("avatar").textContent = String(data.user || "?").trim().charAt(0).toUpperCase() || "؟";
         renderKpis(data);
         renderVisitorsChart(data);
         renderOutcome(data);
@@ -455,9 +460,11 @@ async function refresh() {
         renderScans(data);
         renderInfo(data);
         renderEvents(data);
-        document.getElementById("updated").textContent = "آخر تحديث: " + new Date().toLocaleTimeString("ar-IQ");
+        document.getElementById("updated").textContent = "محدَّث " + new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" });
+        document.querySelector(".live").classList.remove("offline");
     } catch {
-        document.getElementById("updated").textContent = "تعذر التحديث، سأحاول مجدداً...";
+        document.getElementById("updated").textContent = "غير متصل، إعادة المحاولة...";
+        document.querySelector(".live").classList.add("offline");
     }
 }
 
@@ -467,6 +474,26 @@ document.getElementById("logout").addEventListener("click", async () => {
     } finally {
         window.location.replace("/admin");
     }
+});
+
+// الجداول على الموبايل تُعرض كبطاقات: كل خلية تحمل اسم عمودها (data-label) ليظهر بجانب القيمة
+function labelTable(table) {
+    const heads = Array.from(table.querySelectorAll("thead th")).map(th => th.textContent.trim());
+    if (!heads.length) return;
+    table.classList.add("stackable");
+    table.querySelectorAll("tbody tr, tr").forEach(tr => {
+        Array.from(tr.children).forEach((cell, i) => {
+            if (cell.tagName === "TD" && heads[i] && cell.dataset.label !== heads[i]) cell.dataset.label = heads[i];
+        });
+    });
+}
+const tableObserver = new MutationObserver(records => {
+    const tables = new Set(records.map(r => r.target.closest && r.target.closest("table")).filter(Boolean));
+    tables.forEach(labelTable);
+});
+document.querySelectorAll("table").forEach(table => {
+    tableObserver.observe(table, { childList: true, subtree: true });
+    labelTable(table);
 });
 
 refresh();

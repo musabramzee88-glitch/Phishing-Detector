@@ -98,5 +98,5 @@ test('عنوان الزائر: الترويسة المضبوطة فقط، وال
 test('صفحة دخول الأدمن تعرض حقل التحقق الثنائي وترسله', () => {
     const dir = path.join(__dirname, '..', 'server', 'admin');
     assert.match(fs.readFileSync(path.join(dir, 'login.html'), 'utf8'), /id="code"/);
-    assert.match(fs.readFileSync(path.join(dir, 'login.js'), 'utf8'), /code: document\.getElementById\("code"\)/);
+    assert.match(fs.readFileSync(path.join(dir, 'login.js'), 'utf8'), /code: \$\("code"\)\.value/);
 });

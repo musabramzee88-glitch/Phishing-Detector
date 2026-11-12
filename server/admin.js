@@ -2,8 +2,10 @@
 
 /*
   صفحة الأدمن. القواعد:
-  - مغلقة تماماً (404) إذا لم يُضبط متغير ADMINS.
-  - الدخول: اسم مستخدم + كلمة سر (مشفّرة بـ scrypt) + رمز تحقق ثنائي TOTP إذا كان مفعّلاً للحساب.
+  - مغلقة تماماً (404) إذا لم يُضبط ADMIN_EMAILS ولا ADMINS.
+  - الدخول الأساسي (ADMIN_EMAILS): بريد الأدمن ← كود من 6 أرقام يصل للبريد (صالح 10 دقائق، لمرة واحدة،
+    5 محاولات كحد أقصى) ← الجلسة. الرد واحد لأي بريد، والإرسال لا يُنتظر، فلا يُعرف هل البريد للأدمن أم لا.
+  - الدخول القديم (ADMINS، اختياري): اسم مستخدم + كلمة سر (scrypt) + رمز TOTP إذا كان مفعّلاً للحساب.
   - بعد 5 محاولات فاشلة من نفس العنوان يُحظر 15 دقيقة، وسقف عام لمحاولات الدخول بالدقيقة.
   - الجلسة: رمز عشوائي طويل في كوكي HttpOnly + SameSite=Strict (+ Secure على HTTPS)، تنتهي بعد 20 دقيقة خمول أو 8 ساعات.
   - كل ما يغيّر الحالة يتطلب طلب JSON قادماً من الموقع نفسه (حماية CSRF).
@@ -23,6 +25,11 @@ const { UserError } = require("./users");
 const scrypt = promisify(crypto.scrypt);
 const DUMMY_SALT = crypto.randomBytes(16).toString("hex");
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة.";
+const CODE_TTL_MS = 10 * 60_000;
+const CODE_MAX_TRIES = 5;
+const CODE_RESEND_MS = 60_000;
+const CODE_STARTS_PER_WINDOW = 8;
+const maskEmail = email => String(email).replace(/^(.)[^@]*@(.)[^.]*(\..+)$/, "$1***@$2***$3");
 
 const ASSETS = {
     "admin.css": { type: "text/css; charset=utf-8", publicAsset: true },
@@ -38,7 +45,13 @@ function sha256(value) {
 
 // extras: { visitors, health, users, db, intel, chat } لإظهارها وإدارتها بلوحة الأدمن (اختياري)
 function createAdmin(config, stats, extras = {}) {
-    const enabled = config.admins.size > 0;
+    const adminEmails = config.adminEmails || new Set();
+    const enabled = config.admins.size > 0 || adminEmails.size > 0;
+    const mailer = extras.mailer || null;
+    const emailLogin = () => adminEmails.size > 0 && Boolean(mailer && mailer.enabled);
+    const tickets = new Map();     // sha256(ticket) -> { email|null, codeHash, exp, tries }
+    const lastSent = new Map();    // email -> وقت آخر كود (منع الإغراق)
+    const starts = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: CODE_STARTS_PER_WINDOW });
     const sessions = new Map();   // sha256(sid) -> { user, created, last }
     const failures = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.loginFailuresPerWindow });
     const attempts = createRateLimiter({ windowMs: 60_000, max: Infinity, globalMax: config.limits.loginAttemptsPerMinute });
@@ -55,6 +68,8 @@ function createAdmin(config, stats, extras = {}) {
         for (const [key, record] of sessions) {
             if (now - record.last > config.session.idleMs || now - record.created > config.session.absoluteMs) sessions.delete(key);
         }
+        for (const [key, t] of tickets) if (t.exp <= now) tickets.delete(key);
+        for (const [email, at] of lastSent) if (now - at > CODE_RESEND_MS) lastSent.delete(email);
     }, 60_000);
     pruneTimer.unref();
 
@@ -174,6 +189,104 @@ function createAdmin(config, stats, extras = {}) {
         http.sendJson(res, 200, { ok: true }, { "Set-Cookie": cookieHeader(req, sid, Math.floor(config.session.absoluteMs / 1000)) });
     }
 
+    // ---------- الدخول بكود البريد ----------
+    // فحوصات مشتركة: نفس الموقع، JSON، السقف العام، والحظر المؤقت للعنوان. يرجع الجسم أو undefined
+    async function guardedBody(req, res, ip) {
+        if (!http.isSameOrigin(req)) {
+            stats.count("blockedRequests");
+            stats.event("blocked_origin", "محاولة دخول من موقع غير مسموح", ip);
+            http.sendJson(res, 403, { error: "Forbidden" });
+            return undefined;
+        }
+        if (!http.isJsonRequest(req)) return http.sendJson(res, 415, { error: "Content-Type must be application/json" }), undefined;
+        if (!attempts.take("login")) {
+            stats.event("login_throttled", "تجاوز السقف العام لمحاولات الدخول", ip);
+            return http.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد قليل." }, { "Retry-After": "60" }), undefined;
+        }
+        if (failures.isBlocked(ip)) {
+            return http.sendJson(res, 429, { error: "تم حظر المحاولات مؤقتاً. حاول لاحقاً." }, { "Retry-After": String(failures.retryAfterSeconds(ip)) }), undefined;
+        }
+        try {
+            const body = await http.readJsonBody(req, 1024);
+            if (body && typeof body === "object" && !Array.isArray(body)) return body;
+        } catch { /* نكمل للرد بالخطأ */ }
+        http.sendJson(res, 400, { error: "Bad request" });
+        return undefined;
+    }
+
+    async function startEmailLogin(req, res) {
+        const ip = http.getClientIp(req, config);
+        if (!emailLogin()) return http.sendJson(res, 503, { error: "الدخول بالبريد غير مفعّل على الخادم.", code: "email_login_disabled" });
+        const body = await guardedBody(req, res, ip);
+        if (body === undefined) return;
+        if (starts.isBlocked(ip)) {
+            return http.sendJson(res, 429, { error: "طلبت رموزاً كثيرة. انتظر قليلاً ثم حاول." }, { "Retry-After": String(starts.retryAfterSeconds(ip)) });
+        }
+        const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return http.sendJson(res, 400, { error: "اكتب بريداً إلكترونياً صحيحاً." });
+        starts.fail(ip);
+
+        const now = Date.now();
+        const isAdmin = adminEmails.has(email);
+        const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+        const ticket = crypto.randomBytes(24).toString("base64url");
+        if (tickets.size >= 500) tickets.delete(tickets.keys().next().value);
+        tickets.set(sha256(ticket), { email: isAdmin ? email : null, codeHash: sha256(ticket + ":" + code), exp: now + CODE_TTL_MS, tries: 0 });
+
+        // الرد واحد ومباشر لأي بريد؛ الإرسال يكمل بالخلفية حتى لا يكشف زمن الرد بريد الأدمن
+        if (isAdmin && !(lastSent.has(email) && now - lastSent.get(email) < CODE_RESEND_MS)) {
+            lastSent.set(email, now);
+            mailer.adminCode(email, code).then(
+                () => stats.event("admin_code_sent", `أُرسل رمز دخول الإدارة إلى ${maskEmail(email)}`, ip),
+                () => stats.event("admin_code_failed", "تعذر إرسال رمز دخول الإدارة. راجع إعدادات مزوّد البريد.", ip)
+            );
+        } else if (!isAdmin) {
+            stats.event("admin_code_unknown", "طلب رمز دخول الإدارة لبريد غير مسجّل كأدمن", ip);
+        }
+        http.sendJson(res, 200, { ok: true, ticket, expiresIn: CODE_TTL_MS / 1000, resendAfter: CODE_RESEND_MS / 1000 });
+    }
+
+    async function verifyEmailLogin(req, res) {
+        const ip = http.getClientIp(req, config);
+        if (!emailLogin()) return http.sendJson(res, 503, { error: "الدخول بالبريد غير مفعّل على الخادم.", code: "email_login_disabled" });
+        const body = await guardedBody(req, res, ip);
+        if (body === undefined) return;
+        const ticket = typeof body.ticket === "string" ? body.ticket.slice(0, 100) : "";
+        const code = typeof body.code === "string" ? body.code.replace(/\D/g, "").slice(0, 6) : "";
+        const key = ticket ? sha256(ticket) : "";
+        const record = key ? tickets.get(key) : null;
+
+        const reject = (message, reason, extra = {}) => {
+            failures.fail(ip);
+            stats.count("loginFailed");
+            stats.event("login_failed", reason, ip);
+            http.sendJson(res, 401, { error: message, ...extra });
+        };
+        if (!record || record.exp <= Date.now()) {
+            if (record) tickets.delete(key);
+            return reject("انتهت صلاحية الرمز. اطلب رمزاً جديداً.", "رمز إدارة منتهي أو غير موجود", { code: "expired" });
+        }
+        record.tries += 1;
+        const expected = Buffer.from(record.codeHash, "hex");
+        const actual = Buffer.from(sha256(ticket + ":" + code), "hex");
+        const ok = code.length === 6 && Boolean(record.email) && crypto.timingSafeEqual(expected, actual);
+        if (!ok) {
+            const left = CODE_MAX_TRIES - record.tries;
+            if (left <= 0) tickets.delete(key);
+            return reject(left > 0 ? `الرمز غير صحيح. باقي ${left} محاولات.` : "تجاوزت عدد المحاولات. اطلب رمزاً جديداً.", "رمز دخول إدارة خاطئ",
+                { code: left > 0 ? "wrong_code" : "expired", triesLeft: Math.max(0, left) });
+        }
+
+        tickets.delete(key);
+        lastSent.delete(record.email);
+        failures.clear(ip);
+        starts.clear(ip);
+        stats.count("loginOk");
+        stats.event("login_ok", `دخول للإدارة بكود البريد (${maskEmail(record.email)})`, ip);
+        const sid = createSession(record.email);
+        http.sendJson(res, 200, { ok: true }, { "Set-Cookie": cookieHeader(req, sid, Math.floor(config.session.absoluteMs / 1000)) });
+    }
+
     function logout(req, res) {
         if (!http.isSameOrigin(req)) {
             http.sendJson(res, 403, { error: "Forbidden" });
@@ -210,7 +323,9 @@ function createAdmin(config, stats, extras = {}) {
                 webSearch: config.openai.webSearch,
                 chatPerMinute: config.limits.chatPerMinute,
                 globalChatPerMinute: config.limits.globalChatPerMinute,
-                adminCount: config.admins.size,
+                adminCount: config.admins.size + adminEmails.size,
+                loginMethod: admin ? (admin.totpSecret ? "كلمة سر + تطبيق مصادقة" : "كلمة سر فقط") : "كود البريد",
+                emailLogin: emailLogin(),
                 totpEnabled: Boolean(admin && admin.totpSecret),
                 activeSessions: sessions.size
             },
@@ -251,6 +366,17 @@ function createAdmin(config, stats, extras = {}) {
             return true;
         }
 
+        // طرق الدخول المتاحة (عامة: تكفي لعرض النموذج الصحيح ولا تكشف أي بريد)
+        if (p === "/api/admin/methods") {
+            if (req.method !== "GET") return methodNotAllowed(res, "GET"), true;
+            http.sendJson(res, 200, { email: adminEmails.size > 0, emailReady: emailLogin(), password: config.admins.size > 0 });
+            return true;
+        }
+        if (p === "/api/admin/email/start" || p === "/api/admin/email/verify") {
+            if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
+            await (p.endsWith("start") ? startEmailLogin(req, res) : verifyEmailLogin(req, res));
+            return true;
+        }
         if (p === "/api/admin/login") {
             if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
             await login(req, res);

@@ -215,7 +215,16 @@
     function showTab(name) {
         const tab = TABS.includes(name) ? name : "overview";
         document.querySelectorAll("[data-tab-panel]").forEach(el => { el.hidden = el.dataset.tabPanel !== tab; });
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+        document.querySelectorAll(".tab-btn").forEach(b => {
+            const active = b.dataset.tab === tab;
+            b.classList.toggle("active", active);
+            if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+            if (active) {
+                document.getElementById("pageTitle").textContent = b.dataset.title;
+                document.title = b.dataset.title + " | لوحة الإدارة";
+            }
+        });
+        window.scrollTo({ top: 0 });
         if (window.location.hash.slice(1) !== tab) history.replaceState(null, "", "#" + tab);
     }
     document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));

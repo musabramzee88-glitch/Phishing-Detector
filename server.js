@@ -60,7 +60,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     const auth = createAuth({ config, users, oauth, stats, mailer, settings });
     const scan = createScan({ config, users, auth, intel, stats });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, settings });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings });
 
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {
@@ -263,7 +263,10 @@ async function main() {
         const providers = Object.keys(config.oauth).filter(k => config.oauth[k]);
         console.log(`Sign-in providers: email${providers.length ? ", " + providers.join(", ") : ""}.`);
         console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style === "gemini" ? "Gemini native" : config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
-        console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
+        console.log(admin.enabled
+            ? `Admin page enabled: ${config.adminEmails.size} email login(s), ${config.admins.size} password account(s).`
+            : "Admin page disabled: set ADMIN_EMAILS (email code login) or ADMINS.");
+        if (config.adminEmails.size && !config.mail.enabled) console.log("WARNING: ADMIN_EMAILS is set but no mail provider is configured, so admin login codes cannot be sent. Set BREVO_API_KEY and MAIL_FROM.");
         const no2fa = [...config.admins].filter(([, a]) => !a.totpSecret).map(([name]) => name);
         if (no2fa.length) console.log(`WARNING: admin account(s) without 2FA: ${no2fa.join(", ")}. Re-run "npm run make-admin" and add the secret to your authenticator app.`);
         intel.start();

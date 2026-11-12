@@ -81,6 +81,9 @@ function createMailer(config) {
     const loginCode = (to, code) => codeEmail(to, code, "رمز تسجيل الدخول",
         "حتى نتأكد أنك صاحب الحساب، اكتب هذا الرمز في صفحة الدخول. الرمز صالح 10 دقائق ولمرة واحدة.",
         "إذا لم تحاول تسجيل الدخول الآن، فشخص يعرف كلمة سرك: غيّرها فوراً. لا تشارك هذا الرمز مع أي أحد، حتى لو ادّعى أنه من الدعم.", "رمز الدخول");
+    const adminCode = (to, code) => codeEmail(to, code, "رمز دخول لوحة الإدارة",
+        "طلب أحدهم الدخول إلى لوحة إدارة Phishing Detector بهذا البريد. اكتب الرمز في صفحة الدخول. الرمز صالح 10 دقائق ولمرة واحدة.",
+        "إذا لم تحاول الدخول الآن فتجاهل الرسالة: بدون هذا الرمز لا يمكن لأحد الدخول. لا تشارك الرمز مع أي شخص.", "رمز دخول الإدارة");
     const verifyEmail = (to, link) => send({
         to, subject: "فعّل حسابك في Phishing Detector",
         ...layout("تأكيد البريد الإلكتروني", "اضغط الزر لتأكيد بريدك وتفعيل حسابك. الرابط صالح 24 ساعة ولمرة واحدة.", "تأكيد البريد", link, "إذا لم تنشئ حساباً بهذا البريد تجاهل الرسالة.")
@@ -90,7 +93,7 @@ function createMailer(config) {
         ...layout("إعادة تعيين كلمة السر", "وصلنا طلب لتغيير كلمة سر حسابك. الرابط صالح ساعة واحدة ولمرة واحدة.", "تعيين كلمة سر جديدة", link, "إذا لم تطلب هذا تجاهل الرسالة؛ كلمة سرك ما تغيّرت.")
     });
 
-    return { enabled, provider: m.provider || "", send, verifyCode, loginCode, verifyEmail, resetEmail, status: () => ({ enabled, provider: m.provider || "", lastError }) };
+    return { enabled, provider: m.provider || "", send, verifyCode, loginCode, adminCode, verifyEmail, resetEmail, status: () => ({ enabled, provider: m.provider || "", lastError }) };
 }
 
 module.exports = { createMailer };

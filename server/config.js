@@ -7,7 +7,8 @@
   الأساسية:
     APP_URL                          عنوان الموقع العام (مثل https://phishing-detector.onrender.com) لروابط الدخول عبر Google/Microsoft/Apple
     UPSTASH_REDIS_REST_URL/TOKEN     قاعدة البيانات (الحسابات والاشتراكات). إلزامية بالإنتاج.
-    ADMINS                           حسابات الأدمن (npm run make-admin)
+    ADMIN_EMAILS                     بريد الأدمن (واحد أو أكثر بفواصل): الدخول بكود يصل للبريد. يحتاج مزوّد بريد مفعّل
+    ADMINS                           حسابات أدمن قديمة باسم مستخدم وكلمة سر (npm run make-admin)، اختيارية
   الذكاء الاصطناعي (CyberBot):
     AI_API_KEY, AI_MODEL, AI_BASE_URL   أي مزوّد متوافق مع OpenAI (OpenAI, Gemini, Groq, OpenRouter...)
     OPENAI_API_KEY, OPENAI_MODEL     (الأسماء القديمة ما زالت مدعومة)
@@ -160,6 +161,16 @@ function parseAdmins(value) {
     return admins;
 }
 
+// بريد الأدمن: قائمة مفصولة بفواصل، تُوحَّد بحروف صغيرة ويُتجاهل أي عنوان غير صالح
+function parseAdminEmails(value) {
+    const emails = new Set();
+    for (const raw of String(value || "").split(/[,;\s]+/)) {
+        const email = raw.trim().toLowerCase();
+        if (email.length <= 254 && /^[^\s@"<>()[\],;:]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(email)) emails.add(email);
+    }
+    return emails;
+}
+
 function loadConfig(env = process.env) {
     const onRender = Boolean(env.RENDER);
     const root = path.resolve(__dirname, "..");
@@ -188,6 +199,7 @@ function loadConfig(env = process.env) {
         payment: parsePayment(env),
         mail: parseMail(env),
         admins: parseAdmins(env.ADMINS),
+        adminEmails: parseAdminEmails(env.ADMIN_EMAILS),
         // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)
         auditStdout: env.AUDIT_STDOUT === "1" || (onRender && env.AUDIT_STDOUT !== "0"),
         health: {},   // عتبات مراقب الصحة (انظر server/health.js)، تُعدَّل بالاختبارات فقط

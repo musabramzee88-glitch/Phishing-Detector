@@ -183,7 +183,7 @@ test('صفحة الأدمن لغير المسجّلين: صفحة الدخول �
     await withServer(env, async app => {
         const page = await request(app, 'GET', '/admin');
         assert.equal(page.status, 200);
-        assert.match(page.text, /id="loginForm"/);
+        assert.match(page.text, /id="(emailForm|passwordForm)"/);
         assert.ok(!/id="logout"/.test(page.text));
         assert.equal(page.headers['cache-control'], 'no-store');
         assert.match(page.headers['x-robots-tag'], /noindex/);
@@ -299,7 +299,7 @@ test('تسجيل الخروج يُنهي الجلسة فعلاً', async () => {
         assert.equal(out.status, 200);
         assert.match(out.headers['set-cookie'][0], /Max-Age=0/);
         assert.equal((await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookie } })).status, 401);
-        assert.match((await request(app, 'GET', '/admin', { headers: { Cookie: cookie } })).text, /id="loginForm"/);
+        assert.match((await request(app, 'GET', '/admin', { headers: { Cookie: cookie } })).text, /id="(emailForm|passwordForm)"/);
     });
 });
 

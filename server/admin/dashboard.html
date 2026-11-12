@@ -4,34 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <title>لوحة الإدارة</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <title>لوحة الإدارة | Phishing Detector</title>
+    <meta name="theme-color" content="#0b1020">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/assets/admin.css">
 </head>
-<body>
-    <header class="topbar">
-        <h1><span class="brand">Phishing Detector</span> لوحة الإدارة</h1>
-        <div class="actions">
-            <span id="user" class="muted"></span>
-            <span id="updated" class="muted"></span>
-            <button id="logout" class="secondary" type="button">تسجيل الخروج</button>
+<body class="app">
+    <aside class="sidebar" aria-label="القائمة الرئيسية">
+        <a class="side-brand" href="/admin#overview">
+            <img src="/img/logo-192.jpg" width="192" height="192" alt="">
+            <span><b>Phishing Detector</b><small>لوحة الإدارة</small></span>
+        </a>
+        <nav class="tabs" id="tabs" aria-label="أقسام اللوحة">
+            <button type="button" class="tab-btn" data-tab="overview" data-title="نظرة عامة"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zM14 20h6V11h-6zM4 20h6v-4H4zM14 7h6V4h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">نظرة عامة</span><span class="tab-short">الرئيسية</span></button>
+            <button type="button" class="tab-btn" data-tab="payments" data-title="المدفوعات"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3zM3 11h18M7 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">المدفوعات</span><span class="tab-short">الدفع</span><span id="pendingBadge" class="tab-badge" hidden>0</span></button>
+            <button type="button" class="tab-btn" data-tab="users" data-title="المستخدمون"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.8c2 .7 3.2 2.5 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">المستخدمون</span><span class="tab-short">المستخدمون</span></button>
+            <button type="button" class="tab-btn" data-tab="settings" data-title="إعدادات الموقع"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">إعدادات الموقع</span><span class="tab-short">الإعدادات</span></button>
+            <button type="button" class="tab-btn" data-tab="security" data-title="الأمان والنظام"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6zM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">الأمان والنظام</span><span class="tab-short">الأمان</span></button>
+        </nav>
+        <div class="side-user">
+            <span class="avatar" id="avatar" aria-hidden="true">؟</span>
+            <span class="side-user-text"><small class="muted">مسجّل باسم</small><span id="user" class="ltr">—</span></span>
         </div>
-    </header>
+    </aside>
 
-    <nav class="tabs" id="tabs" aria-label="أقسام اللوحة">
-        <button type="button" class="tab-btn" data-tab="overview">نظرة عامة</button>
-        <button type="button" class="tab-btn" data-tab="payments">المدفوعات <span id="pendingBadge" class="tab-badge" hidden>0</span></button>
-        <button type="button" class="tab-btn" data-tab="users">المستخدمون</button>
-        <button type="button" class="tab-btn" data-tab="settings">إعدادات الموقع</button>
-        <button type="button" class="tab-btn" data-tab="security">الأمان والنظام</button>
-    </nav>
+    <div class="main-col">
+        <header class="topbar">
+            <div class="topbar-title">
+                <img class="topbar-logo" src="/img/logo-192.jpg" width="192" height="192" alt="">
+                <h1 id="pageTitle">نظرة عامة</h1>
+            </div>
+            <div class="actions">
+                <span class="live"><span class="live-dot"></span><span id="updated">مباشر</span></span>
+                <a class="icon-btn" href="/" target="_blank" rel="noopener" title="فتح الموقع" aria-label="فتح الموقع"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+                <button id="logout" class="icon-btn danger-hover" type="button" title="تسجيل الخروج" aria-label="تسجيل الخروج"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="btn-text">خروج</span></button>
+            </div>
+        </header>
 
     <main class="dashboard">
         <section data-tab-panel="overview">
-            <div class="section-head">
-                <h2>نظرة عامة</h2>
-                <span class="live"><span class="live-dot"></span> مباشر، يتحدّث كل 10 ثوانٍ</span>
-            </div>
             <div id="kpis" class="kpis"></div>
         </section>
 
@@ -114,8 +126,8 @@
             <form id="settingsForm" class="settings-form" autocomplete="off" novalidate></form>
             <div class="settings-actions">
                 <button type="button" id="settingsSave">حفظ التعديلات</button>
-                <button type="button" id="settingsReload" class="secondary">تراجع عن التعديلات غير المحفوظة</button>
-                <button type="button" id="settingsReset" class="secondary danger-outline">إرجاع كل الإعدادات للافتراضي</button>
+                <button type="button" id="settingsReload" class="secondary">تراجع عن التعديلات</button>
+                <button type="button" id="settingsReset" class="secondary danger-outline">إرجاع للافتراضي</button>
                 <span id="settingsStatus" class="muted" role="status"></span>
             </div>
         </section>
@@ -132,6 +144,7 @@
 
         <p class="note">الإحصاءات محفوظة بقاعدة البيانات وتبقى بعد كل نشر (إذا كانت Upstash مضبوطة). لا تُحفظ الروابط ولا الرسائل ولا الملفات، فقط أعداد مجهولة. تتحدّث الصفحة تلقائياً كل 10 ثوانٍ.</p>
     </main>
+    </div>
     <script src="/admin/assets/dashboard.js"></script>
     <script src="/admin/assets/manage.js"></script>
     <script src="/admin/assets/settings.js"></script>

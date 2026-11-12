@@ -12,15 +12,16 @@ test('ترويسات الأمان على كل رد', () => withServer({}, async 
     const res = await request(app, 'GET', '/login');
     assert.equal(res.status, 200);
     const csp = res.headers['content-security-policy'];
-    assert.match(csp, /script-src 'self'(;|$)/);              // لا 'unsafe-inline' للسكربتات
-    assert.ok(!/script-src[^;]*unsafe/.test(csp));
+    assert.match(csp, /script-src 'self' 'wasm-unsafe-eval'(;|$)/);   // WebAssembly فقط (لقارئ النصوص)
+    assert.ok(!/script-src[^;]*'unsafe-(inline|eval|hashes)'/.test(csp)); // لا سكربتات مضمنة ولا eval
     assert.match(csp, /frame-ancestors 'none'/);
     assert.match(csp, /object-src 'none'/);
     assert.match(csp, /base-uri 'none'/);
     assert.equal(res.headers['x-content-type-options'], 'nosniff');
     assert.equal(res.headers['x-frame-options'], 'DENY');
     assert.equal(res.headers['referrer-policy'], 'no-referrer');
-    assert.match(res.headers['permissions-policy'], /camera=\(\)/);
+    assert.match(res.headers['permissions-policy'], /camera=\(self\)/);   // لموقعنا فقط (فحص QR)
+    assert.match(res.headers['permissions-policy'], /microphone=\(\), geolocation=\(\)/);
     assert.equal(res.headers['cross-origin-opener-policy'], 'same-origin');
     assert.equal(res.headers['x-powered-by'], undefined);
     assert.equal(res.headers['strict-transport-security'], undefined);   // لا HSTS على http

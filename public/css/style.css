@@ -969,3 +969,25 @@ footer {
 .install-card p { margin: 4px 0 0; color: var(--text-muted); font-size: .86rem; line-height: 1.8; }
 .install-card > div { flex: 1; }
 @media (max-width: 600px) { .install-card { margin-inline: 16px; flex-wrap: wrap; } }
+
+/* QR و OCR و ترويسة البريد */
+.qr-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.qr-actions .btn-scan, .ocr-upload { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; flex: 1 1 200px; }
+.secondary-scan { background: transparent !important; border: 2px solid var(--accent-blue) !important; color: var(--accent-blue) !important; }
+.qr-camera { position: relative; margin-top: 12px; max-width: 420px; }
+.qr-camera video { width: 100%; border-radius: 14px; background: #000; display: block; }
+.qr-frame { position: absolute; inset: 18% 18% auto; aspect-ratio: 1; border: 3px solid rgba(255, 255, 255, .85); border-radius: 16px; box-shadow: 0 0 0 999px rgba(0, 0, 0, .25); pointer-events: none; }
+.qr-camera .app-btn { margin-top: 8px; }
+.qr-raw { white-space: pre-wrap; overflow-wrap: anywhere; padding: 10px 12px; border-radius: 10px; background: var(--nav-bg); border: 1px solid var(--border-color); font-size: .88rem; max-height: 220px; overflow: auto; }
+.qr-note { font-size: .8rem; }
+.ocr-status { padding: 10px 12px; border-radius: 10px; background: var(--nav-bg); font-weight: 700; }
+#ocrText, #headersInput { width: 100%; margin: 8px 0 12px; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--nav-bg); color: var(--text-main); font: inherit; resize: vertical; }
+#headersInput { font-family: ui-monospace, Consolas, monospace; font-size: .82rem; }
+.ocr-found { margin-top: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-size: .88rem; }
+.ocr-found ul { margin: 6px 0 10px; padding-inline-start: 18px; }
+.ocr-found li { margin: 4px 0; overflow-wrap: anywhere; }
+.howto { margin-bottom: 10px; font-size: .88rem; }
+.howto summary { cursor: pointer; font-weight: 700; color: var(--accent-blue); }
+.howto p { margin: 6px 0; line-height: 1.8; }
+.auth-chip { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .78rem; font-weight: 800; border: 1px solid currentColor; }
+.auth-chip.ok { color: var(--accent-green); } .auth-chip.bad { color: var(--accent-red); } .auth-chip.warn { color: var(--accent-yellow); }

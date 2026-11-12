@@ -167,6 +167,26 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         }
     }
 
+    // استضافة عناوين IP من مسار بريد (محلل الترويسات): عناوين عامة فقط، بحد 8، وبطلب صريح من المستخدم
+    async function ipHosting(req, res) {
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        const input = await auth.jsonBody(req, res, 2048);
+        if (input === undefined) return;
+        const { isPublicIp } = require("./inspect");
+        const ips = [...new Set((Array.isArray(input.ips) ? input.ips : []).filter(ip => typeof ip === "string" && /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) && isPublicIp(ip)))].slice(0, 8);
+        if (!ips.length) return h.sendJson(res, 400, { error: "ما اكو عناوين IP عامة بالمسار." });
+        if (!inspector || !inspector.hosting) return h.sendJson(res, 503, { error: "معلومات الاستضافة غير متاحة حالياً." });
+        if (!perMinute.take(user.id)) return h.sendJson(res, 429, { error: "طلبات كثيرة بالدقيقة. تمهّل قليلاً." }, { "Retry-After": "60" });
+        try {
+            if (!(await quota(res, user, "scan"))) return;
+        } catch (error) {
+            return auth.sendError(res, error);
+        }
+        const results = await Promise.all(ips.map(async ip => ({ ip, ...((await inspector.hosting(ip).catch(() => null)) || {}) })));
+        h.sendJson(res, 200, { results });
+    }
+
     // معاينة الصفحة المعقّمة: تُعرض داخل إطار معزول (sandbox) بصفحة الفحص فقط
     const SNAPSHOT_CSP = "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'";
     async function snapshot(req, res, id) {
@@ -188,6 +208,7 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         const snap = /^\/api\/scan\/snapshot\/([A-Za-z0-9_-]{1,64})$/.exec(p);
         if (snap) return await snapshot(req, res, snap[1]), true;
         const viaApi = p.startsWith("/api/v1/");
+        if (p === "/api/scan/ip-hosting") return await ipHosting(req, res), true;
         const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/scan/clean", "/api/v1/scan-url", "/api/v1/scan-text"];
         if (!routes.includes(p)) return false;
         if (viaApi && req.method === "OPTIONS") {

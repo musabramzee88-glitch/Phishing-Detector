@@ -139,7 +139,7 @@ button.danger-outline { color: #fb7185; border-color: rgba(244, 63, 94, .45); }
 
 .hint { margin: 12px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.8; }
 .sent-to { margin: 0 0 16px; font-size: .9rem; color: var(--muted); line-height: 1.9; }
-.sent-to b { color: var(--text); word-break: break-all; }
+.sent-to b { display: inline-block; max-width: 100%; color: var(--text); unicode-bidi: isolate; overflow-wrap: anywhere; }
 
 .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 0 0 10px; padding: 0; border: 0; min-width: 0; }
 .otp input {
@@ -503,4 +503,23 @@ code.key { display: block; margin: 8px 0; padding: 10px; border-radius: 8px; bac
 @media (max-width: 340px) {
     .kpis, .cards { grid-template-columns: 1fr; }
     .tab-btn { font-size: .64rem; }
+}
+
+/* ---------- معالج الدخول: اسم المستخدم ← البريد ← كلمة السر ← الرمز ---------- */
+.who { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-soft); color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.who b { color: var(--text); }
+.input-icon.has-toggle input { padding-right: 70px; }
+.pw-toggle { position: absolute; right: 6px; top: 50%; margin-top: 3px; transform: translateY(-50%); padding: 6px 10px; border-radius: 8px; background: transparent; color: var(--accent); font-size: .8rem; font-weight: 700; }
+.pw-toggle:hover { background: var(--accent-soft); }
+.wiz-panel { animation: wiz-in .22s ease; }
+@keyframes wiz-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wiz-panel { animation: none; } }
+/* أربع خطوات: الرقم فوق الاسم حتى ما تلتف الأسماء */
+.steps:has(li:nth-child(4)) { gap: 4px; }
+.steps:has(li:nth-child(4)) li { flex-direction: column; gap: 6px; text-align: center; white-space: nowrap; }
+.steps:has(li:nth-child(4)) li::after { display: none; }
+@media (max-width: 420px) {
+    .steps { gap: 4px; }
+    .steps li { flex-direction: column; gap: 4px; font-size: .72rem; text-align: center; }
+    .steps li::after { display: none; }
 }

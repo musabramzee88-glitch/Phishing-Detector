@@ -2,7 +2,9 @@
 "use strict";
 
 /*
-  يولّد حساب أدمن جديد: node tools/make-admin.js <username>   (أو: npm run make-admin -- <username>)
+  يولّد حساب أدمن جديد:
+    npm run make-admin -- <username> <email>   الموصى به: الدخول باسم المستخدم ← البريد ← كلمة السر ← كود يصل للبريد
+    npm run make-admin -- <username>           الصيغة القديمة: كلمة سر + تطبيق مصادقة (TOTP)
 
   - كلمة السر تُكتب هنا على جهازك فقط (لا تظهر على الشاشة ولا تُحفظ في أي ملف).
   - الناتج: سطر ADMINS يحتوي بصمة كلمة السر (scrypt) وسر التحقق الثنائي، تضعه كمتغير بيئة على الاستضافة.
@@ -61,10 +63,12 @@ const COMMON = new Set(["password1234", "123456789012", "qwertyuiop12", "admin12
 
 async function main() {
     const username = (process.argv[2] || "").toLowerCase();
+    const email = (process.argv[3] || "").trim().toLowerCase();
     if (!/^[a-z0-9_.-]{3,32}$/.test(username)) {
-        console.log("Usage: npm run make-admin -- <username>    (3-32 chars: a-z 0-9 _ . -)");
+        console.log("Usage: npm run make-admin -- <username> <email>    (username: 3-32 chars a-z 0-9 _ . -)");
         process.exit(1);
     }
+    if (email && (email.includes(":") || email.includes(",") || !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(email))) fail("Invalid email address.");
 
     const input = createInput();
     const password = await input.hidden("Password (at least 12 characters): ");
@@ -78,6 +82,17 @@ async function main() {
 
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = (await scrypt(password, salt, 32)).toString("hex");
+
+    if (email) {
+        console.log("\n=== Done. Keep everything below secret ===\n");
+        console.log("1) Set this environment variable on your host (Render > Environment):\n");
+        console.log(`   ADMINS=${username}:${email}:${salt}:${hash}\n`);
+        console.log("2) Make sure email sending is configured (BREVO_API_KEY and MAIL_FROM), because the");
+        console.log(`   login code is sent to ${email}.\n`);
+        console.log("Login: /admin -> username -> email -> password -> 6-digit code from your inbox.");
+        console.log("To allow several admins, join the entries with a comma.");
+        return;
+    }
     const secret = totp.generateSecret();
 
     console.log("\n=== Done. Keep everything below secret ===\n");

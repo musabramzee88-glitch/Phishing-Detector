@@ -35,7 +35,7 @@ const codeOf = mail => mail.subject.match(/^(\d{6})/)[1];
 
 test('دخول الأدمن: البريد ← رمز يصل للبريد ← جلسة تفتح اللوحة', () => withAdminMail(async (app, mail) => {
     const methods = await request(app, 'GET', '/api/admin/methods');
-    assert.deepEqual(methods.json, { email: true, emailReady: true, password: false });
+    assert.deepEqual(methods.json, { account: false, email: true, emailReady: true, password: false });
 
     const first = await start(app, '  Owner@Example.com ');
     assert.equal(first.status, 200);
@@ -105,7 +105,7 @@ test('رمز الدخول يرفض الطلبات من موقع آخر وبدو�
 }));
 
 test('بدون مزوّد بريد: الدخول بالرمز غير متاح بوضوح، والصفحة تبقى موجودة', () => withServer({ ADMIN_EMAILS: ADMIN }, async app => {
-    assert.deepEqual((await request(app, 'GET', '/api/admin/methods')).json, { email: true, emailReady: false, password: false });
+    assert.deepEqual((await request(app, 'GET', '/api/admin/methods')).json, { account: false, email: true, emailReady: false, password: false });
     const res = await start(app, ADMIN);
     assert.equal(res.status, 503);
     assert.equal(res.json.code, 'email_login_disabled');

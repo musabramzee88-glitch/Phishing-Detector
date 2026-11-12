@@ -266,10 +266,11 @@ async function main() {
         console.log(`Sign-in providers: email${providers.length ? ", " + providers.join(", ") : ""}.`);
         console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style === "gemini" ? "Gemini native" : config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
         console.log(admin.enabled
-            ? `Admin page enabled: ${config.adminEmails.size} email login(s), ${config.admins.size} password account(s).`
-            : "Admin page disabled: set ADMIN_EMAILS (email code login) or ADMINS.");
-        if (config.adminEmails.size && !config.mail.enabled) console.log("WARNING: ADMIN_EMAILS is set but no mail provider is configured, so admin login codes cannot be sent. Set BREVO_API_KEY and MAIL_FROM.");
-        const no2fa = [...config.admins].filter(([, a]) => !a.totpSecret).map(([name]) => name);
+            ? `Admin page enabled: ${[...config.admins.values()].filter(a => a.email).length} account(s) with password + email code, ${config.adminEmails.size} email-only login(s), ${[...config.admins.values()].filter(a => !a.email).length} password-only account(s).`
+            : "Admin page disabled: set ADMINS (npm run make-admin -- <user> <email>) or ADMIN_EMAILS.");
+        const needsMail = config.adminEmails.size > 0 || [...config.admins.values()].some(a => a.email);
+        if (needsMail && !config.mail.enabled) console.log("WARNING: admin login needs email codes but no mail provider is configured, so codes cannot be sent. Set BREVO_API_KEY and MAIL_FROM.");
+        const no2fa = [...config.admins].filter(([, a]) => !a.totpSecret && !a.email).map(([name]) => name);
         if (no2fa.length) console.log(`WARNING: admin account(s) without 2FA: ${no2fa.join(", ")}. Re-run "npm run make-admin" and add the secret to your authenticator app.`);
         intel.start();
     });

@@ -26,9 +26,50 @@
                 <button type="button" class="seg-btn" data-method="password" role="tab" aria-selected="false">كلمة السر</button>
             </div>
 
-            <!-- الخطوة 1: البريد -->
+            <ol id="steps" class="steps" aria-hidden="true"></ol>
+
+            <!-- الدخول الموصى به: اسم المستخدم ← البريد ← كلمة السر ← كود البريد -->
+            <form id="accountForm" class="login-step" novalidate hidden>
+                <div class="wiz-panel" data-step="username">
+                    <label class="field">
+                        <span class="field-label">اسم المستخدم</span>
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            <input id="accUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" placeholder="admin" dir="ltr">
+                        </span>
+                    </label>
+                    <button class="btn-primary" type="submit"><span>التالي</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                </div>
+                <div class="wiz-panel" data-step="email" hidden>
+                    <p class="who">الحساب: <b id="whoUser" dir="ltr"></b></p>
+                    <label class="field">
+                        <span class="field-label">البريد الإلكتروني للحساب</span>
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                            <input id="accEmail" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="admin@example.com" dir="ltr">
+                        </span>
+                    </label>
+                    <button class="btn-primary" type="submit"><span>التالي</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <div class="row-links"><button type="button" class="link" data-back="username">رجوع</button></div>
+                </div>
+                <div class="wiz-panel" data-step="password" hidden>
+                    <p class="who">الحساب: <b id="whoUser2" dir="ltr"></b> · <span id="whoEmail" dir="ltr"></span></p>
+                    <label class="field">
+                        <span class="field-label">كلمة السر</span>
+                        <span class="input-icon has-toggle">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                            <input id="accPassword" type="password" autocomplete="current-password" maxlength="256" dir="ltr">
+                            <button type="button" class="pw-toggle" id="pwToggle" aria-label="إظهار كلمة السر" aria-pressed="false">إظهار</button>
+                        </span>
+                    </label>
+                    <button id="accountSubmit" class="btn-primary" type="submit"><span>تحقق وأرسل الرمز</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <div class="row-links"><button type="button" class="link" data-back="email">رجوع</button></div>
+                    <p class="hint">بعد التحقق من بياناتك نرسل رمزاً من 6 أرقام إلى بريد الحساب.</p>
+                </div>
+            </form>
+
+            <!-- الدخول بالبريد فقط (ADMIN_EMAILS) -->
             <form id="emailForm" class="login-step" novalidate hidden>
-                <ol class="steps" aria-hidden="true"><li class="on">البريد</li><li>الرمز</li></ol>
                 <label class="field">
                     <span class="field-label">البريد الإلكتروني للأدمن</span>
                     <span class="input-icon">
@@ -45,8 +86,7 @@
 
             <!-- الخطوة 2: الرمز -->
             <form id="codeForm" class="login-step" novalidate hidden>
-                <ol class="steps" aria-hidden="true"><li class="done">البريد</li><li class="on">الرمز</li></ol>
-                <p class="sent-to">إذا كان <b id="sentTo" dir="ltr"></b> بريد أدمن مسجّل، فقد وصله رمز الدخول الآن. افتح بريدك واكتبه هنا.</p>
+                <p class="sent-to" id="sentText"></p>
                 <fieldset class="otp" id="otp" dir="ltr" aria-label="رمز الدخول المكوّن من 6 أرقام">
                     <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-label="الرقم 1">
                     <input type="text" inputmode="numeric" maxlength="6" aria-label="الرقم 2">

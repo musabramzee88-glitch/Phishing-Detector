@@ -3,7 +3,9 @@
 /*
   صفحة الأدمن. القواعد:
   - مغلقة تماماً (404) إذا لم يُضبط ADMIN_EMAILS ولا ADMINS.
-  - الدخول الأساسي (ADMIN_EMAILS): بريد الأدمن ← كود من 6 أرقام يصل للبريد (صالح 10 دقائق، لمرة واحدة،
+  - الدخول الموصى به (ADMINS بصيغة username:email:salt:hash): اسم المستخدم ← البريد ← كلمة السر، تُفحص الثلاثة
+    معاً (scrypt دائماً، ورسالة خطأ واحدة) ← كود من 6 أرقام يصل لبريد الحساب ← الجلسة. هذه الحسابات لا تقبل الدخول بكلمة السر وحدها.
+  - الدخول بالبريد فقط (ADMIN_EMAILS): بريد الأدمن ← كود من 6 أرقام يصل للبريد (صالح 10 دقائق، لمرة واحدة،
     5 محاولات كحد أقصى) ← الجلسة. الرد واحد لأي بريد، والإرسال لا يُنتظر، فلا يُعرف هل البريد للأدمن أم لا.
   - الدخول القديم (ADMINS، اختياري): اسم مستخدم + كلمة سر (scrypt) + رمز TOTP إذا كان مفعّلاً للحساب.
   - بعد 5 محاولات فاشلة من نفس العنوان يُحظر 15 دقيقة، وسقف عام لمحاولات الدخول بالدقيقة.
@@ -48,8 +50,11 @@ function createAdmin(config, stats, extras = {}) {
     const adminEmails = config.adminEmails || new Set();
     const enabled = config.admins.size > 0 || adminEmails.size > 0;
     const mailer = extras.mailer || null;
-    const emailLogin = () => adminEmails.size > 0 && Boolean(mailer && mailer.enabled);
-    const tickets = new Map();     // sha256(ticket) -> { email|null, codeHash, exp, tries }
+    const mailReady = () => Boolean(mailer && mailer.enabled);
+    const emailLogin = () => adminEmails.size > 0 && mailReady();
+    const fullAccounts = [...config.admins.values()].some(a => a.email);
+    const passwordOnly = [...config.admins.values()].some(a => !a.email);
+    const tickets = new Map();     // sha256(ticket) -> { email|null, user?, codeHash, exp, tries }
     const lastSent = new Map();    // email -> وقت آخر كود (منع الإغراق)
     const starts = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: CODE_STARTS_PER_WINDOW });
     const sessions = new Map();   // sha256(sid) -> { user, created, last }
@@ -160,16 +165,20 @@ function createAdmin(config, stats, extras = {}) {
         const admin = config.admins.get(username);
         // نشغّل scrypt حتى لو الحساب غير موجود، حتى لا يكشف زمن الرد وجود الحساب
         const derived = await scrypt(password, admin ? admin.salt : DUMMY_SALT, 32);
-        const passwordOk = Boolean(admin) && crypto.timingSafeEqual(derived, admin.hash);
+        let passwordOk = Boolean(admin) && crypto.timingSafeEqual(derived, admin.hash);
 
         let reason = "";
+        if (passwordOk && admin.email) {
+            passwordOk = false;   // حساب مربوط ببريد: يلزمه كود البريد، فلا يكفي هذا المسار
+            reason = "محاولة دخول بكلمة السر وحدها لحساب يتطلب كود البريد";
+        }
         let codeOk = true;
         if (passwordOk && admin.totpSecret) {
             const counter = totp.verify(admin.totpSecret, code, { lastCounter: admin.lastTotpCounter });
             codeOk = counter >= 0;
             if (codeOk) admin.lastTotpCounter = counter;   // نمنع إعادة استخدام نفس الرمز
             else reason = "رمز التحقق الثنائي خاطئ";
-        } else if (!passwordOk) {
+        } else if (!passwordOk && !reason) {
             reason = admin ? "كلمة سر خاطئة" : "اسم مستخدم غير معروف";
         }
 
@@ -246,9 +255,60 @@ function createAdmin(config, stats, extras = {}) {
         http.sendJson(res, 200, { ok: true, ticket, expiresIn: CODE_TTL_MS / 1000, resendAfter: CODE_RESEND_MS / 1000 });
     }
 
+    // اسم المستخدم + البريد + كلمة السر ← كود للبريد. الثلاثة تُفحص معاً حتى لا تكشف أي خطوة شيئاً
+    async function startAccountLogin(req, res) {
+        const ip = http.getClientIp(req, config);
+        if (!fullAccounts) return http.sendJson(res, 404, { error: "Not found" });
+        if (!mailReady()) return http.sendJson(res, 503, { error: "إرسال كود التحقق غير متاح: مزوّد البريد غير مضبوط على الخادم.", code: "email_login_disabled" });
+        const body = await guardedBody(req, res, ip);
+        if (body === undefined) return;
+        if (starts.isBlocked(ip)) {
+            return http.sendJson(res, 429, { error: "طلبت رموزاً كثيرة. انتظر قليلاً ثم حاول." }, { "Retry-After": String(starts.retryAfterSeconds(ip)) });
+        }
+        const username = typeof body.username === "string" ? body.username.trim().toLowerCase().slice(0, 64) : "";
+        const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
+        const password = typeof body.password === "string" ? body.password.slice(0, 256) : "";
+
+        const admin = config.admins.get(username);
+        const derived = await scrypt(password, admin ? admin.salt : DUMMY_SALT, 32);
+        const passwordOk = Boolean(admin) && crypto.timingSafeEqual(derived, admin.hash);
+        const emailOk = Boolean(admin && admin.email) && admin.email === email;
+        if (!passwordOk || !emailOk) {
+            failures.fail(ip);
+            stats.count("loginFailed");
+            const reason = !admin ? "اسم مستخدم غير معروف" : !admin.email ? "الحساب لا يستخدم الدخول بالبريد" : !emailOk ? "بريد لا يطابق الحساب" : "كلمة سر خاطئة";
+            stats.event("login_failed", reason, ip);
+            return http.sendJson(res, 401, { error: GENERIC_LOGIN_ERROR });
+        }
+
+        // البيانات صحيحة: الآن فقط نرسل الكود (ومسموح نقول للمستخدم إنه انتظر، لأن البيانات صحيحة)
+        const now = Date.now();
+        const last = lastSent.get(email);
+        if (last && now - last < CODE_RESEND_MS) {
+            const wait = Math.ceil((CODE_RESEND_MS - (now - last)) / 1000);
+            return http.sendJson(res, 429, { error: `انتظر ${wait} ثانية قبل طلب رمز جديد.`, retryAfter: wait }, { "Retry-After": String(wait) });
+        }
+        starts.fail(ip);
+        const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+        try {
+            await mailer.adminCode(email, code);
+        } catch {
+            stats.event("admin_code_failed", "تعذر إرسال رمز دخول الإدارة. راجع إعدادات مزوّد البريد.", ip);
+            return http.sendJson(res, 502, { error: "تعذر إرسال كود التحقق إلى بريدك. حاول بعد قليل." });
+        }
+        lastSent.set(email, now);
+        for (const [key, t] of tickets) if (t.user === username) tickets.delete(key);   // الكود الجديد يلغي القديم
+        const ticket = crypto.randomBytes(24).toString("base64url");
+        if (tickets.size >= 500) tickets.delete(tickets.keys().next().value);
+        tickets.set(sha256(ticket), { email, user: username, codeHash: sha256(ticket + ":" + code), exp: now + CODE_TTL_MS, tries: 0 });
+        failures.clear(ip);
+        stats.event("admin_code_sent", `أُرسل رمز دخول الإدارة إلى ${maskEmail(email)} (الحساب ${username})`, ip);
+        http.sendJson(res, 200, { ok: true, ticket, sentTo: maskEmail(email), expiresIn: CODE_TTL_MS / 1000, resendAfter: CODE_RESEND_MS / 1000 });
+    }
+
     async function verifyEmailLogin(req, res) {
         const ip = http.getClientIp(req, config);
-        if (!emailLogin()) return http.sendJson(res, 503, { error: "الدخول بالبريد غير مفعّل على الخادم.", code: "email_login_disabled" });
+        if (!emailLogin() && !(fullAccounts && mailReady())) return http.sendJson(res, 503, { error: "الدخول بالبريد غير مفعّل على الخادم.", code: "email_login_disabled" });
         const body = await guardedBody(req, res, ip);
         if (body === undefined) return;
         const ticket = typeof body.ticket === "string" ? body.ticket.slice(0, 100) : "";
@@ -282,8 +342,8 @@ function createAdmin(config, stats, extras = {}) {
         failures.clear(ip);
         starts.clear(ip);
         stats.count("loginOk");
-        stats.event("login_ok", `دخول للإدارة بكود البريد (${maskEmail(record.email)})`, ip);
-        const sid = createSession(record.email);
+        stats.event("login_ok", record.user ? `دخول للإدارة: ${record.user} (كلمة سر + كود البريد)` : `دخول للإدارة بكود البريد (${maskEmail(record.email)})`, ip);
+        const sid = createSession(record.user || record.email);
         http.sendJson(res, 200, { ok: true }, { "Set-Cookie": cookieHeader(req, sid, Math.floor(config.session.absoluteMs / 1000)) });
     }
 
@@ -324,8 +384,8 @@ function createAdmin(config, stats, extras = {}) {
                 chatPerMinute: config.limits.chatPerMinute,
                 globalChatPerMinute: config.limits.globalChatPerMinute,
                 adminCount: config.admins.size + adminEmails.size,
-                loginMethod: admin ? (admin.totpSecret ? "كلمة سر + تطبيق مصادقة" : "كلمة سر فقط") : "كود البريد",
-                emailLogin: emailLogin(),
+                loginMethod: admin ? (admin.email ? "كلمة سر + كود البريد" : admin.totpSecret ? "كلمة سر + تطبيق مصادقة" : "كلمة سر فقط") : "كود البريد",
+                emailLogin: emailLogin() || (fullAccounts && mailReady()),
                 totpEnabled: Boolean(admin && admin.totpSecret),
                 activeSessions: sessions.size
             },
@@ -369,7 +429,12 @@ function createAdmin(config, stats, extras = {}) {
         // طرق الدخول المتاحة (عامة: تكفي لعرض النموذج الصحيح ولا تكشف أي بريد)
         if (p === "/api/admin/methods") {
             if (req.method !== "GET") return methodNotAllowed(res, "GET"), true;
-            http.sendJson(res, 200, { email: adminEmails.size > 0, emailReady: emailLogin(), password: config.admins.size > 0 });
+            http.sendJson(res, 200, { account: fullAccounts, email: adminEmails.size > 0, emailReady: mailReady(), password: passwordOnly });
+            return true;
+        }
+        if (p === "/api/admin/account/start") {
+            if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
+            await startAccountLogin(req, res);
             return true;
         }
         if (p === "/api/admin/email/start" || p === "/api/admin/email/verify") {

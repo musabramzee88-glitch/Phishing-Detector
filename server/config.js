@@ -8,7 +8,7 @@
     APP_URL                          عنوان الموقع العام (مثل https://phishing-detector.onrender.com) لروابط الدخول عبر Google/Microsoft/Apple
     UPSTASH_REDIS_REST_URL/TOKEN     قاعدة البيانات (الحسابات والاشتراكات). إلزامية بالإنتاج.
     ADMIN_EMAILS                     بريد الأدمن (واحد أو أكثر بفواصل): الدخول بكود يصل للبريد. يحتاج مزوّد بريد مفعّل
-    ADMINS                           حسابات أدمن قديمة باسم مستخدم وكلمة سر (npm run make-admin)، اختيارية
+    ADMINS                           حسابات الأدمن: اسم مستخدم + بريد + كلمة سر ثم كود للبريد (npm run make-admin -- <user> <email>)
   الذكاء الاصطناعي (CyberBot):
     AI_API_KEY, AI_MODEL, AI_BASE_URL   أي مزوّد متوافق مع OpenAI (OpenAI, Gemini, Groq, OpenRouter...)
     OPENAI_API_KEY, OPENAI_MODEL     (الأسماء القديمة ما زالت مدعومة)
@@ -145,16 +145,22 @@ function parseUpstash(env) {
     }
 }
 
-// صيغة كل حساب: username:saltHex:hashHex[:totpSecretBase32]
+// صيغة كل حساب:
+//   username:email:saltHex:hashHex   الدخول: اسم المستخدم ← البريد ← كلمة السر ← كود يصل للبريد (الموصى به)
+//   username:saltHex:hashHex[:totp]  الصيغة القديمة: اسم مستخدم + كلمة سر (+ تطبيق مصادقة)
 function parseAdmins(value) {
     const admins = new Map();
     for (const entry of String(value || "").split(",")) {
-        const [user, salt, hash, totpSecret] = entry.trim().split(":");
+        const fields = entry.trim().split(":");
+        const email = fields[1] && fields[1].includes("@") ? fields.splice(1, 1)[0].trim().toLowerCase() : "";
+        const [user, salt, hash, totpSecret] = fields;
         if (!user || !salt || !HEX_32_BYTES.test(hash || "")) continue;
+        if (email && parseAdminEmails(email).size !== 1) continue;   // بريد تالف: نتجاهل الحساب بدل ما نقفل صاحبه
         admins.set(user.toLowerCase(), {
+            email,
             salt,
             hash: Buffer.from(hash, "hex"),
-            totpSecret: totpSecret || "",
+            totpSecret: email ? "" : totpSecret || "",
             lastTotpCounter: -1
         });
     }

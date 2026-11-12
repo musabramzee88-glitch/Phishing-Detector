@@ -101,6 +101,8 @@ async function api(url, body, options = {}) {
     let data = {};
     try { data = await response.json(); } catch { /* رد بدون JSON */ }
     // الجلسة انتهت: نرجع لصفحة الدخول
+    // وضع الضيف: لا نحوّل لصفحة الدخول، والرسالة تظهر مكان النتيجة مع دعوة لإنشاء حساب
+    if (response.status === 401 && data.code === 'guest' && window.PDAccount) window.PDAccount.guestNotice();
     if (response.status === 401 && data.code === 'login_required') {
         window.location.replace('/login');
         throw new Error('login required');
@@ -676,6 +678,22 @@ function downloadReport(boxId) {
 }
 
 let urlScanBusy = false;
+// زر زيارة الصفحة: يظهر فقط إذا الحكم «آمن» والموقع موجود. يفتح بتبويب جديد بدون مُحيل (noreferrer)
+function visitButtonHtml(result) {
+    const v = result.inspection;
+    if (result.level !== 'safe' || (v && (v.exists === false || v.download))) return '';
+    let href;
+    try {
+        const u = new URL(v && v.finalUrl && v.visited ? v.finalUrl : result.input);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+        href = u.href;
+    } catch {
+        return '';
+    }
+    return `<div class="visit-row"><a class="btn-scan visit-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> زيارة الصفحة</a>
+        <small>لم نرصد مؤشرات خطر، بس الفحص ما يضمن الأمان 100%. لا تدخل كلمة سر إلا بموقع تعرفه.</small></div>`;
+}
+
 // بطاقة «معاينة الموقع»: ما شفناه لما زرنا الرابط من خادمنا (حقائق فقط، كل النصوص تُهرَّب)
 function flagEmoji(cc) {
     return /^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map(c => 0x1F1A5 + c.charCodeAt(0))) : '';
@@ -791,7 +809,7 @@ async function analyzeUrl() {
     if (checks.live) layers.push('زيارة الموقع والاستضافة');
     meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
-    const extra = inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
+    const extra = visitButtonHtml(result) + inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
     renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta, extra);
 
     addToHistory(input, 'رابط URL', result.score, LEVEL_STATUS[result.level]);

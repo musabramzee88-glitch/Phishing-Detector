@@ -228,7 +228,48 @@
         try {
             const { ok, data } = await api('/api/auth/me');
             if (ok) applyUser(data);
+            else if (data && data.code === 'guest') applyGuest();
         } catch { /* الصفحة تكمل */ }
+    }
+
+    // ---------------------------------------------------------------- وضع الضيف (مشاهدة فقط)
+    function applyGuest() {
+        state.guest = true;
+        window.PDAccount.guest = true;
+        document.body.classList.add('guest-mode');
+        $('userAvatar').textContent = '👤';
+        $('userChipName').textContent = 'ضيف';
+        $('ddName').textContent = 'وضع الضيف';
+        $('ddEmail').textContent = 'مشاهدة فقط';
+        const badge = $('planBadge');
+        badge.textContent = 'ضيف';
+        badge.classList.remove('pro');
+        const banner = $('planBanner');
+        banner.hidden = false;
+        const text = $('planBannerText');
+        text.replaceChildren(node('strong', '', 'أنت تتصفح كضيف (مشاهدة فقط). '), document.createTextNode('الفحص والمحادثة مع المساعد وكل الخدمات تحتاج حساب مجاني.'));
+        const usage = banner.querySelector('.usage');
+        if (usage) usage.hidden = true;
+        const btn = $('planBannerBtn');
+        btn.dataset.action = 'leaveGuest';
+        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> أنشئ حساباً مجانياً';
+    }
+
+    let lastNotice = 0;
+    function guestNotice() {
+        if (!state.guest) applyGuest();
+        if (Date.now() - lastNotice < 1500) return;
+        lastNotice = Date.now();
+        const banner = $('planBanner');
+        banner.classList.remove('flash');
+        void banner.offsetWidth;
+        banner.classList.add('flash');
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function leaveGuest() {
+        try { await api('/api/auth/logout', {}); } catch { /* نكمل */ }
+        window.location.replace('/login');
     }
 
     // ---------------------------------------------------------------- الأوامر
@@ -403,10 +444,10 @@
 
     // ---------------------------------------------------------------- التسجيل
 
-    window.PDAccount = { user: null, noteUsage, refresh: refreshMe };
+    window.PDAccount = { user: null, guest: false, noteUsage, refresh: refreshMe, guestNotice };
     Object.assign(ACTIONS, {
         openUpgrade, toggleUserMenu, logout, submitPayment, saveProfileName, changePassword,
-        rotateApiKey, toggleHistory, clearHistory, deleteAccount, runBulkScan, exportBulkCsv
+        rotateApiKey, toggleHistory, clearHistory, deleteAccount, runBulkScan, exportBulkCsv, leaveGuest
     });
 
     // عند فتح صفحة الحساب نحدّث بياناتها
@@ -416,5 +457,5 @@
         if (!event.target.closest('#userMenu')) $('userDropdown').classList.remove('show');
     });
 
-    refreshMe().then(() => { loadBilling(); });
+    refreshMe().then(() => { if (!state.guest) loadBilling(); });
 })();

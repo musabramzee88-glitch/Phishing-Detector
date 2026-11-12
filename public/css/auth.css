@@ -201,3 +201,7 @@
 .auth-about p { margin: 0 0 10px; font-size: .92rem; }
 .auth-about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 12px; }
 .auth-about-grid > div { border: 1px solid var(--border-color, rgba(128,128,128,.25)); border-radius: 14px; padding: 14px; background: var(--bg-card, transparent); }
+
+/* زر الدخول كضيف */
+.auth-guest { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px dashed var(--border-color, rgba(128,128,128,.4)); background: transparent; color: var(--text-main, inherit); font: inherit; font-weight: 700; cursor: pointer; }
+.auth-guest:hover { background: rgba(127,127,127,.08); }

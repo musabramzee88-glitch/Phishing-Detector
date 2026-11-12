@@ -529,3 +529,16 @@ code.key { display: block; margin: 8px 0; padding: 10px; border-radius: 8px; bac
     .steps li { flex-direction: column; gap: 4px; font-size: .72rem; text-align: center; }
     .steps li::after { display: none; }
 }
+
+/* البلاغات والتنبيهات */
+.form-grid label.wide, .form-grid .wide { grid-column: 1 / -1; }
+.form-grid textarea { width: 100%; resize: vertical; }
+.alert-card { border: 1px solid var(--border); border-inline-start: 4px solid var(--yellow); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; background: var(--card); }
+.alert-card.danger { border-inline-start-color: var(--red, #e5484d); }
+.alert-card.info { border-inline-start-color: var(--accent); }
+.alert-card h3 { margin: 2px 0 6px; font-size: 1rem; }
+.alert-card p { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); direction: ltr; }
+.chip button { padding: 2px 8px; font-size: .78rem; }
+td.content { white-space: normal; min-width: 220px; max-width: 420px; overflow-wrap: anywhere; direction: ltr; text-align: left; }

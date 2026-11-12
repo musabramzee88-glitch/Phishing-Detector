@@ -12,6 +12,11 @@ function switchPage(pageId, tabName, iconClasses) {
     } else {
         indicator.textContent = tabName;
     }
+    document.querySelectorAll('.bottom-nav [data-nav]').forEach(b => {
+        const active = b.dataset.nav === pageId;
+        b.classList.toggle('active', active);
+        if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -75,10 +80,27 @@ async function applySiteSettings() {
     if (cyberBotGreeted && !cyberBotHistory.length) initChatGreeting();
 }
 
+// حجم الخط (لكبار السن وضعاف النظر): كل أحجام الموقع بوحدة rem فتكبر سوية
+const FONT_SCALES = [1, 1.15, 1.3];
+function applyFontScale(scale) {
+    const value = FONT_SCALES.includes(Number(scale)) ? Number(scale) : 1;
+    document.documentElement.style.fontSize = value === 1 ? '' : (value * 100) + '%';
+    document.querySelectorAll('.font-scale button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.arg) === value)));
+    return value;
+}
+function setFontScale(scale) {
+    const value = applyFontScale(scale);
+    try { localStorage.setItem('font_scale', String(value)); } catch { /* اختياري */ }
+}
+try { applyFontScale(localStorage.getItem('font_scale')); } catch { /* اختياري */ }
+
 window.addEventListener('DOMContentLoaded', () => {
+    try { applyFontScale(localStorage.getItem('font_scale')); } catch { applyFontScale(1); }
     applyTheme(themePreference());
     loadSimulation(0);
     applySiteSettings();
+    guarded('share', handleSharedContent);
+    loadHomeAlerts();
 
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.theme-selector-container')) {
@@ -623,6 +645,8 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
                 </div>
             </div>
             <div class="report-tools">
+                ${(kind === 'url' || kind === 'text') && result.level !== 'safe' ? `<button type="button" class="btn-quick warn-family" data-action="warnFamily" data-arg="${box.id}" title="شارك تحذيراً جاهزاً بالكروبات"><i class="fa-solid fa-bullhorn"></i> حذّر أهلك</button>` : ''}
+                ${kind === 'url' || kind === 'text' ? `<button type="button" class="btn-quick" data-action="reportScam" data-arg="${box.id}" title="بلّغ الإدارة عن احتيال (حتى لو الفحص ما كشفه)"><i class="fa-regular fa-flag"></i> بلّغ</button>` : ''}
                 <button type="button" class="btn-quick" data-action="copyReport" data-arg="${box.id}" title="نسخ التقرير كنص"><i class="fa-regular fa-copy"></i> نسخ</button>
                 <button type="button" class="btn-quick" data-action="downloadReport" data-arg="${box.id}" title="تنزيل التقرير بصيغة JSON"><i class="fa-solid fa-file-arrow-down"></i> JSON</button>
             </div>
@@ -659,6 +683,104 @@ async function copyReport(boxId) {
         if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ';
     } catch {
         if (btn) btn.textContent = 'تعذر النسخ';
+    }
+}
+
+// رابط «معطّل» حتى ما يصير قابلاً للضغط بالواتساب: hxxps://evil[.]com
+function defangUrl(url) {
+    return String(url).replace(/^http/i, 'hxxp').replace(/\./g, '[.]');
+}
+
+// «حذّر أهلك»: رسالة تحذير جاهزة للمشاركة (الرابط الخطر معطّل حتى ما ينضغط بالغلط)
+async function warnFamily(boxId) {
+    const entry = LAST_REPORTS[boxId];
+    if (!entry) return;
+    const r = entry.result;
+    const site = location.origin + '/login';
+    const level = r.level === 'danger' ? 'احتيال' : 'مشبوه';
+    let text;
+    if (entry.kind === 'url') {
+        text = `⚠️ تحذير: هذا الرابط ${level} (درجة الخطورة ${r.score}%):\n${defangUrl(r.input)}\n\nلا تفتحوه ولا تدخلون أي بيانات أو رموز.\nفحصته بـ Phishing Detector: ${site}`;
+    } else {
+        const raw = (document.getElementById('textInput') || {}).value || '';
+        const preview = raw.trim().replace(/https?:\/\/\S+/gi, m => defangUrl(m)).slice(0, 120);
+        text = `⚠️ انتبهوا: هاي الرسالة ${level} (درجة الخطورة ${r.score}%):\n«${preview}${raw.length > 120 ? '…' : ''}»\n\nلا تضغطون روابطها ولا ترسلون أي رمز أو بيانات.\nفحصتها بـ Phishing Detector: ${site}`;
+    }
+    const btn = document.querySelector(`#${boxId} [data-action="warnFamily"]`);
+    try {
+        if (navigator.share) {
+            await navigator.share({ text });
+            return;
+        }
+    } catch (error) {
+        if (error && error.name === 'AbortError') return;   // المستخدم سكّر نافذة المشاركة
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> نُسخ، الصقه بالكروب';
+    } catch {
+        window.prompt('انسخ التحذير وأرسله:', text);
+    }
+}
+
+// بلاغ احتيال للإدارة: إذا تأكدت منه ينضاف لقائمة الاحتيال ويحمي كل المستخدمين
+async function reportScam(boxId) {
+    const entry = LAST_REPORTS[boxId];
+    if (!entry) return;
+    const content = entry.kind === 'url' ? entry.result.input : ((document.getElementById('textInput') || {}).value || '').trim();
+    const note = window.prompt('بلاغ احتيال للإدارة. اكتب ملاحظة إذا تحب (مثلاً: وصلتني على واتساب باسم مصرف). اضغط موافق للإرسال:', '');
+    if (note === null) return;
+    const btn = document.querySelector(`#${boxId} [data-action="reportScam"]`);
+    try {
+        const { ok, data } = await api('/api/report', { kind: entry.kind, content, note });
+        if (btn) btn.textContent = ok ? '✓ وصل البلاغ' : (data.error || 'تعذر الإرسال');
+        if (ok && btn) btn.disabled = true;
+    } catch {
+        if (btn) btn.textContent = 'تعذر الإرسال';
+    }
+}
+
+// آخر تنبيهات الاحتيال برئيسية التطبيق (يكتبها الأدمن)
+async function loadHomeAlerts() {
+    try {
+        const response = await fetch('/api/alerts', { credentials: 'same-origin' });
+        const data = await response.json();
+        const list = (data.alerts || []).slice(0, 3);
+        const box = document.getElementById('homeAlertsList');
+        if (!box || !list.length) return;
+        box.replaceChildren(...list.map(a => {
+            const item = document.createElement('article');
+            item.className = 'home-alert sev-' + (['danger', 'warn', 'info'].includes(a.severity) ? a.severity : 'warn');
+            const title = document.createElement('strong');
+            title.textContent = a.title;
+            const body = document.createElement('p');
+            body.textContent = a.body.length > 220 ? a.body.slice(0, 220) + '…' : a.body;
+            const when = document.createElement('small');
+            when.textContent = new Date(a.at).toLocaleDateString('ar-IQ');
+            item.append(title, body, when);
+            return item;
+        }));
+        document.getElementById('homeAlerts').hidden = false;
+    } catch { /* التنبيهات اختيارية */ }
+}
+
+// «شارك إلى Phishing Detector» (من واتساب وغيره، بعد تنصيب الموقع كتطبيق): نفحص المحتوى المشارك مباشرة
+function handleSharedContent() {
+    const params = new URLSearchParams(location.search);
+    const sharedUrl = (params.get('share_url') || '').trim();
+    const sharedText = [params.get('share_title'), params.get('share_text')].filter(Boolean).join('\n').trim();
+    if (!sharedUrl && !sharedText) return;
+    history.replaceState(null, '', '/');
+    const urls = PhishingEngine.extractUrls(sharedText);
+    const onlyLink = sharedUrl || (urls.length === 1 && sharedText.replace(urls[0], '').replace(/\s+/g, '').length < 15 ? urls[0] : '');
+    if (onlyLink) {
+        switchPage('scannerPage', 'فحص الروابط', 'fa-solid fa-link');
+        document.getElementById('urlInput').value = onlyLink.slice(0, 2048);
+        analyzeUrl();
+    } else {
+        switchPage('textScannerPage', 'فحص النصوص والرسائل', 'fa-solid fa-comment-sms');
+        document.getElementById('textInput').value = sharedText.slice(0, 10000);
+        analyzeText();
     }
 }
 
@@ -1255,7 +1377,7 @@ const ACTIONS = {
     toggleSnapshot,
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
     clearCyberBotConversation, sendCyberBotMessage, useCyberBotSuggestion, testUrl, loadSimulation, checkSimulation,
-    updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport
+    updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport, warnFamily, reportScam, setFontScale
 };
 
 // يبلّغ حارس الأخطاء (error-guard.js) ويبقي الصفحة تعمل

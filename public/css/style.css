@@ -509,8 +509,8 @@ header {
 .report-header { gap: 12px; flex-wrap: wrap; }
 .report-title { display: flex; align-items: center; gap: 14px; }
 .report-sub { margin-top: 6px; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.report-tools { display: flex; gap: 6px; }
-.report-tools .btn-quick { white-space: nowrap; }
+.report-tools { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; max-width: 100%; }
+.report-tools .btn-quick { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 .risk-gauge { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
 .risk-gauge svg { display: block; }
@@ -854,3 +854,51 @@ footer {
 /* وضع الضيف: تنبيه يلمع عند محاولة استخدام خدمة */
 .plan-banner.flash { animation: guestFlash 1.2s ease; }
 @keyframes guestFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 4px var(--accent-yellow); } }
+
+/* آخر تنبيهات الاحتيال بالرئيسية */
+.home-alerts { max-width: 900px; margin: 28px auto 0; padding: 0 16px; text-align: right; }
+.home-alerts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.home-alerts-head h2 { font-size: 1.05rem; margin: 0; }
+.home-alerts-head a { color: var(--accent-blue); font-size: .9rem; }
+.home-alert { background: var(--bg-card); border: 1px solid var(--border-color); border-inline-start: 4px solid var(--accent-yellow); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.home-alert.sev-danger { border-inline-start-color: var(--accent-red); }
+.home-alert.sev-info { border-inline-start-color: var(--accent-blue); }
+.home-alert p { margin: 6px 0; color: var(--text-muted); font-size: .9rem; line-height: 1.8; overflow-wrap: anywhere; }
+.home-alert small { color: var(--text-muted); font-size: .75rem; }
+
+/* شريط التنقل السفلي: موبايل فقط */
+.bottom-nav { display: none; }
+@media (max-width: 768px) {
+    .bottom-nav {
+        display: flex; position: fixed; inset-inline: 0; bottom: 0; z-index: 900;
+        background: var(--bg-card); border-top: 1px solid var(--border-color); padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+        box-shadow: 0 -6px 20px rgba(0, 0, 0, .12);
+    }
+    .bottom-nav button {
+        flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 2px; border: 0; background: none;
+        color: var(--text-muted); font: inherit; font-size: .72rem; font-weight: 700; cursor: pointer; border-radius: 10px; min-height: 48px;
+    }
+    .bottom-nav button i { font-size: 1.1rem; }
+    .bottom-nav button.active { color: var(--accent-blue); background: rgba(0, 102, 255, .08); }
+    body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+    .bottom-nav [hidden] { display: none; }
+}
+
+/* فلاتر سجل الفحوصات */
+.history-filters { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 12px; }
+.filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-chip { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font: inherit; font-size: .82rem; cursor: pointer; }
+.filter-chip.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+/* حجم الخط بقائمة المظهر */
+.menu-sep { height: 1px; background: var(--border-color); margin: 6px 0; }
+.menu-label { font-size: .75rem; color: var(--text-muted); padding: 2px 12px; }
+.font-scale { display: flex; gap: 6px; padding: 4px 10px 8px; }
+.font-scale button { flex: 1; padding: 4px 0; border: 1px solid var(--border-color); border-radius: 8px; background: transparent; color: var(--text-main); font: inherit; font-weight: 800; cursor: pointer; }
+.font-scale button[aria-pressed="true"] { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+/* إمكانية الوصول: إطار واضح للتنقل بلوحة المفاتيح، واحترام إعداد «تقليل الحركة» */
+:focus-visible { outline: 3px solid var(--accent-blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

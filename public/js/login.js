@@ -3,6 +3,14 @@
     'use strict';
 
     const $ = id => document.getElementById(id);
+    // محتوى مشارك من تطبيق آخر (واتساب...) قبل تسجيل الدخول: نرجّعه للتطبيق بعد الدخول حتى ينفحص
+    const SHARE_KEYS = ['share_title', 'share_text', 'share_url'];
+    function goHome() {
+        const params = new URLSearchParams(window.location.search);
+        const keep = new URLSearchParams();
+        for (const k of SHARE_KEYS) if (params.get(k)) keep.set(k, params.get(k).slice(0, 10000));
+        window.location.replace('/' + (keep.toString() ? '?' + keep : ''));
+    }
     let mode = 'login';
     let busy = false;
 
@@ -75,7 +83,7 @@
         try {
             await post('/api/auth/verify-code', { email: verifyEmailAddress, code });
             notice('تم تأكيد بريدك! جارٍ فتح لوحتك...', 'success');
-            window.location.replace('/');
+            goHome();
         } catch (error) {
             notice(error.message);
             setBusy(form, false);
@@ -105,7 +113,7 @@
         try {
             await post('/api/auth/mfa', { code });
             notice('تم التحقق! جارٍ فتح لوحتك...', 'success');
-            window.location.replace('/');
+            goHome();
         } catch (error) {
             notice(error.message);
             setBusy(form, false);
@@ -179,7 +187,7 @@
                 }
             }
             notice('تم! جارٍ فتح لوحتك...', 'success');
-            window.location.replace('/');
+            goHome();
         } catch (error) {
             if (error.code === 'email_unverified') {
                 setBusy(form, false);
@@ -201,7 +209,7 @@
         setBusy(form, true);
         try {
             await post('/api/auth/reset', { token, password });
-            window.location.replace('/');
+            goHome();
         } catch (error) {
             notice(error.message);
             setBusy(form, false);
@@ -218,7 +226,7 @@
                 const data = await response.json().catch(() => ({}));
                 throw new Error(data.error || 'تعذر الدخول كضيف.');
             }
-            window.location.replace('/');
+            goHome();
         } catch (error) {
             notice(error.message);
         } finally {

@@ -216,7 +216,7 @@
     $("showAllPayments").addEventListener("change", loadPayments);
 
     // التبويبات: القسم المفتوح يُحفظ بالرابط (#payments) فيبقى بعد التحديث
-    const TABS = ["overview", "payments", "users", "settings", "security"];
+    const TABS = ["overview", "payments", "users", "reports", "settings", "security"];
     function showTab(name) {
         const tab = TABS.includes(name) ? name : "overview";
         document.querySelectorAll("[data-tab-panel]").forEach(el => { el.hidden = el.dataset.tabPanel !== tab; });
@@ -230,6 +230,7 @@
             }
         });
         window.scrollTo({ top: 0 });
+        document.dispatchEvent(new CustomEvent("admin:tab", { detail: tab }));
         if (window.location.hash.slice(1) !== tab) history.replaceState(null, "", "#" + tab);
     }
     document.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));

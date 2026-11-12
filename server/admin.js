@@ -23,6 +23,7 @@ const { createRateLimiter, createFailureLimiter } = require("./rate-limit");
 const http = require("./http");
 const { planOf } = require("./plans");
 const { UserError } = require("./users");
+const { versionAssets } = require("./static");
 
 const scrypt = promisify(crypto.scrypt);
 const DUMMY_SALT = crypto.randomBytes(16).toString("hex");
@@ -38,7 +39,8 @@ const ASSETS = {
     "login.js": { type: "text/javascript; charset=utf-8", publicAsset: true },
     "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
     "manage.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
-    "settings.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
+    "settings.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
+    "community.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
 };
 
 function sha256(value) {
@@ -64,7 +66,9 @@ function createAdmin(config, stats, extras = {}) {
     const files = {};
     if (enabled) {
         for (const name of ["login.html", "dashboard.html", ...Object.keys(ASSETS)]) {
-            files[name] = fs.readFileSync(path.join(config.adminDir, name));
+            const raw = fs.readFileSync(path.join(config.adminDir, name));
+            // روابط /vendor بصفحات الإدارة تحمل بصمة المحتوى مثل بقية الموقع
+            files[name] = name.endsWith(".html") ? Buffer.from(versionAssets(raw.toString("utf8"), config.publicDir)) : raw;
         }
     }
 
@@ -462,6 +466,7 @@ function createAdmin(config, stats, extras = {}) {
             }
             const payload = statsPayload(req, session);
             try { payload.usersTotal = extras.users && extras.users.count ? await extras.users.count() : null; } catch { payload.usersTotal = null; }
+            try { payload.openReports = extras.community ? await extras.community.openCount() : 0; } catch { payload.openReports = 0; }
             http.sendJson(res, 200, payload);
             return true;
         }
@@ -529,6 +534,9 @@ function createAdmin(config, stats, extras = {}) {
         }
 
         // ---------- المستخدمون والمدفوعات والإيرادات (تتطلب جلسة أدمن) ----------
+        if (p === "/api/admin/community" || p.startsWith("/api/admin/community/")) {
+            return await communityRoutes(req, res, p, url), true;
+        }
         if (p.startsWith("/api/admin/users") || p.startsWith("/api/admin/payments") || p === "/api/admin/revenue" || p.startsWith("/api/admin/export/")) {
             return await manageRoutes(req, res, p, url), true;
         }
@@ -578,6 +586,50 @@ function createAdmin(config, stats, extras = {}) {
         return '"' + text.replace(/"/g, '""') + '"';
     };
     const toCsv = (header, rows) => "\ufeff" + [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
+
+    // البلاغات والتنبيهات والقائمة المؤكدة
+    async function communityRoutes(req, res, p, url) {
+        const community = extras.community;
+        const session = currentSession(req);
+        if (!community) return http.sendJson(res, 404, { error: "Not found" });
+        if (!session) return http.sendJson(res, 401, { error: "Unauthorized" });
+        const ip = http.getClientIp(req, config);
+        try {
+            if (p === "/api/admin/community" && req.method === "GET") {
+                const status = url.searchParams.get("reports") === "all" ? "all" : "open";
+                const [reports, blocklist] = await Promise.all([community.listReports({ status, limit: 300 }), community.listBlocked()]);
+                return http.sendJson(res, 200, { alerts: community.alerts(), reports, blocklist });
+            }
+            if (req.method !== "POST") return methodNotAllowed(res, "POST");
+            const body = await adminPostBody(req, res);
+            if (body === undefined) return;
+            if (p === "/api/admin/community/alert") {
+                const alert = await community.addAlert({ title: body.title, body: body.body, severity: body.severity }, session.user);
+                stats.event("admin_alert", `نشر تنبيه احتيال: ${alert.title.slice(0, 60)}`, ip);
+                return http.sendJson(res, 201, { alert });
+            }
+            if (p === "/api/admin/community/alert/delete") {
+                await community.deleteAlert(String(body.id || ""));
+                stats.event("admin_alert", "حذف تنبيه احتيال", ip);
+                return http.sendJson(res, 200, { ok: true });
+            }
+            if (p === "/api/admin/community/report") {
+                const report = await community.decideReport(String(body.id || ""), { confirm: body.confirm === true, admin: session.user });
+                stats.event("report_decision", `${report.status === "confirmed" ? "تأكيد" : "رفض"} بلاغ${report.domain ? " (" + report.domain + ")" : ""}`, ip);
+                return http.sendJson(res, 200, { report });
+            }
+            if (p === "/api/admin/community/unblock") {
+                await community.unblock(String(body.domain || ""));
+                stats.event("report_decision", `إزالة ${String(body.domain || "").slice(0, 80)} من قائمة الاحتيال المؤكدة`, ip);
+                return http.sendJson(res, 200, { ok: true });
+            }
+            return http.sendJson(res, 404, { error: "Not found" });
+        } catch (error) {
+            if (error && typeof error.status === "number" && error.name !== "UpstashError") return http.sendJson(res, error.status, { error: error.message });
+            if (error && error.name === "UpstashError") return http.sendJson(res, 503, { error: "تعذر الوصول لقاعدة البيانات." });
+            throw error;
+        }
+    }
 
     async function manageRoutes(req, res, p, url) {
         const users = extras.users;

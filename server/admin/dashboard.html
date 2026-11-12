@@ -7,7 +7,7 @@
     <title>لوحة الإدارة | Phishing Detector</title>
     <meta name="theme-color" content="#0b1020">
     <link rel="icon" href="/favicon.ico" sizes="48x48">
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/tajawal/tajawal.css?v=1">
     <link rel="stylesheet" href="/admin/assets/admin.css">
 </head>
 <body class="app">
@@ -20,6 +20,7 @@
             <button type="button" class="tab-btn" data-tab="overview" data-title="نظرة عامة"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zM14 20h6V11h-6zM4 20h6v-4H4zM14 7h6V4h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">نظرة عامة</span><span class="tab-short">الرئيسية</span></button>
             <button type="button" class="tab-btn" data-tab="payments" data-title="المدفوعات"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3zM3 11h18M7 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">المدفوعات</span><span class="tab-short">الدفع</span><span id="pendingBadge" class="tab-badge" hidden>0</span></button>
             <button type="button" class="tab-btn" data-tab="users" data-title="المستخدمون"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.8c2 .7 3.2 2.5 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">المستخدمون</span><span class="tab-short">المستخدمون</span></button>
+            <button type="button" class="tab-btn" data-tab="reports" data-title="البلاغات والتنبيهات"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4M4 4h12l-2 4 2 4H4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">البلاغات والتنبيهات</span><span class="tab-short">البلاغات</span><span id="reportsBadge" class="tab-badge" hidden>0</span></button>
             <button type="button" class="tab-btn" data-tab="settings" data-title="إعدادات الموقع"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">إعدادات الموقع</span><span class="tab-short">الإعدادات</span></button>
             <button type="button" class="tab-btn" data-tab="security" data-title="الأمان والنظام"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6zM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tab-label">الأمان والنظام</span><span class="tab-short">الأمان</span></button>
         </nav>
@@ -117,6 +118,31 @@
             </p>
         </section>
 
+        <section data-tab-panel="reports">
+            <div class="section-head"><h2>بلاغات المستخدمين</h2><label class="muted"><input type="checkbox" id="showAllReports"> عرض كل البلاغات</label></div>
+            <p class="muted">«تأكيد» لبلاغ رابط يضيف نطاقه لقائمة الاحتيال المؤكدة، فأي فحص لاحق له يطلع «خطر» لكل المستخدمين. تأكد بنفسك قبل التأكيد (لا تفتح الرابط بجهازك: افحصه بالموقع وشوف معاينته).</p>
+            <div id="reportsNotice"></div>
+            <div class="table-wrap spaced"><table id="reportsTable"></table></div>
+        </section>
+
+        <section data-tab-panel="reports">
+            <h2>نشر تنبيه احتيال</h2>
+            <p class="muted">التنبيهات تظهر للجميع بصفحة <a href="/alerts" target="_blank" rel="noopener noreferrer">/alerts</a> العامة (ومحركات البحث) وبرئيسية التطبيق.</p>
+            <form id="alertForm" class="form-grid" autocomplete="off">
+                <label>العنوان<input id="alertTitle" maxlength="120" placeholder="مثال: رسائل مزيفة باسم مصرف الرافدين"></label>
+                <label>الدرجة<select id="alertSeverity"><option value="danger">خطر</option><option value="warn" selected>تحذير</option><option value="info">معلومة</option></select></label>
+                <label class="wide">التفاصيل<textarea id="alertBody" maxlength="1500" rows="4" placeholder="شنو الرسالة أو الرابط، وشلون يتجنبه الناس، وشنو يسوون إذا وقعوا بيها."></textarea></label>
+                <div class="wide"><button type="submit">نشر التنبيه</button> <span id="alertNotice"></span></div>
+            </form>
+            <div id="alertsList" class="spaced"></div>
+        </section>
+
+        <section data-tab-panel="reports">
+            <h2>قائمة الاحتيال المؤكدة</h2>
+            <p class="muted">نطاقات أكدتها من البلاغات. حذف نطاق يرجّع فحصه للمحرك وقوائم التهديدات فقط.</p>
+            <div id="blocklist" class="chips"></div>
+        </section>
+
         <section data-tab-panel="settings">
             <div class="section-head">
                 <h2>إعدادات الموقع</h2>
@@ -148,5 +174,6 @@
     <script src="/admin/assets/dashboard.js"></script>
     <script src="/admin/assets/manage.js"></script>
     <script src="/admin/assets/settings.js"></script>
+    <script src="/admin/assets/community.js"></script>
 </body>
 </html>

@@ -123,6 +123,11 @@
                     <span>المسار التوعوي</span>
                     <small class="card-desc">دروس ومحاكي تصيد تفاعلي</small>
                 </button>
+                <button class="action-card-btn" data-page="checkupPage" data-title="فحص أمان حساباتك" data-icon="fa-solid fa-user-lock">
+                    <i class="fa-solid fa-user-lock"></i>
+                    <span>فحص أمان حساباتك</span>
+                    <small class="card-desc">10 أسئلة ودرجة أمانك من 100</small>
+                </button>
                 <button data-feature="cyberbot" class="action-card-btn" data-action="openCyberBot">
                     <i class="fa-solid fa-robot" style="color:var(--accent-blue);"></i>
                     <span>CyberBot AI (المساعد الذكي)</span>
@@ -139,6 +144,12 @@
                     <small class="card-desc">فحص عشرات الروابط دفعة واحدة</small>
                 </button>
             </div>
+
+            <section id="installCard" class="install-card" hidden>
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <div><strong>ثبّت Phishing Detector كتطبيق</strong><p id="installText"></p></div>
+                <button type="button" class="app-btn small" id="installBtn" data-action="installApp" hidden>تثبيت</button>
+            </section>
 
             <section id="homeAlerts" class="home-alerts" aria-labelledby="homeAlertsTitle" hidden>
                 <div class="home-alerts-head">
@@ -418,6 +429,24 @@
     </div>
 
     <!-- الحساب والاشتراك -->
+    <div id="checkupPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
+                <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+            </button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-user-lock"></i> فحص أمان حساباتك</h2>
+                <p class="muted">10 أسئلة سريعة. جاوب بصراحة، وتطلعلك درجة أمانك وخطوات واضحة لكل نقطة ناقصة.</p>
+            </div>
+            <div class="checkup-layout">
+                <div class="scanner-card"><div id="checkupList"></div>
+                    <button type="button" class="app-btn small secondary" data-action="resetCheckup"><i class="fa-solid fa-rotate-left"></i> ابدي من جديد</button>
+                </div>
+                <div class="scanner-card checkup-side"><div id="checkupResult"></div><div id="checkupTrend"></div></div>
+            </div>
+        </div>
+    </div>
+
     <div id="accountPage" class="page-section">
         <div class="scanner-container account-page">
             <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
@@ -647,7 +676,9 @@ Authorization: Bearer pd_...</pre>
 
     <script src="/js/error-guard.js?v=4.0.0"></script>
     <script src="/js/detection-engine.js?v=4.0.0"></script>
+    <script src="/js/response-plans.js?v=1"></script>
     <script src="/js/app.js?v=4.0.0"></script>
     <script src="/js/account.js?v=4.0.0"></script>
+    <script src="/js/checkup.js?v=1"></script>
 </body>
 </html>

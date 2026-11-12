@@ -138,7 +138,8 @@ function serveStatic(req, res, pathname, config) {
         const headers = {
             "Content-Type": contentType,
             // الصفحات تُراجع دائماً، والملفات برقم نسخة تُخزَّن سنة، والباقي يوماً مع إعادة تحقق
-            "Cache-Control": contentType.startsWith("text/html") ? "no-cache"
+            // sw.js يتحدث فوراً مع كل نشر (المتصفح يقارنه بالنسخة المسجلة)
+            "Cache-Control": contentType.startsWith("text/html") || decoded === "/sw.js" ? "no-cache"
                 : versioned ? "public, max-age=31536000, immutable" : "public, max-age=86400, must-revalidate"
         };
         const compressible = COMPRESSIBLE.test(contentType) && stats.size <= MAX_CACHED_FILE;

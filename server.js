@@ -67,7 +67,13 @@ function createApp(config = loadConfig(), overrides = {}) {
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {
         // %APP_URL% بالصفحة يُستبدل بعنوان الموقع (للروابط المطلقة: canonical و og:image)
-        const raw = Buffer.from(fs.readFileSync(path.join(config.publicDir, name), "utf8").split("%APP_URL%").join(config.appUrl));
+        const v = config.siteVerification || {};
+        const verify = [
+            v.google ? `<meta name="google-site-verification" content="${v.google}">` : "",
+            v.bing ? `<meta name="msvalidate.01" content="${v.bing}">` : ""
+        ].filter(Boolean).join("\n    ");
+        const raw = Buffer.from(fs.readFileSync(path.join(config.publicDir, name), "utf8")
+            .split("%APP_URL%").join(config.appUrl).split("<!--SITE_VERIFICATION-->").join(verify));
         return { raw, br: zlib.brotliCompressSync(raw), gzip: zlib.gzipSync(raw, { level: 9 }) };
     };
     const pages = { app: loadPage("index.html"), login: loadPage("login.html") };
@@ -175,7 +181,7 @@ function createApp(config = loadConfig(), overrides = {}) {
                 const base = config.appUrl.replace(/\/+$/, "");
                 const body = pathname === "/robots.txt"
                     ? `User-agent: *\nAllow: /login\nAllow: /privacy\nAllow: /terms\nDisallow: /admin\nDisallow: /api/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`
-                    : `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${["/login", "/privacy", "/terms"].map(p => `  <url><loc>${base}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
+                    : `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[["/login", "1.0", "weekly"], ["/privacy", "0.3", "monthly"], ["/terms", "0.3", "monthly"]].map(([p, pr, cf]) => `  <url><loc>${base}${p}</loc><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`).join("\n")}\n</urlset>\n`;
                 res.writeHead(200, { "Content-Type": pathname.endsWith(".xml") ? "application/xml; charset=utf-8" : "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(body), "Cache-Control": "public, max-age=3600" });
                 return res.end(req.method === "HEAD" ? undefined : body);
             }

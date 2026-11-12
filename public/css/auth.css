@@ -193,3 +193,11 @@
 .auth-legal { margin-top: 6px; }
 .auth-legal a, .footer-links a { color: var(--text-muted); text-decoration: underline; }
 .auth-legal a:hover, .footer-links a:hover { color: var(--accent-blue); }
+
+/* قسم «ما هو الموقع» أسفل صفحة الدخول (نص تعريفي للزوار ولمحركات البحث) */
+.auth-about { max-width: 1040px; margin: 8px auto 28px; padding: 0 16px; color: var(--text-muted, #8e9aaf); line-height: 1.9; }
+.auth-about h2 { font-size: 1.2rem; color: var(--text-main, inherit); margin: 0 0 8px; }
+.auth-about h3 { font-size: 1rem; color: var(--text-main, inherit); margin: 0 0 4px; }
+.auth-about p { margin: 0 0 10px; font-size: .92rem; }
+.auth-about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 12px; }
+.auth-about-grid > div { border: 1px solid var(--border-color, rgba(128,128,128,.25)); border-radius: 14px; padding: 14px; background: var(--bg-card, transparent); }

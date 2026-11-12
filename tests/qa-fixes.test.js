@@ -61,3 +61,24 @@ test('بحث الأدمن يجد الحسابات بجزء من البريد أ�
     assert.strictEqual((await users.listUsers({ query: 'SARA@UNI.EDU.IQ' })).users.length, 1);
     assert.strictEqual((await users.listUsers({ query: 'nobody' })).users.length, 0);
 });
+
+const { withServer, request } = require('./helpers');
+
+test('صفحة الدخول جاهزة لمحركات البحث: عنوان، وصف، بيانات منظمة، manifest، ورمز التوثيق', () => withServer({ APP_URL: 'http://localhost:8080', GOOGLE_SITE_VERIFICATION: 'abcDEF123_-xyz789' }, async app => {
+    const page = await request(app, 'GET', '/login');
+    assert.match(page.text, /<title>Phishing Detector \| كاشف التصيد/);
+    assert.match(page.text, /<meta name="google-site-verification" content="abcDEF123_-xyz789">/);
+    assert.doesNotMatch(page.text, /SITE_VERIFICATION|%APP_URL%/);
+    const ld = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(page.text)[1]);
+    assert.ok(ld['@graph'].find(x => x['@type'] === 'WebSite').alternateName.includes('كاشف التصيد'));
+    assert.match(page.headers['content-security-policy'], /manifest-src 'self'/);
+    const manifest = await request(app, 'GET', '/manifest.webmanifest');
+    assert.strictEqual(manifest.status, 200);
+    assert.strictEqual(manifest.json.icons.length, 3);
+    for (const icon of manifest.json.icons) assert.strictEqual((await request(app, 'GET', icon.src)).status, 200);
+}));
+
+test('رمز توثيق غير صالح يُتجاهل (لا حقن HTML)', () => withServer({ GOOGLE_SITE_VERIFICATION: '"><script>x</script>' }, async app => {
+    const page = await request(app, 'GET', '/login');
+    assert.doesNotMatch(page.text, /google-site-verification|<script>x/);
+}));

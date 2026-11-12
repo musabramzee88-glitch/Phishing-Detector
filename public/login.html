@@ -3,19 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول | Phishing Detector</title>
-    <meta name="description" content="Phishing Detector من فريق ApexSec: افحص الروابط والرسائل والملفات واحمِ نفسك من التصيد الإلكتروني.">
+    <title>Phishing Detector | كاشف التصيد الإلكتروني - افحص الروابط والرسائل مجاناً</title>
+    <meta name="description" content="Phishing Detector (كاشف التصيد) من فريق ApexSec بجامعة تكريت: افحص أي رابط أو رسالة أو ملف مجاناً واكشف التصيد والاحتيال الإلكتروني وانتحال المواقع والبنوك، مع مساعد ذكي CyberBot يفهم اللهجة العراقية.">
+    <meta name="keywords" content="Phishing Detector, فيشنج ديتكتور, كاشف التصيد, كشف التصيد الإلكتروني, فحص الروابط, فحص رابط, فحص الرسائل, رسائل الاحتيال, روابط مزيفة, الاحتيال الإلكتروني, الأمن السيبراني, ApexSec, جامعة تكريت, CyberBot">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="application-name" content="Phishing Detector">
+    <meta name="apple-mobile-web-app-title" content="Phishing Detector">
+    <!--SITE_VERIFICATION-->
     <link rel="icon" href="/favicon.ico" sizes="48x48">
-    <link rel="apple-touch-icon" href="/img/logo-192.jpg?v=4.0.0">
+    <link rel="icon" href="/img/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/img/icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#0a0f1d">
     <link rel="canonical" href="%APP_URL%/login">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Phishing Detector">
     <meta property="og:locale" content="ar_IQ">
-    <meta property="og:title" content="Phishing Detector — اكشف التصيد قبل ما يكشفك">
-    <meta property="og:description" content="افحص أي رابط أو رسالة أو ملف بثواني: كشف انتحال المواقع، رسائل الاحتيال، والملفات المتنكرة. أول شهر Pro مجاناً.">
+    <meta property="og:title" content="Phishing Detector | كاشف التصيد الإلكتروني">
+    <meta property="og:description" content="افحص أي رابط أو رسالة أو ملف بثواني: كشف انتحال المواقع والبنوك، رسائل الاحتيال، والملفات المتنكرة. مجاني، وأول شهر Pro مجاناً.">
     <meta property="og:url" content="%APP_URL%/login">
-    <meta property="og:image" content="%APP_URL%/img/logo-512.jpg">
+    <meta property="og:image" content="%APP_URL%/img/icon-512.png">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "%APP_URL%/#website",
+          "name": "Phishing Detector",
+          "alternateName": ["كاشف التصيد", "كاشف التصيد الإلكتروني", "فيشنج ديتكتور", "فشنك ديتكتور", "PhishingDetector", "Phishing Detector by ApexSec", "Phishing Detector ApexSec"],
+          "url": "%APP_URL%/",
+          "inLanguage": "ar",
+          "publisher": { "@id": "%APP_URL%/#org" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "%APP_URL%/#org",
+          "name": "ApexSec",
+          "alternateName": "فريق ApexSec",
+          "url": "%APP_URL%/",
+          "logo": "%APP_URL%/img/icon-512.png",
+          "description": "فريق الأمن السيبراني ApexSec - جامعة تكريت، كلية علوم الحاسوب والرياضيات، قسم الأمن السيبراني."
+        },
+        {
+          "@type": "WebApplication",
+          "name": "Phishing Detector",
+          "alternateName": "كاشف التصيد الإلكتروني",
+          "url": "%APP_URL%/login",
+          "applicationCategory": "SecurityApplication",
+          "operatingSystem": "Web, Android, iOS, Windows",
+          "inLanguage": "ar",
+          "description": "منصة عربية لكشف التصيد الإلكتروني: فحص الروابط والرسائل والملفات، ومساعد ذكي CyberBot.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "creator": { "@id": "%APP_URL%/#org" }
+        }
+      ]
+    }
+    </script>
     <meta name="twitter:card" content="summary">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -120,6 +164,17 @@
             </form>
         </section>
     </main>
+
+    <section class="auth-about" aria-labelledby="aboutTitle">
+        <h2 id="aboutTitle">ما هو Phishing Detector (كاشف التصيد الإلكتروني)؟</h2>
+        <p><strong>Phishing Detector</strong> منصة عربية مجانية لكشف <strong>التصيد الإلكتروني</strong> والاحتيال، طوّرها فريق <strong>ApexSec</strong> في جامعة تكريت. تلصق الرابط أو الرسالة اللي وصلتك، والمنصة تحللها وتكلك هل هي آمنة أو مشبوهة أو خطرة، مع السبب بلغة واضحة.</p>
+        <div class="auth-about-grid">
+            <div><h3>فحص الروابط</h3><p>يكشف الروابط المزيفة اللي تنتحل البنوك ومواقع التواصل والجهات الحكومية، مثل استبدال الحروف (g00gle) والأحرف المتشابهة والروابط المختصرة.</p></div>
+            <div><h3>فحص رسائل الاحتيال</h3><p>يحلل رسائل SMS وواتساب والبريد بالعربية واللهجة العراقية والإنكليزية: تجميد الحساب، الجوائز الوهمية، طلب رمز التحقق.</p></div>
+            <div><h3>فحص الملفات</h3><p>يكشف الملفات المتنكرة والامتداد المزدوج والماكرو، والفحص يصير داخل جهازك بدون رفع الملف.</p></div>
+            <div><h3>مساعد CyberBot</h3><p>مساعد ذكي تسأله عن أي شي يخص الأمان الرقمي، ويعطيك خطوات واضحة إذا انسرق حسابك أو شاركت بياناتك.</p></div>
+        </div>
+    </section>
 
     <footer class="auth-footer">
         فريق ApexSec — جامعة تكريت، كلية علوم الحاسوب والرياضيات، قسم الأمن السيبراني

@@ -194,6 +194,11 @@ function loadConfig(env = process.env) {
         clientIpHeader: /^[a-z0-9-]{1,40}$/i.test(env.CLIENT_IP_HEADER || "") ? env.CLIENT_IP_HEADER.toLowerCase() : "true-client-ip",
         allowedOrigin: env.CYBERBOT_ORIGIN || "",
         appUrl: parseAppUrl(env, Number(env.PORT || 8080)),
+        // رموز توثيق ملكية الموقع بمحركات البحث (Google Search Console و Bing Webmaster Tools)
+        siteVerification: {
+            google: /^[A-Za-z0-9_-]{10,100}$/.test(String(env.GOOGLE_SITE_VERIFICATION || "").trim()) ? String(env.GOOGLE_SITE_VERIFICATION).trim() : "",
+            bing: /^[A-Za-z0-9_-]{10,100}$/.test(String(env.BING_SITE_VERIFICATION || "").trim()) ? String(env.BING_SITE_VERIFICATION).trim() : ""
+        },
         openai: parseAi(env),
         oauth: parseOAuth(env),
         intel: { enabled: env.THREAT_FEEDS !== "0" },

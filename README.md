@@ -151,6 +151,13 @@ curl -s -X POST https://موقعك/api/admin/login -H "Content-Type: application
 - النوع: Docker. Health Check Path: `/healthz`.
 - الخطة المجانية تنام بعد الخمول (أول طلب قد يتأخر نحو 30 ثانية).
 
+### 8. الظهور بمحركات البحث (Google و Bing)
+1. افتح search.google.com/search-console ← Add property ← **URL prefix** واكتب عنوان موقعك.
+2. اختر طريقة **HTML tag**، وانسخ قيمة `content` فقط وضعها بمتغير Render: `GOOGLE_SITE_VERIFICATION`. بعد النشر اضغط Verify.
+3. من Sitemaps أضف `sitemap.xml`، ومن URL Inspection افحص `/login` واضغط **Request indexing**.
+4. (اختياري) نفس الشي بـ bing.com/webmasters والمتغير `BING_SITE_VERIFICATION` (أو استورد الموقع من Search Console مباشرة).
+الفهرسة تاخذ من أيام لأسابيع. نطاق خاص (مثل phishingdetector.iq) يساعد أكثر من `onrender.com`.
+
 ## نسيان كلمة السر
 مع تفعيل البريد (القسم 5.5) يضغط المستخدم «أرسل لي رابطاً على بريدي» في صفحة الدخول. بدونه: من لوحة الأدمن تضغط «رابط كلمة سر» بجانب حسابه وترسله له. الرابط صالح ساعة ولمرة واحدة في الحالتين.
 

@@ -38,7 +38,8 @@ test('صفحتا الدخول والتطبيق بلا سكربتات أو معا
     for (const html of [(await request(app, 'GET', '/login')).text, (await request(app, 'GET', '/', { headers: { Cookie: cookie } })).text]) {
         assert.match(html, /<html/);
         assert.ok(!/\son[a-z]+\s*=/i.test(html), 'inline event handler found');
-        assert.ok(!/<script(?![^>]*\ssrc=)[^>]*>/i.test(html), 'inline <script> found');
+        // JSON-LD بيانات فقط (لا تُنفَّذ)، ومسموحة؛ أي سكربت مضمن غيرها ممنوع
+        assert.ok(!/<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>/i.test(html), 'inline <script> found');
         assert.ok(!/<style[\s>]/i.test(html), 'inline <style> found');
         assert.ok(!/javascript:/i.test(html));
         for (const m of html.matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)) assert.match(m[0], /rel="noopener noreferrer"/);

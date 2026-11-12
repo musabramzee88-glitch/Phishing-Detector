@@ -991,3 +991,39 @@ footer {
 .howto p { margin: 6px 0; line-height: 1.8; }
 .auth-chip { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .78rem; font-weight: 800; border: 1px solid currentColor; }
 .auth-chip.ok { color: var(--accent-green); } .auth-chip.bad { color: var(--accent-red); } .auth-chip.warn { color: var(--accent-yellow); }
+
+/* فحص رقم أو حساب */
+.id-form { display: grid; grid-template-columns: minmax(150px, 220px) 1fr auto; gap: 10px; align-items: stretch; }
+.id-report { display: grid; gap: 10px; }
+@media (max-width: 700px) { .id-form { grid-template-columns: 1fr; } }
+.id-card { padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); border-inline-start: 5px solid var(--accent-green); }
+.id-card.one { border-inline-start-color: var(--accent-yellow); }
+.id-card.many { border-inline-start-color: var(--accent-red); }
+.id-card p { margin: 6px 0; line-height: 1.8; font-size: .9rem; }
+.id-head code { font-size: 1rem; }
+.id-legal { font-size: .78rem; margin-top: 10px; line-height: 1.8; }
+
+/* الدورة التوعوية */
+.course-card h3 { margin-top: 0; }
+.course-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.course-points { font-weight: 800; color: var(--accent-yellow); }
+.course-bar { height: 8px; border-radius: 999px; background: var(--nav-bg); margin: 8px 0 14px; overflow: hidden; }
+.course-bar span { display: block; height: 100%; background: var(--accent-green); border-radius: inherit; }
+.course-level { border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.course-level.passed { border-color: var(--accent-green); }
+.course-level.locked { opacity: .6; }
+.course-level-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.course-badge { font-size: .8rem; font-weight: 700; color: var(--text-muted); }
+.course-lessons { margin-bottom: 10px; }
+.course-lessons summary { cursor: pointer; color: var(--accent-blue); font-weight: 700; }
+.course-lesson { margin-top: 8px; }
+.course-lesson p { margin: 4px 0; color: var(--text-muted); line-height: 1.9; font-size: .9rem; }
+.quiz-q { border: 0; border-top: 1px dashed var(--border-color); margin: 10px 0 0; padding: 10px 0 0; }
+.quiz-q legend { font-weight: 700; line-height: 1.8; padding: 0; }
+.quiz-opt { display: block; padding: 8px 10px; margin: 6px 0; border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer; line-height: 1.7; }
+.quiz-opt.right { border-color: var(--accent-green); background: rgba(0, 200, 83, .08); }
+.quiz-opt.wrong { border-color: var(--accent-red); background: rgba(255, 23, 68, .08); }
+.quiz-explain { font-size: .86rem; margin: 6px 0 0; }
+.quiz-explain.ok, .quiz-verdict.ok { color: var(--accent-green); } .quiz-explain.bad, .quiz-verdict.bad { color: var(--accent-red); }
+.quiz-verdict { font-weight: 800; }
+.course-cert { border: 2px dashed var(--accent-yellow); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }

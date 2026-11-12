@@ -36,6 +36,8 @@ const { createAuth } = require("./server/auth");
 const { createIntel } = require("./server/intel");
 const { createInspector } = require("./server/inspect");
 const { createCommunity, CommunityError } = require("./server/community");
+const { createIdentifiers, IdentifierError } = require("./server/identifiers");
+const { createCourse, CourseError } = require("./server/course");
 const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
@@ -65,9 +67,13 @@ function createApp(config = loadConfig(), overrides = {}) {
     // الزيارة الآمنة للروابط ومعلومات الاستضافة (تتعطل مع THREAT_FEEDS=0 بالاختبارات، أو LIVE_INSPECT=0)
     const inspector = overrides.inspector !== undefined ? overrides.inspector : createInspector({ enabled: config.intel.enabled && config.liveInspect });
     const community = createCommunity({ db });
+    const identifiers = createIdentifiers({ db });
+    const course = createCourse({ db, users });
+    const idLookupLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
+    const disputeLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 5 });
     const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings, community });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings, community, identifiers });
 
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {
@@ -82,7 +88,7 @@ function createApp(config = loadConfig(), overrides = {}) {
         const raw = Buffer.from(versionAssets(html, config.publicDir));
         return { raw, br: zlib.brotliCompressSync(raw), gzip: zlib.gzipSync(raw, { level: 9 }) };
     };
-    const pages = { app: loadPage("index.html"), login: loadPage("login.html") };
+    const pages = { app: loadPage("index.html"), login: loadPage("login.html"), dispute: loadPage("dispute.html") };
 
     function sendPage(req, res, page) {
         const accept = String(req.headers["accept-encoding"] || "");
@@ -189,6 +195,99 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
         }
     }
 
+    // الدورة التوعوية: الدروس والاختبار (التصحيح هنا فقط) والشهادة
+    async function handleCourse(req, res, pathname) {
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        try {
+            if (pathname === "/api/course" && req.method === "GET") return h.sendJson(res, 200, course.overview(user));
+            const body = await auth.jsonBody(req, res, 4096);
+            if (body === undefined) return;
+            if (pathname === "/api/course/quiz") return h.sendJson(res, 200, await course.startQuiz(user, String(body.level || "")));
+            if (pathname === "/api/course/submit") {
+                const result = await course.submitQuiz(user, body.attemptId, body.answers);
+                if (result.passed) stats.event("course", `اجتياز مستوى بالدورة التوعوية (${result.score}/${result.total})`, "");
+                return h.sendJson(res, 200, result);
+            }
+            if (pathname === "/api/course/certificate") {
+                const fresh = await users.get(user.id);
+                const cert = await course.issueCertificate(fresh || user, body.name);
+                stats.event("course", "إصدار شهادة إتمام الدورة", "");
+                return h.sendJson(res, 201, { certificate: cert, url: `/certificate/${cert.id}` });
+            }
+            h.sendJson(res, 404, { error: "Not found" });
+        } catch (error) {
+            if (error instanceof CourseError) return h.sendJson(res, error.status, { error: error.message });
+            auth.sendError(res, error);
+        }
+    }
+
+    // صفحة الشهادة (للطباعة أو الحفظ PDF) وصفحة التحقق العامة
+    async function sendCertificatePage(req, res, kind, id) {
+        const cert = await course.getCertificate(id).catch(() => null);
+        const base = config.appUrl;
+        const verifyUrl = `${base}/verify/${id}`;
+        const day = cert ? new Date(cert.issuedAt).toISOString().slice(0, 10) : "";
+        let main;
+        if (!cert) {
+            main = `<main class="verify bad"><h1>❌ ما لكينا شهادة بهذا الرقم</h1><p>الرقم <code dir="ltr">${escHtml(id)}</code> غير موجود بسجلاتنا. تأكد من كتابته، أو إن الشهادة ممكن تكون مزورة.</p></main>`;
+        } else if (kind === "verify") {
+            main = `<main class="verify ok"><h1>✅ شهادة صحيحة</h1>
+<p>صادرة من منصة Phishing Detector باسم <strong>${escHtml(cert.name)}</strong> بتاريخ <time datetime="${day}">${day}</time>.</p>
+<ul>${cert.levels.map(l => `<li>${escHtml(l.title)}: ${Number(l.score)}/5</li>`).join("")}</ul>
+<p class="muted">رقم التحقق: <code dir="ltr">${escHtml(cert.id)}</code>. هذه شهادة إتمام دورة توعوية على المنصة، وليست شهادة معتمدة من جهة حكومية أو أكاديمية.</p>
+<p><a href="/certificate/${escHtml(cert.id)}">عرض الشهادة</a></p></main>`;
+        } else {
+            main = `<main class="cert" id="cert" data-verify="${escHtml(verifyUrl)}">
+<div class="cert-border"><img src="/img/icon-192.png" width="72" height="72" alt="">
+<p class="cert-kicker">شهادة إتمام</p><h1>${escHtml(cert.name)}</h1>
+<p>أتمّ بنجاح الدورة التوعوية «كشف التصيد والاحتيال الإلكتروني» بمستوياتها الثلاثة على منصة <strong>Phishing Detector</strong> (فريق ApexSec)، بمجموع ${Number(cert.points)} نقطة.</p>
+<ul class="cert-levels">${cert.levels.map(l => `<li>${escHtml(l.title)}: ${Number(l.score)}/5</li>`).join("")}</ul>
+<div class="cert-foot"><div><p>تاريخ الإصدار: <time datetime="${day}">${day}</time></p><p>رقم التحقق: <code dir="ltr">${escHtml(cert.id)}</code></p><p class="muted">تحقق منها: <span dir="ltr">${escHtml(verifyUrl)}</span></p></div><div id="certQr" class="cert-qr" aria-label="رمز QR للتحقق"></div></div>
+<p class="cert-disclaimer">هذه شهادة إتمام دورة توعوية على المنصة، وليست شهادة معتمدة من أي جهة حكومية أو أكاديمية.</p></div>
+<p class="no-print"><button type="button" id="printCert">طباعة أو حفظ PDF</button></p></main>`;
+        }
+        const body = Buffer.from(versionAssets(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${kind === "verify" ? "التحقق من شهادة" : "شهادة إتمام"} | Phishing Detector</title><meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="stylesheet" href="/vendor/tajawal/tajawal.css?v=1"><link rel="stylesheet" href="/css/legal.css?v=1"><link rel="stylesheet" href="/css/certificate.css?v=1"></head>
+<body>${main}${kind === "certificate" && cert ? '<script src="/vendor/qrcode/qrcode.js?v=1"></script><script src="/js/certificate.js?v=1"></script>' : ""}</body></html>`, config.publicDir));
+        res.writeHead(cert ? 200 : 404, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-cache", "X-Robots-Tag": "noindex" });
+        res.end(req.method === "HEAD" ? undefined : body);
+    }
+
+    // فحص رقم أو حساب أو محفظة: بحث وبلاغ (بحساب)، واعتراض (لأي شخص)
+    async function handleIdentifier(req, res, pathname) {
+        const action = pathname.slice("/api/identifier/".length);
+        if (!["lookup", "report", "dispute"].includes(action)) return h.sendJson(res, 404, { error: "Not found" });
+        if (req.method !== "POST") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "POST" });
+        const ip = h.getClientIp(req, config);
+        let user = null;
+        if (action !== "dispute") {
+            user = await auth.requireUser(req, res);
+            if (!user) return;
+            if (!idLookupLimiter.take(user.id)) return h.sendJson(res, 429, { error: "طلبات كثيرة بالدقيقة. تمهّل قليلاً." }, { "Retry-After": "60" });
+        } else if (!disputeLimiter.take(ip)) {
+            return h.sendJson(res, 429, { error: "أرسلت اعتراضات كثيرة. حاول بعد ساعة." }, { "Retry-After": "3600" });
+        }
+        const body = await auth.jsonBody(req, res, 4096);
+        if (body === undefined) return;
+        try {
+            if (action === "lookup") return h.sendJson(res, 200, { result: await identifiers.lookup(body.kind, body.value) });
+            if (action === "report") {
+                const result = await identifiers.report(user, { kind: body.kind, value: body.value, category: body.category, note: body.note });
+                stats.count("reports");
+                stats.event("identifier_report", "بلاغ عن رقم أو حساب", ip);
+                return h.sendJson(res, 201, { result, message: "وصل بلاغك، شكراً. يظهر للناس كعدد بلاغات فقط، وبدون اسمك." });
+            }
+            await identifiers.dispute({ kind: body.kind, value: body.value, contact: body.contact, reason: body.reason });
+            stats.event("identifier_dispute", "اعتراض على بلاغات معرّف", ip);
+            return h.sendJson(res, 201, { ok: true, message: "وصل اعتراضك. راح تراجعه الإدارة، وإذا كان محقاً تنحذف البلاغات." });
+        } catch (error) {
+            if (error instanceof IdentifierError) return h.sendJson(res, error.status, { error: error.message });
+            auth.sendError(res, error);
+        }
+    }
+
     // إحصاءات مجهولة لفحوصات تتم داخل المتصفح (الوسائط): نوع ونتيجة فقط
     async function handleEvent(req, res) {
         const body = await readClientJson(req, res, eventLimiter, 512);
@@ -274,6 +373,17 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
                 return sendAlertsPage(req, res, list);
             }
             if (pathname === "/api/report") return await handleReport(req, res);
+            if (pathname.startsWith("/api/identifier/")) return await handleIdentifier(req, res, pathname);
+            if (pathname === "/api/course" || pathname.startsWith("/api/course/")) return await handleCourse(req, res, pathname);
+            const certMatch = /^\/(certificate|verify)\/([A-Za-z0-9]{1,20})$/.exec(pathname);
+            if (certMatch) {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                return await sendCertificatePage(req, res, certMatch[1], certMatch[2].toUpperCase());
+            }
+            if (pathname === "/dispute") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                return sendPage(req, res, pages.dispute);
+            }
 
             const blocked = featureBlock(pathname);
             if (blocked) return h.sendJson(res, 503, { error: blocked, code: "feature_disabled" });

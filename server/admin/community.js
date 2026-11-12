@@ -130,7 +130,57 @@
         }
     }
 
+    // ---------- الأرقام والحسابات ----------
+    const KIND_NAMES = { phone: "هاتف", telegram: "تيليجرام", instagram: "انستغرام", facebook: "فيسبوك", wallet: "محفظة" };
+    async function loadIdentifiers() {
+        try {
+            const data = await call("/api/admin/identifiers");
+            const disputes = $("idDisputes");
+            disputes.replaceChildren(...data.disputes.map(d => {
+                const card = node("div", "alert-card info");
+                card.append(
+                    node("div", "muted", `${KIND_NAMES[d.kind] || d.kind} · ${date(d.at)}${d.contact ? " · للتواصل: " + d.contact : ""}${d.hasReports ? "" : " · (ما عليه بلاغات حالياً)"}`),
+                    node("h3", "ltr", d.masked),
+                    node("p", "", d.reason),
+                    button("قبول وحذف البلاغات", "", () => decideDispute(d, true)), " ",
+                    button("رفض الاعتراض", "secondary", () => decideDispute(d, false))
+                );
+                return card;
+            }));
+            if (!data.disputes.length) disputes.append(node("p", "muted", "ما اكو اعتراضات مفتوحة."));
+            const head = node("tr");
+            for (const t of ["المعرّف (مموّه)", "النوع", "عدد المبلّغين", "آخر بلاغ", "آخر ملاحظة", "إجراء"]) head.append(node("th", t === "إجراء" ? "actions" : "", t));
+            const rows = data.top.map(r => {
+                const tr = node("tr");
+                const act = node("td", "actions");
+                act.append(button("حذف البلاغات", "secondary", async () => {
+                    if (!window.confirm(`حذف كل البلاغات عن ${r.masked} ومنع بلاغات جديدة عنه؟`)) return;
+                    try { await call("/api/admin/identifiers/remove", { h: r.h }); loadIdentifiers(); } catch (e) { notice("idNotice", e.message, "bad"); }
+                }));
+                tr.append(node("td", "ltr", r.masked), node("td", "", KIND_NAMES[r.kind] || r.kind), node("td", "num", r.reporters), node("td", "num wrap", r.lastAt ? date(r.lastAt) : "—"), node("td", "detail", r.lastNote), act);
+                return tr;
+            });
+            if (!rows.length) { const tr = node("tr"); const td = node("td", "empty", "ما اكو بلاغات بعد."); td.colSpan = 6; tr.append(td); rows.push(tr); }
+            const table = $("idTable");
+            table.replaceChildren(node("thead"), node("tbody"));
+            table.firstChild.append(head);
+            table.lastChild.append(...rows);
+        } catch { /* يُعاد لاحقاً */ }
+    }
+
+    async function decideDispute(d, remove) {
+        if (remove && !window.confirm(`قبول الاعتراض وحذف كل البلاغات عن ${d.masked}؟`)) return;
+        try {
+            await call("/api/admin/identifiers/dispute", { id: d.id, remove });
+            notice("idNotice", remove ? "حُذفت البلاغات." : "رُفض الاعتراض.", "ok");
+            loadIdentifiers();
+        } catch (e) {
+            notice("idNotice", e.message, "bad");
+        }
+    }
+
     async function load() {
+        loadIdentifiers();
         try {
             const data = await call("/api/admin/community" + ($("showAllReports").checked ? "?reports=all" : ""));
             renderReports(data.reports || []);

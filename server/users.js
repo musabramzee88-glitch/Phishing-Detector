@@ -712,7 +712,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     }
 
     return {
-        get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
+        get, update, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, saveCheckup, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revokeSessions, revenue,

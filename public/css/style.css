@@ -839,3 +839,10 @@ footer {
 .live-row code { font-size: .8rem; }
 .live-excerpt { margin: 8px 0 0; color: var(--text-muted); font-style: italic; overflow-wrap: anywhere; }
 .live-note { margin: 6px 0 0; font-size: .75rem; color: var(--text-muted); }
+
+/* معاينة شكل الصفحة (إطار معزول) */
+.snap-wrap { margin-top: 10px; }
+.snap-btn { width: 100%; justify-content: center; }
+.snap-box { margin-top: 10px; }
+.snap-warn { font-size: .8rem; color: var(--text-muted); margin: 0 0 8px; line-height: 1.7; }
+.snap-frame { width: 100%; height: 520px; max-height: 70vh; border: 2px dashed var(--border-color); border-radius: 12px; background: #fff; display: block; }

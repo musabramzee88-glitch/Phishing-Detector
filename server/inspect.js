@@ -25,6 +25,7 @@ const net = require("node:net");
 const http = require("node:http");
 const https = require("node:https");
 const zlib = require("node:zlib");
+const crypto = require("node:crypto");
 const engine = require("../public/js/detection-engine.js");
 
 const MAX_REDIRECTS = 5;
@@ -35,6 +36,8 @@ const ALLOWED_PORTS = new Set([80, 443, 8080, 8443]);
 const MAX_CONCURRENT = 8;
 const CACHE_MS = 10 * 60_000;
 const HOSTING_CACHE_MS = 6 * 60 * 60_000;
+const SNAPSHOT_TIMEOUT_MS = 5_000;
+const SNAPSHOT_TTL_MS = 15 * 60_000;   // أطول من ذاكرة نتائج الزيارة (10 دقائق) حتى ما ينكسر رابط معاينة مخزّن
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36";
 
 // شبكات توصيل وحماية تخفي الخادم الحقيقي (وجودها وحده ليس مؤشر خطر)
@@ -275,17 +278,121 @@ function decodeBody(buffer, encoding, contentType) {
 
 const TLS_ERRORS = /CERT|SELF_SIGNED|UNABLE_TO_VERIFY|ALTNAME|ERR_TLS/i;
 
+// ---------------------------------------------------------------- معاينة الصفحة المعقّمة
+// نعيد بناء الصفحة بوسوم آمنة فقط: لا سكربتات ولا إطارات ولا روابط فعّالة ولا نماذج ترسل، والحقول معطّلة.
+// الصور والأنماط يجلبها الخادم بنفسه (بحماية SSRF) وتُضمَّن داخل الصفحة، فالمتصفح ما يتصل بموقع المحتال أبداً.
+const SNAP_ALLOWED = new Set(["a", "abbr", "article", "aside", "b", "blockquote", "br", "button", "caption", "center", "code", "dd", "div", "dl", "dt", "em", "fieldset", "figcaption", "figure", "font", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "input", "label", "legend", "li", "main", "mark", "nav", "ol", "option", "p", "pre", "s", "section", "select", "small", "span", "strong", "sub", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "tr", "u", "ul"]);
+const SNAP_VOID = new Set(["br", "hr", "img", "input"]);
+const SNAP_DROP = ["script", "noscript", "template", "iframe", "object", "embed", "frameset", "frame", "applet", "math", "canvas", "video", "audio", "svg", "title"];   // الرأس نفسه لا يُحذف: فيه روابط الأنماط (وما قبل <body> لا يُعرض أصلاً)
+const INPUT_TYPES = new Set(["text", "password", "email", "tel", "number", "search", "checkbox", "radio", "submit", "button", "date", "url"]);
+const MAX_SNAPSHOT_BODY = 400 * 1024;
+
+const escAttr = v => String(v).replace(/[&"<>]/g, c => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function sanitizeCss(css) {
+    return String(css).slice(0, 200 * 1024)
+        .replace(/</g, "")   // CSS لا يحتاج «<»، وحذفه يمنع أي خروج من وسم <style>
+        .replace(/@import[^;]{0,500};?/gi, "")
+        .replace(/url\s*\([^)]{0,2000}\)/gi, "none")
+        .replace(/expression\s*\(|behavior\s*:|-moz-binding|javascript:/gi, "")
+        .replace(/position\s*:\s*fixed/gi, "position:absolute");
+}
+
+function sanitizeForSnapshot(rawHtml, pageUrl) {
+    const html = String(rawHtml || "").slice(0, MAX_HTML_ANALYZE);
+    const lower = html.toLowerCase();
+    const out = [];
+    let size = 0;
+    const push = text => { if (size < MAX_SNAPSHOT_BODY) { out.push(text); size += text.length; } };
+    const inlineCss = [], stylesheets = [], images = [];
+    let dir = "";
+    let i = 0;
+    const bodyAt = lower.indexOf("<body");
+    while (i < html.length && size < MAX_SNAPSHOT_BODY) {
+        const lt = html.indexOf("<", i);
+        if (lt < 0) { push(html.slice(i).replace(/>/g, "&gt;")); break; }
+        if (lt > i) push(html.slice(i, lt).replace(/>/g, "&gt;"));
+        if (lower.startsWith("<!--", lt)) {
+            const end = lower.indexOf("-->", lt + 4);
+            if (end < 0) break;
+            i = end + 3;
+            continue;
+        }
+        const gt = html.indexOf(">", lt + 1);
+        if (gt < 0) break;
+        const tag = html.slice(lt, Math.min(gt + 1, lt + 3000));
+        i = gt + 1;
+        const m = /^<(\/?)([a-zA-Z][a-zA-Z0-9-]*)/.exec(tag);
+        if (!m) continue;
+        const closing = Boolean(m[1]);
+        const name = m[2].toLowerCase();
+        if (!closing && (name === "style" || SNAP_DROP.includes(name))) {
+            const end = lower.indexOf("</" + name, i);
+            if (name === "style") inlineCss.push(sanitizeCss(html.slice(i, end < 0 ? html.length : end)));
+            if (end < 0) break;
+            const close = lower.indexOf(">", end);
+            i = close < 0 ? html.length : close + 1;
+            continue;
+        }
+        if (!closing && name === "link" && /stylesheet/i.test(attr(tag, "rel"))) {
+            const u = resolveUrl(attr(tag, "href"), pageUrl);
+            if (u) stylesheets.push(u);
+            continue;
+        }
+        if (!closing && (name === "html" || name === "body") && !dir) {
+            const d = attr(tag, "dir").toLowerCase();
+            if (["rtl", "ltr", "auto"].includes(d)) dir = d;
+        }
+        if (bodyAt > 0 && lt < bodyAt) continue;     // ما قبل <body> (الرأس) لا يُعرض
+        if (!SNAP_ALLOWED.has(name)) continue;       // وسم غير مسموح: نحذفه ونبقي محتواه
+        if (closing) { if (!SNAP_VOID.has(name)) push(`</${name}>`); continue; }
+
+        const attrs = [];
+        const cls = attr(tag, "class").replace(/[^\w\s-]/g, "").slice(0, 200);
+        if (cls) attrs.push(`class="${escAttr(cls)}"`);
+        const id = attr(tag, "id").replace(/[^\w-]/g, "").slice(0, 60);
+        if (id) attrs.push(`id="${escAttr(id)}"`);
+        const style = attr(tag, "style");
+        if (style) attrs.push(`style="${escAttr(sanitizeCss(style).slice(0, 1000))}"`);
+        const d = attr(tag, "dir").toLowerCase();
+        if (["rtl", "ltr", "auto"].includes(d)) attrs.push(`dir="${d}"`);
+        for (const a of ["width", "height", "colspan", "rowspan", "align"]) {
+            const v = attr(tag, a);
+            if (v && /^[\w%.-]{1,10}$/.test(v)) attrs.push(`${a}="${v}"`);
+        }
+        if (name === "img") {
+            const u = resolveUrl(attr(tag, "src") || attr(tag, "data-src"), pageUrl);
+            const alt = cleanLine(attr(tag, "alt"), 100);
+            if (alt) attrs.push(`alt="${escAttr(alt)}"`);
+            if (u && images.length < 10) { attrs.push(`data-pd-img="${images.length}"`); images.push(u); } else attrs.push('class="pd-missing"');
+        }
+        if (name === "input") {
+            const type = attr(tag, "type").toLowerCase() || "text";
+            if (type === "hidden" || type === "file" || type === "image") continue;
+            attrs.push(`type="${INPUT_TYPES.has(type) ? type : "text"}"`);
+            const ph = cleanLine(attr(tag, "placeholder"), 100);
+            if (ph) attrs.push(`placeholder="${escAttr(ph)}"`);
+            if (["submit", "button"].includes(type)) { const v = cleanLine(attr(tag, "value"), 60); if (v) attrs.push(`value="${escAttr(v)}"`); }
+        }
+        if (["input", "button", "select", "textarea"].includes(name)) attrs.push("disabled");
+        push(`<${name}${attrs.length ? " " + attrs.join(" ") : ""}>`);
+    }
+    return { body: out.join(""), inlineCss, stylesheets: stylesheets.slice(0, 3), images, dir };
+}
+
 function createInspector({
     enabled = true,
     lookup = (host) => dns.promises.lookup(host, { all: true, verbatim: true }),
     resolveTxt = (name) => dns.promises.resolveTxt(name),
     isAllowedIp = isPublicIp,
     allowedPorts = ALLOWED_PORTS,   // للاختبارات فقط
+    snapshotsEnabled = true,
     now = () => Date.now()
 } = {}) {
     let active = 0;
     const cache = new Map();         // url -> { at, value }
     const hostingCache = new Map();  // ip|AS -> { at, value }
+    const snapshots = new Map();     // id -> { at, html }  معاينات معقّمة للصفحات (تُعرض بإطار معزول)
 
     // ------------------------------------------------ الاستضافة (Team Cymru عبر DNS)
     function withTimeout(promise, ms) {
@@ -355,7 +462,7 @@ function createInspector({
     }
 
     // طلب واحد (بدون تتبع التحويلات) إلى عنوان IP مُتحقَّق منه مسبقاً
-    function requestOnce(url, target, insecureTls, deadline) {
+    function requestOnce(url, target, insecureTls, deadline, opts = {}) {
         return new Promise((resolve, reject) => {
             const isHttps = url.protocol === "https:";
             const lib = isHttps ? https : http;
@@ -367,7 +474,7 @@ function createInspector({
                 path: (url.pathname || "/") + url.search,
                 headers: {
                     "User-Agent": USER_AGENT,
-                    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    Accept: opts.accept || "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                     "Accept-Language": "ar,en;q=0.8",
                     "Accept-Encoding": "gzip, deflate, br"
                 },
@@ -384,14 +491,15 @@ function createInspector({
                 const chunks = [];
                 let size = 0;
                 const type = String(res.headers["content-type"] || "").toLowerCase();
-                const isHtml = /html|xml|text\/plain/.test(type) || !type;
+                const isHtml = opts.readType ? opts.readType.test(type) : (/html|xml|text\/plain/.test(type) || !type);
+                const limit = opts.maxBytes || MAX_BODY;
                 const tlsInfo = isHttps && res.socket && typeof res.socket.getPeerCertificate === "function" ? res.socket.getPeerCertificate() : null;
                 const finish = () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks), cert: tlsInfo });
                 if (res.statusCode >= 300 && res.statusCode < 400) { res.resume(); return finish(); }
                 if (!isHtml) { res.destroy(); return finish(); }   // ملف: نكتفي بالترويسات
                 res.on("data", chunk => {
                     size += chunk.length;
-                    if (size > MAX_BODY) { chunks.push(chunk.subarray(0, Math.max(0, chunk.length - (size - MAX_BODY)))); res.destroy(); finish(); return; }
+                    if (size > limit) { if (opts.maxBytes) chunks.length = 0; else chunks.push(chunk.subarray(0, Math.max(0, chunk.length - (size - limit)))); res.destroy(); finish(); return; }
                     chunks.push(chunk);
                 });
                 res.on("end", finish);
@@ -458,6 +566,80 @@ function createInspector({
         if (/ECONNREFUSED/.test(code)) return "refused";
         if (/ECONNRESET|EPIPE|socket hang up/i.test(code)) return "reset";
         return "unreachable";
+    }
+
+    // ------------------------------------------------ ملفات المعاينة (CSS والصور) بنفس حماية الزيارة
+    async function fetchAsset(url, { readType, accept, maxBytes, deadline }) {
+        let current = url;
+        for (let hop = 0; hop < 3; hop++) {
+            if (Date.now() > deadline || !/^https?:$/.test(current.protocol)) return null;
+            const port = Number(current.port || (current.protocol === "https:" ? 443 : 80));
+            if (!allowedPorts.has(port)) return null;
+            const target = await resolveSafe(current.hostname);
+            if (!target.address) return null;
+            let res;
+            try {
+                res = await requestOnce(current, target, true, deadline, { readType, accept, maxBytes });
+            } catch {
+                return null;
+            }
+            if (res.status >= 300 && res.status < 400 && res.headers.location) {
+                current = resolveUrl(String(res.headers.location), current);
+                if (!current) return null;
+                continue;
+            }
+            const type = String(res.headers["content-type"] || "").toLowerCase().split(";")[0].trim();
+            if (res.status !== 200 || !readType.test(type) || !res.body.length) return null;
+            let body = res.body;
+            const enc = String(res.headers["content-encoding"] || "");
+            try {
+                if (/\bgzip\b/.test(enc)) body = zlib.gunzipSync(body, { maxOutputLength: maxBytes * 4 });
+                else if (/\bbr\b/.test(enc)) body = zlib.brotliDecompressSync(body, { maxOutputLength: maxBytes * 4 });
+                else if (/\bdeflate\b/.test(enc)) body = zlib.inflateSync(body, { maxOutputLength: maxBytes * 4 });
+            } catch {
+                return null;
+            }
+            return body.length <= maxBytes * 4 ? { type, body } : null;
+        }
+        return null;
+    }
+
+    async function buildSnapshot(html, pageUrl) {
+        const deadline = Date.now() + SNAPSHOT_TIMEOUT_MS;
+        const plan = sanitizeForSnapshot(html, pageUrl);
+        const cssFiles = await Promise.all(plan.stylesheets.slice(0, 3).map(u =>
+            fetchAsset(u, { readType: /^text\/css$/, accept: "text/css,*/*;q=0.1", maxBytes: 150 * 1024, deadline }).catch(() => null)));
+        let css = plan.inlineCss.join("\n");
+        for (const f of cssFiles) if (f) css += "\n" + sanitizeCss(f.body.toString("utf8"));
+        css = css.slice(0, 250 * 1024);
+        const images = await Promise.all(plan.images.slice(0, 10).map(u =>
+            fetchAsset(u, { readType: /^image\/(png|jpe?g|gif|webp|x-icon|vnd\.microsoft\.icon|avif)$/, accept: "image/*", maxBytes: 250 * 1024, deadline }).catch(() => null)));
+        let budget = 900 * 1024;
+        const dataUris = images.map(img => {
+            if (!img || img.body.length > budget) return "";
+            budget -= img.body.length;
+            return `data:${img.type};base64,${img.body.toString("base64")}`;
+        });
+        const body = plan.body.replace(/data-pd-img="(\d+)"/g, (m, i) => (dataUris[i] ? `src="${dataUris[i]}"` : 'class="pd-missing"'));
+        return `<!DOCTYPE html><html${plan.dir ? ` dir="${plan.dir}"` : ""}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
+            + `<style>${css}</style><style>input,button,select,textarea,a{pointer-events:none!important}img.pd-missing{background:#ddd;min-width:24px;min-height:24px;display:inline-block}</style>`
+            + `</head><body>${body}</body></html>`;
+    }
+
+    function storeSnapshot(htmlDoc) {
+        const now0 = now();
+        for (const [id, s] of snapshots) if (now0 - s.at > SNAPSHOT_TTL_MS) snapshots.delete(id);
+        while (snapshots.size >= 200) snapshots.delete(snapshots.keys().next().value);
+        const id = crypto.randomBytes(18).toString("base64url");
+        snapshots.set(id, { at: now0, html: htmlDoc });
+        return id;
+    }
+
+    function getSnapshot(id) {
+        if (typeof id !== "string" || !/^[A-Za-z0-9_-]{24}$/.test(id)) return null;
+        const hit = snapshots.get(id);
+        if (!hit || now() - hit.at > SNAPSHOT_TTL_MS) return null;
+        return hit.html;
     }
 
     // ------------------------------------------------ الحكم
@@ -578,6 +760,9 @@ function createInspector({
 
         const html = decodeBody(response.body, String(response.headers["content-encoding"] || ""), type);
         const page = analyzeHtml(html, finalUrl);
+        if (snapshotsEnabled) {
+            try { out.snapshotId = storeSnapshot(await buildSnapshot(html, finalUrl)); } catch { /* المعاينة اختيارية */ }
+        }
         out.page = {
             title: page.title, description: page.description, excerpt: page.excerpt,
             fields: page.fields, forms: page.forms.map(f => ({ host: f.host, external: f.external, method: f.method })),
@@ -631,7 +816,7 @@ function createInspector({
         return out;
     }
 
-    return { inspect, hosting, status: () => ({ enabled, active }) };
+    return { inspect, hosting, getSnapshot, status: () => ({ enabled, active, snapshots: snapshots.size }) };
 }
 
 // اسم الدولة بالعربي من رمزها (ICU المدمج بـ Node)
@@ -646,4 +831,4 @@ function countryName(code) {
     }
 }
 
-module.exports = { createInspector, isPublicIp, analyzeHtml, expandIpv6, countryName };
+module.exports = { createInspector, isPublicIp, analyzeHtml, expandIpv6, countryName, sanitizeForSnapshot, sanitizeCss };

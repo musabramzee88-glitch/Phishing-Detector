@@ -720,7 +720,30 @@ function inspectionHtml(result) {
     }
     const excerpt = v.page && v.page.excerpt ? `<p class="live-excerpt">«${escapeHtml(v.page.excerpt)}${v.page.excerpt.length >= 240 ? '…' : ''}»</p>` : '';
     const note = h && (h.country || h.org) ? '<p class="live-note">دولة الاستضافة هي مكان تسجيل خادم الموقع، مو بالضرورة مكان المحتال.</p>' : '';
-    return `<div class="live-card"><div class="live-head">${head}</div>${rows.join('')}${excerpt}${note}</div>`;
+    const snap = v.snapshotId && /^[A-Za-z0-9_-]{24}$/.test(v.snapshotId)
+        ? `<div class="snap-wrap"><button type="button" class="btn-quick snap-btn" data-action="toggleSnapshot" data-arg="${v.snapshotId}"><i class="fa-solid fa-display"></i> عرض شكل الصفحة</button><div class="snap-box" id="snap-${v.snapshotId}" hidden></div></div>`
+        : '';
+    return `<div class="live-card"><div class="live-head">${head}</div>${rows.join('')}${excerpt}${snap}${note}</div>`;
+}
+
+// معاينة شكل الصفحة: نسخة معقّمة بناها خادمنا (بدون أكواد ولا اتصال بموقع المحتال) داخل إطار معزول
+function toggleSnapshot(id) {
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{24}$/.test(id)) return;
+    const box = document.getElementById('snap-' + id);
+    if (!box) return;
+    if (!box.hidden) { box.hidden = true; return; }
+    if (!box.firstChild) {
+        box.innerHTML = '<p class="snap-warn"><i class="fa-solid fa-triangle-exclamation"></i> هذي صورة تقريبية للصفحة بناها خادمنا بأمان: ما بيها أي كود، والأزرار والحقول ما تشتغل. لا تفتح الموقع الحقيقي ولا تدخل بياناتك بيه.</p>';
+        const frame = document.createElement('iframe');
+        frame.className = 'snap-frame';
+        frame.setAttribute('sandbox', '');
+        frame.setAttribute('referrerpolicy', 'no-referrer');
+        frame.setAttribute('loading', 'lazy');
+        frame.title = 'معاينة شكل الصفحة';
+        frame.src = '/api/scan/snapshot/' + id;
+        box.appendChild(frame);
+    }
+    box.hidden = false;
 }
 
 async function analyzeUrl() {
@@ -1211,6 +1234,7 @@ async function uploadAndScan() {
 // موزّع الأحداث: بديل المعالجات المضمنة (onclick=...) حتى تعمل سياسة CSP الصارمة
 // ==========================================================
 const ACTIONS = {
+    toggleSnapshot,
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
     clearCyberBotConversation, sendCyberBotMessage, useCyberBotSuggestion, testUrl, loadSimulation, checkSimulation,
     updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport

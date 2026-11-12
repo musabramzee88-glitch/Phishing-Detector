@@ -92,9 +92,11 @@ function isSameOrigin(req) {
 // عنوان الزائر. خلف Render كل الطلبات تصل من عنوان الوسيط، فنقرأ العنوان الحقيقي من ترويسات الوسيط.
 function getClientIp(req, config) {
     if (config.trustProxy) {
-        // Cloudflare (أمام Render) تضع True-Client-IP ولا يستطيع الزائر تغييرها.
-        const trueClientIp = String(req.headers["true-client-ip"] || "").trim();
-        if (trueClientIp) return trueClientIp;
+        // Cloudflare (أمام Render) تضع True-Client-IP. اسم الترويسة قابل للتغيير بـ CLIENT_IP_HEADER،
+        // وتأكد من أنها غير قابلة للتزوير عبر /api/admin/ipcheck.
+        const headerName = config.clientIpHeader || "true-client-ip";
+        const trueClientIp = String(req.headers[headerName] || "").split(",")[0].trim();
+        if (trueClientIp && /^[0-9a-f.:]{3,45}$/i.test(trueClientIp)) return trueClientIp;
         // X-Forwarded-For يمكن تزويرها، فهي احتياط فقط، والسقف العام يبقى يحمينا.
         const forwarded = String(req.headers["x-forwarded-for"] || "").split(",").map(s => s.trim()).filter(Boolean);
         if (forwarded.length) return forwarded[0];

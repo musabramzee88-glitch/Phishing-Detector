@@ -4,14 +4,8 @@ node_modules
 .env
 .claude
 tests
-cloudflared.exe
-*.class
-*.jar
-*.java
-*.zip
-uploads
-app.py
-filedetect.js
-educational-path.js
 README.md
 data
+*.zip
+*.exe
+*.class

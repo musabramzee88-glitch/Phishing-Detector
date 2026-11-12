@@ -1,25 +1,73 @@
 "use strict";
 
-/* تقديم ملفات الموقع العامة من مجلد public/ فقط. أي مسار آخر يرجع 404. */
+/*
+  تقديم ملفات الموقع العامة من مجلد public/ فقط. أي مسار آخر يرجع 404.
+  - ضغط Brotli أو gzip للملفات النصية (CSS / JS / SVG ...) يُحسب مرة ويُخزَّن بالذاكرة.
+  - ETag لكل ملف، فالمتصفح يعيد استخدام نسخته (304) بدل تنزيلها من جديد.
+  - الملفات المطلوبة برقم نسخة (?v=4.0.0) تُخزَّن سنة كاملة: تغيير الرقم بالصفحة يجبر التحديث.
+*/
 
 const fs = require("node:fs");
 const path = require("node:path");
+const zlib = require("node:zlib");
 const { sendJson } = require("./http");
 
 const MIME_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon",
-    ".txt": "text/plain; charset=utf-8"
+    ".txt": "text/plain; charset=utf-8",
+    ".xml": "application/xml; charset=utf-8",
+    ".webmanifest": "application/manifest+json; charset=utf-8"
 };
+const CLEAN_PAGES = new Set(["/privacy", "/terms"]);
+const COMPRESSIBLE = /^(text\/|application\/(json|xml|manifest\+json)|image\/svg\+xml)/;
+const MAX_CACHED_FILE = 2 * 1024 * 1024;
+const cache = new Map();   // path -> { mtimeMs, size, etag, raw, br, gzip }
 
-function notFound(res) {
+let notFoundPage = null;
+function sendNotFound(req, res, config) {
+    // المتصفح يحصل على صفحة 404 مفهومة، وبرامج الـ API تحصل على JSON
+    const wantsHtml = /text\/html/.test(String(req.headers.accept || ""));
+    if (wantsHtml) {
+        try {
+            notFoundPage = notFoundPage || fs.readFileSync(path.join(config.publicDir, "404.html"));
+            res.writeHead(404, { "Content-Type": "text/html; charset=utf-8", "Content-Length": notFoundPage.length, "Cache-Control": "no-cache" });
+            res.end(req.method === "HEAD" ? undefined : notFoundPage);
+            return;
+        } catch { /* لا توجد صفحة 404: نكمل بـ JSON */ }
+    }
     sendJson(res, 404, { error: "Not found" });
+}
+
+function pickEncoding(req) {
+    const accept = String(req.headers["accept-encoding"] || "");
+    if (/\bbr\b/.test(accept)) return "br";
+    if (/\bgzip\b/.test(accept)) return "gzip";
+    return "";
+}
+
+function loadEntry(candidate, stats) {
+    const cached = cache.get(candidate);
+    if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) return cached;
+    const raw = fs.readFileSync(candidate);
+    const entry = {
+        mtimeMs: stats.mtimeMs,
+        size: stats.size,
+        etag: `"${stats.size.toString(36)}-${Math.floor(stats.mtimeMs).toString(36)}"`,
+        raw,
+        br: zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 } }),
+        gzip: zlib.gzipSync(raw, { level: 9 })
+    };
+    cache.set(candidate, entry);
+    return entry;
 }
 
 function serveStatic(req, res, pathname, config) {
@@ -36,36 +84,69 @@ function serveStatic(req, res, pathname, config) {
         return;
     }
     if (decoded === "/") decoded = "/index.html";
+    // روابط قصيرة للصفحات العامة: /privacy بدل /privacy.html
+    if (CLEAN_PAGES.has(decoded.replace(/\/+$/, ""))) decoded = decoded.replace(/\/+$/, "") + ".html";
 
     // نرفض المحارف الخطرة والمسارات المخفية قبل أي تعامل مع نظام الملفات
     if (decoded.includes("\0") || decoded.includes("\\") || decoded.split("/").some(part => part.startsWith("."))) {
-        notFound(res);
+        sendNotFound(req, res, config);
         return;
     }
 
     const candidate = path.resolve(config.publicDir, "." + decoded);
     const contentType = MIME_TYPES[path.extname(candidate).toLowerCase()];
     if (!contentType || !candidate.startsWith(config.publicDir + path.sep)) {
-        notFound(res);
+        sendNotFound(req, res, config);
         return;
     }
 
     fs.stat(candidate, (error, stats) => {
         if (error || !stats.isFile()) {
-            notFound(res);
+            sendNotFound(req, res, config);
             return;
         }
-        res.writeHead(200, {
+        const versioned = /[?&]v=[\w.-]+/.test(req.url || "");
+        const headers = {
             "Content-Type": contentType,
-            "Content-Length": stats.size,
-            // الصفحات تُراجع دائماً (حتى يصل التحديث فوراً)، والباقي يُخزَّن لخمس دقائق
-            "Cache-Control": contentType.startsWith("text/html") ? "no-cache" : "public, max-age=300"
-        });
-        if (req.method === "HEAD") {
+            // الصفحات تُراجع دائماً، والملفات برقم نسخة تُخزَّن سنة، والباقي يوماً مع إعادة تحقق
+            "Cache-Control": contentType.startsWith("text/html") ? "no-cache"
+                : versioned ? "public, max-age=31536000, immutable" : "public, max-age=86400, must-revalidate"
+        };
+        const compressible = COMPRESSIBLE.test(contentType) && stats.size <= MAX_CACHED_FILE;
+
+        if (!compressible) {
+            const etag = `"${stats.size.toString(36)}-${Math.floor(stats.mtimeMs).toString(36)}"`;
+            if (req.headers["if-none-match"] === etag) {
+                res.writeHead(304, { ETag: etag, "Cache-Control": headers["Cache-Control"] });
+                res.end();
+                return;
+            }
+            res.writeHead(200, { ...headers, ETag: etag, "Content-Length": stats.size });
+            if (req.method === "HEAD") return res.end();
+            fs.createReadStream(candidate).on("error", () => res.destroy()).pipe(res);
+            return;
+        }
+
+        let entry;
+        try {
+            entry = loadEntry(candidate, stats);
+        } catch {
+            sendNotFound(req, res, config);
+            return;
+        }
+        headers.ETag = entry.etag;
+        headers.Vary = "Accept-Encoding";
+        if (req.headers["if-none-match"] === entry.etag) {
+            res.writeHead(304, { ETag: entry.etag, "Cache-Control": headers["Cache-Control"], Vary: "Accept-Encoding" });
             res.end();
             return;
         }
-        fs.createReadStream(candidate).on("error", () => res.destroy()).pipe(res);
+        const encoding = pickEncoding(req);
+        const body = encoding ? entry[encoding] : entry.raw;
+        if (encoding) headers["Content-Encoding"] = encoding;
+        headers["Content-Length"] = body.length;
+        res.writeHead(200, headers);
+        res.end(req.method === "HEAD" ? undefined : body);
     });
 }
 

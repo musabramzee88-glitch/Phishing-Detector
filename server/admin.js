@@ -274,6 +274,22 @@ function createAdmin(config, stats, extras = {}) {
             return true;
         }
 
+        // تشخيص عنوان الزائر: يعرض ما يراه الخادم فعلاً، حتى تتأكد أن الزائر لا يستطيع تزوير عنوانه بترويسة
+        // (curl -H "True-Client-IP: 1.2.3.4" ... ثم قارن). للأدمن فقط.
+        if (p === "/api/admin/ipcheck") {
+            if (req.method !== "GET") return methodNotAllowed(res, "GET"), true;
+            if (!currentSession(req)) return http.sendJson(res, 401, { error: "Unauthorized" }), true;
+            http.sendJson(res, 200, {
+                usedIp: http.getClientIp(req, config),
+                trustProxy: Boolean(config.trustProxy),
+                trueClientIp: String(req.headers["true-client-ip"] || ""),
+                cfConnectingIp: String(req.headers["cf-connecting-ip"] || ""),
+                xForwardedFor: String(req.headers["x-forwarded-for"] || ""),
+                socket: (req.socket && req.socket.remoteAddress) || ""
+            });
+            return true;
+        }
+
         // إعدادات الموقع: قراءة وتعديل وإرجاع للافتراضي
         if (p === "/api/admin/settings" || p === "/api/admin/settings/reset") {
             const session = currentSession(req);

@@ -20,10 +20,31 @@ function toggleThemeMenu() {
     menu.classList.toggle('show');
 }
 
+// المظهر: تلقائي (حسب إعداد الجهاز) أو داكن أو فاتح
+const THEMES = ['auto', 'dark', 'light'];
+const systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+function themePreference() {
+    let saved = 'auto';
+    try { saved = localStorage.getItem('selected_theme') || 'auto'; } catch { /* تخزين محجوب */ }
+    return THEMES.includes(saved) ? saved : 'auto';   // المظاهر القديمة المحذوفة ترجع للتلقائي
+}
+
+function applyTheme(preference) {
+    const resolved = preference === 'auto' ? (systemDark && !systemDark.matches ? 'light' : 'dark') : preference;
+    document.body.setAttribute('data-theme', resolved);
+    document.querySelectorAll('.theme-option').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === preference));
+}
+
 function setTheme(themeName) {
-    document.body.setAttribute('data-theme', themeName);
-    try { localStorage.setItem('selected_theme', themeName); } catch { /* تخزين محجوب */ }
+    const preference = THEMES.includes(themeName) ? themeName : 'auto';
+    try { localStorage.setItem('selected_theme', preference); } catch { /* تخزين محجوب */ }
+    applyTheme(preference);
     document.getElementById('themeMenu').classList.remove('show');
+}
+
+if (systemDark && systemDark.addEventListener) {
+    systemDark.addEventListener('change', () => { if (themePreference() === 'auto') applyTheme('auto'); });
 }
 
 // إعدادات الموقع من لوحة الإدارة: النصوص، الإعلان، الخدمات المفعّلة، CyberBot
@@ -55,9 +76,7 @@ async function applySiteSettings() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    let savedTheme = 'dark';
-    try { savedTheme = localStorage.getItem('selected_theme') || 'dark'; } catch { /* تخزين محجوب */ }
-    document.body.setAttribute('data-theme', savedTheme);
+    applyTheme(themePreference());
     loadSimulation(0);
     applySiteSettings();
 
@@ -485,7 +504,7 @@ function checkSimulation(scIndex, optIndex) {
                 <i class="fa-solid fa-triangle-exclamation"></i> خيار خاطئ وغير آمن!
             </div>
             <p style="margin-top: 8px; font-size: 0.9rem; color: var(--text-main);">
-                وقعتا في فخ الاحتيال! ${sc.explanation} انتبه دائماً ولا تتفاعل مع هذه الروابط المشبوهة.
+                وقعت في فخ الاحتيال! ${sc.explanation} انتبه دائماً ولا تتفاعل مع هذه الروابط المشبوهة.
             </p>
         `;
     }
@@ -542,27 +561,111 @@ function recordScan(kind, label, score, level) {
 const LEVEL_STATUS = { safe: 'لا مؤشرات', warning: 'تنبيه', danger: 'خطر' };
 const SCAN_DISCLAIMER = 'الفحص يعتمد على قواعد وخوارزميات وقوائم تهديدات عامة. غياب المؤشرات لا يثبت أن الهدف آمن، ووجودها لا يثبت أنه خبيث.';
 
+const CONFIDENCE_LABELS = { high: 'ثقة عالية', medium: 'ثقة متوسطة', low: 'ثقة منخفضة (قرب حدود التصنيف)' };
+const LAST_REPORTS = {};
+
+// مقياس دائري للدرجة (SVG): يعطي قراءة فورية للخطورة
+function gaugeHtml(score, level) {
+    const r = 34, c = 2 * Math.PI * r;
+    const dash = (Math.max(0, Math.min(100, score)) / 100) * c;
+    return `
+        <div class="risk-gauge gauge-${level}" role="img" aria-label="مؤشر الخطورة ${score}%">
+            <svg viewBox="0 0 80 80" width="88" height="88">
+                <circle cx="40" cy="40" r="${r}" class="gauge-track"></circle>
+                <circle cx="40" cy="40" r="${r}" class="gauge-value" stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 40 40)"></circle>
+            </svg>
+            <span class="gauge-number">${score}<small>%</small></span>
+        </div>`;
+}
+
+// تفصيل المؤشرات: وزن كل مؤشر كشريط، حتى يفهم المستخدم لماذا خرجت هذه الدرجة
+function indicatorsHtml(indicators) {
+    if (!indicators || !indicators.length) return '';
+    const rows = indicators.slice(0, 8).map(i => `
+        <div class="indicator-row ind-${i.type}">
+            <div class="indicator-bar"><span style="width:${Math.max(4, Math.min(100, i.weight))}%"></span></div>
+            <div class="indicator-text">${escapeHtml(i.text)}</div>
+            <div class="indicator-weight" title="الوزن الخام للمؤشر">${i.weight}</div>
+        </div>`).join('');
+    return `
+        <details class="indicators-box">
+            <summary><i class="fa-solid fa-chart-simple"></i> تفصيل المؤشرات وأوزانها (${indicators.length})</summary>
+            <div class="indicators-list">${rows}</div>
+            <p class="indicators-note">الدرجة تُحسب بدمج احتمالي (Noisy-OR): كل مؤشر مستقل يرفع الخطورة، بدون أن تتجاوز 100% أو تتضخم من تكرار مؤشرات ضعيفة.</p>
+        </details>`;
+}
+
 // يرسم تقرير الفحص. كل نص قادم من المستخدم أو من المحرك يمر عبر escapeHtml.
 function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
     const ui = LEVEL_UI[result.level];
+    LAST_REPORTS[box.id] = { kind, result, at: new Date().toISOString() };
     const items = result.reasons
         .map(r => `<li class="li-${r.type}">${escapeHtml(r.text)}</li>`)
         .join('');
+    const confidence = result.confidence ? `<span class="confidence-chip conf-${result.confidence}">${CONFIDENCE_LABELS[result.confidence]}</span>` : '';
     box.style.display = 'block';
     box.innerHTML = `
         <div class="report-header">
-            <div>
-                <strong style="font-size:1.1rem;"><i class="fa-solid ${ui.icon}"></i> ${LEVEL_TITLES[kind][result.level]}</strong>
+            <div class="report-title">
+                ${gaugeHtml(result.score, result.level)}
+                <div>
+                    <strong style="font-size:1.1rem;"><i class="fa-solid ${ui.icon}"></i> ${LEVEL_TITLES[kind][result.level]}</strong>
+                    <div class="report-sub">${scoreLabel}: ${result.score}% ${confidence}</div>
+                </div>
             </div>
-            <div class="risk-score-badge ${ui.badge}">
-                ${scoreLabel}: ${result.score}%
+            <div class="report-tools">
+                <button type="button" class="btn-quick" data-action="copyReport" data-arg="${box.id}" title="نسخ التقرير كنص"><i class="fa-regular fa-copy"></i> نسخ</button>
+                <button type="button" class="btn-quick" data-action="downloadReport" data-arg="${box.id}" title="تنزيل التقرير بصيغة JSON"><i class="fa-solid fa-file-arrow-down"></i> JSON</button>
             </div>
         </div>
         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">${metaHtml}</div>
         <ul class="report-details-list">${items}</ul>
+        ${indicatorsHtml(result.indicators)}
         ${extraHtml || ''}
-        <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px;">${SCAN_DISCLAIMER}</p>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px;">${SCAN_DISCLAIMER}${result.engineVersion ? ` · المحرك v${escapeHtml(result.engineVersion)}` : ''}</p>
     `;
+}
+
+function reportAsText(entry) {
+    const r = entry.result;
+    const lines = [
+        'Phishing Detector by ApexSec — تقرير فحص',
+        `الوقت: ${new Date(entry.at).toLocaleString('ar-IQ')}`,
+        r.input ? `الهدف: ${r.input}` : '',
+        `الحكم: ${LEVEL_STATUS[r.level]} — ${r.score}%${r.confidence ? ' (' + CONFIDENCE_LABELS[r.confidence] + ')' : ''}`,
+        '',
+        'الأسباب:',
+        ...r.reasons.map(x => `- ${x.text}`)
+    ];
+    if (r.advice && r.advice.length) lines.push('', 'ماذا تفعل:', ...r.advice.map(a => `- ${a}`));
+    return lines.filter((l, i) => l !== '' || i > 0).join('\n');
+}
+
+async function copyReport(boxId) {
+    const entry = LAST_REPORTS[boxId];
+    if (!entry) return;
+    const btn = document.querySelector(`#${boxId} [data-action="copyReport"]`);
+    try {
+        await navigator.clipboard.writeText(reportAsText(entry));
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ';
+    } catch {
+        if (btn) btn.textContent = 'تعذر النسخ';
+    }
+}
+
+function downloadReport(boxId) {
+    const entry = LAST_REPORTS[boxId];
+    if (!entry) return;
+    const { kind, result, at } = entry;
+    const data = { tool: 'Phishing Detector by ApexSec', kind, scannedAt: at, ...result };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `scan-report-${kind}-${at.slice(0, 19).replace(/[:T]/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 let urlScanBusy = false;
@@ -606,7 +709,7 @@ async function analyzeUrl() {
     }
     const checks = result.checks || {};
     const layers = ['محرك القواعد'];
-    if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / URLhaus)');
+    if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / Phishing Army)');
     if (checks.deep) layers.push('عمر النطاق (RDAP)');
     meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
@@ -689,7 +792,8 @@ async function analyzeFile() {
     const reportBox = document.getElementById('fileReportBox');
 
     if (fileInput.files.length === 0) {
-        alert('يرجى اختيار ملف أولاً لغرض الفحص الأمني.');
+        reportBox.style.display = 'block';
+        reportBox.innerHTML = errorHtml('اختر ملفاً أولاً حتى نفحصه.');
         return;
     }
 
@@ -920,7 +1024,8 @@ async function uploadAndScan() {
     const reportBox = document.getElementById('mediaReportBox');
 
     if (fileInput.files.length === 0) {
-        alert('يرجى اختيار ملف صوت أو فيديو أولاً لغرض الفحص.');
+        reportBox.style.display = 'block';
+        reportBox.innerHTML = errorHtml('اختر ملف صوت أو فيديو أولاً حتى نفحصه.');
         return;
     }
 
@@ -1053,7 +1158,7 @@ async function uploadAndScan() {
 const ACTIONS = {
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
     clearCyberBotConversation, sendCyberBotMessage, useCyberBotSuggestion, testUrl, loadSimulation, checkSimulation,
-    updateFileName, updateMediaFileName, cleanScannedFile
+    updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport
 };
 
 // يبلّغ حارس الأخطاء (error-guard.js) ويبقي الصفحة تعمل
@@ -1082,7 +1187,8 @@ function actionArg(value) {
 }
 
 document.addEventListener('click', event => {
-    const el = event.target.closest('[data-page],[data-theme],[data-action],[data-click-target]');
+    // .theme-option فقط: <body> نفسه يحمل data-theme، فبدون هذا التحديد أي نقرة بالصفحة كانت تُعدّ اختيار مظهر
+    const el = event.target.closest('[data-page],.theme-option[data-theme],[data-action],[data-click-target]');
     if (!el) return;
     if (el.dataset.page) {
         guarded('switchPage', () => switchPage(el.dataset.page, el.dataset.title || '', el.dataset.icon || ''));

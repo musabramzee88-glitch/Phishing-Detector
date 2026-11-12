@@ -20,6 +20,7 @@
     // أدوات عامة
     // ------------------------------------------------------------------
 
+    const ENGINE_VERSION = '4.0.0';
     const THRESHOLDS = { warning: 25, danger: 55 };
     const STRICT_THRESHOLDS = { warning: 15, danger: 45 };
 
@@ -37,14 +38,41 @@
         return 'safe';
     }
 
+    // مساهمة كل مؤشر بالدرجة النهائية: كم تنزل الدرجة لو حذفناه (Leave-one-out على noisy-OR).
+    // تجعل النتيجة قابلة للتفسير: المستخدم يرى أي مؤشر هو اللي رفع الخطورة فعلاً.
+    function contributions(signals) {
+        const total = combineSignals(signals);
+        return signals.map((s, i) => {
+            if (!(s.weight > 0)) return 0;
+            const without = combineSignals(signals.filter((_, j) => j !== i));
+            return Math.max(0, total - without);
+        });
+    }
+
     function finish(signals, thresholds, extra) {
         const score = combineSignals(signals);
         const order = { danger: 0, warning: 1, info: 2, safe: 3 };
-        const reasons = signals
-            .slice()
-            .sort((a, b) => (order[a.type] - order[b.type]) || (b.weight - a.weight))
-            .map(s => ({ type: s.type, text: s.text }));
-        return Object.assign({ score, level: levelFor(score, thresholds), reasons }, extra);
+        const impact = contributions(signals);
+        const ranked = signals
+            .map((s, i) => ({ s, impact: impact[i] }))
+            .sort((a, b) => (order[a.s.type] - order[b.s.type]) || (b.s.weight - a.s.weight));
+        const reasons = ranked.map(({ s }) => ({ type: s.type, text: s.text }));
+        // نسخة قابلة للقراءة آلياً (للـ API ولوحات SOC): الوزن الخام والمساهمة الفعلية بالدرجة
+        const indicators = ranked
+            .filter(({ s }) => s.weight > 0)
+            .map(({ s, impact }) => ({ type: s.type, weight: Math.round(s.weight * 100), impact, text: s.text }));
+        const level = levelFor(score, thresholds);
+        const confidence = confidenceFor(score, thresholds, indicators.length);
+        return Object.assign({ score, level, confidence, reasons, indicators, engineVersion: ENGINE_VERSION }, extra);
+    }
+
+    // ثقة الحكم: عالية إذا الدرجة بعيدة عن العتبات وتسندها عدة مؤشرات مستقلة، ومنخفضة قرب حدود التصنيف
+    function confidenceFor(score, thresholds, count) {
+        const margin = Math.min(Math.abs(score - thresholds.warning), Math.abs(score - thresholds.danger));
+        if (score >= thresholds.danger && (count >= 3 || score >= 85)) return 'high';
+        if (score < thresholds.warning && score <= 10) return 'high';
+        if (margin <= 6) return 'low';
+        return 'medium';
     }
 
     // مسافة Damerau-Levenshtein: تحسب الإضافة والحذف والاستبدال وتبديل حرفين متجاورين كتعديل واحد
@@ -313,6 +341,22 @@
         return a === 10 || a === 127 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254);
     }
 
+    function decodeURIComponentSafe(value) {
+        try { return decodeURIComponent(value); } catch { return value; }
+    }
+
+    // فك Base64 (عادي أو URL-safe) إلى نص ASCII مطبوع فقط، وإلا يرجع ''
+    function base64Decode(chunk) {
+        try {
+            const clean = chunk.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = clean + '='.repeat((4 - clean.length % 4) % 4);
+            const text = typeof atob === 'function' ? atob(padded) : Buffer.from(padded, 'base64').toString('latin1');
+            return /^[\x20-\x7e]+$/.test(text) ? text : '';
+        } catch {
+            return '';
+        }
+    }
+
     function cleanUrlInput(raw) {
         let text = String(raw || '').trim().replace(/^[<"'(\[]+|[>"')\]]+$/g, '');
         let defanged = false;
@@ -569,6 +613,23 @@
             }
         }
 
+        // 11.5 بريد الضحية مدموج بالرابط (?email=... أو #base64): أدوات التصيد تعبّئ البريد مسبقاً
+        // بصفحة الدخول المزيفة حتى تبدو مخصصة لك وتعرف من فتح الرابط
+        const tailPart = decodeURIComponentSafe(url.search + url.hash);
+        const emailInUrl = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(tailPart);
+        let emailInBase64 = false;
+        if (!emailInUrl) {
+            for (const chunk of tailPart.match(/[A-Za-z0-9+/_-]{16,}={0,2}/g) || []) {
+                const decoded = base64Decode(chunk);
+                if (decoded && /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(decoded.trim())) { emailInBase64 = true; break; }
+            }
+        }
+        if (emailInUrl || emailInBase64) {
+            add(emailInBase64 ? 0.35 : 0.25, 'warning', emailInBase64
+                ? 'الرابط يحمل بريداً إلكترونياً مخفياً بترميز Base64: أدوات التصيد تفعل ذلك لتعبئة بريدك تلقائياً بصفحة دخول مزيفة وتتبّع من فتح الرابط.'
+                : 'الرابط يحمل بريداً إلكترونياً داخله: صفحات التصيد تعبّئ بريد الضحية مسبقاً حتى تبدو صفحة دخول حقيقية مخصصة لك.');
+        }
+
         // 12. بنية النطاق والرابط
         if (parts.subdomains.length >= 3) add(0.2, 'warning', `عدد كبير من النطاقات الفرعية (${parts.subdomains.length})، وهي طريقة لإخفاء النطاق الحقيقي في نهاية الرابط.`);
         const hyphens = (parts.label.match(/-/g) || []).length;
@@ -745,7 +806,9 @@
         { all: 'macro', any: ['urgency', 'impersonation', 'action', 'payment', 'threat'], weight: 0.35, text: 'مستند يطلب تفعيل الماكرو مع صيغة استعجال أو انتحال: أسلوب شائع لنشر البرمجيات الخبيثة.' },
         { all: 'job', any: ['payment'], weight: 0.35, text: 'عرض عمل أو استثمار يطلب دفع مبلغ مقدماً (Advance-fee scam).' },
         { all: 'impersonation', any: ['payment'], weight: 0.25, text: 'جهة تدّعي أنها رسمية وتطلب تحويل أموال.' },
-        { all: 'grant', any: ['action', 'credentials', 'payment', 'link'], weight: 0.35, text: 'منحة أو قرض يُطلب التقديم عليه عبر رابط أو بإدخال بيانات: من أكثر أساليب الاحتيال انتشاراً بالعراق.' }
+        { all: 'grant', any: ['action', 'credentials', 'payment', 'link'], weight: 0.35, text: 'منحة أو قرض يُطلب التقديم عليه عبر رابط أو بإدخال بيانات: من أكثر أساليب الاحتيال انتشاراً بالعراق.' },
+        { all: 'brand_mismatch', any: ['credentials', 'action', 'threat', 'payment', 'urgency', 'prize'], weight: 0.4, text: 'رسالة باسم جهة معروفة تطلب إجراءً عبر رابط لا يتبعها: هذا جوهر هجمات التصيد.' },
+        { all: 'obfuscation', any: ['credentials', 'action', 'threat', 'payment', 'prize', 'link'], weight: 0.35, text: 'نص مموّه عمداً لتجاوز الفلاتر ومعه طلب إجراء أو بيانات: الرسائل الشرعية لا تحتاج للتمويه.' }
     ];
 
     const TEXT_ADVICE = {
@@ -773,14 +836,54 @@
         return found;
     }
 
+    // محارف خفية تُدسّ داخل الكلمات حتى تفشل فلاتر الكلمات (pa​ypal، تحـ​ديث). لا نعدّ ZWJ/ZWNJ
+    // ولا علامات الاتجاه LRM/RLM لأنها تظهر طبيعياً في الإيموجي والنصوص العربية-الإنجليزية المختلطة.
+    const INVISIBLE_CHARS = /[​⁠-⁤­﻿᠎]/g;
+    const INVISIBLE_INSIDE_WORD = /[^\s​⁠-⁤­﻿᠎][​⁠-⁤­﻿᠎]+(?=[^\s​⁠-⁤­﻿᠎])/g;
+
+    // كلمة تخلط حروفاً لاتينية مع كيريلية أو يونانية متشابهة (Pаypal بحرف а كيريلي): تمويه متعمد
+    function mixedScriptWords(text) {
+        const words = text.match(/[\p{L}\p{M}]{3,}/gu) || [];
+        return words.filter(w => {
+            const s = scriptsOf(w.toLowerCase());
+            return s.has('latin') && (s.has('cyrillic') || s.has('greek'));
+        });
+    }
+
+    // أسماء العلامات كما تُكتب داخل الرسائل (إنجليزي + عربي) لكشف عدم تطابق الاسم مع الرابط
+    const BRAND_MENTIONS = BRANDS.map(brand => {
+        const arabic = brand.name.replace(/\(.*?\)/g, '').split('/')[0].trim();
+        const terms = brand.keys.filter(k => k.length >= 4).map(k => ({ re: new RegExp('(^|[^a-z0-9])' + k + '([^a-z0-9]|$)', 'i') }));
+        if (/^[؀-ۿ\s]{4,}$/.test(arabic)) terms.push({ ar: normalizeArabic(arabic) });
+        return { brand, terms };
+    }).filter(b => b.terms.length);
+
+    function brandsMentioned(latinText, arabicText) {
+        return BRAND_MENTIONS.filter(({ terms }) => terms.some(t => t.re ? t.re.test(latinText) : arabicText.includes(t.ar))).map(b => b.brand);
+    }
+
     function analyzeText(rawText) {
         // نقصّ النص الطويل جداً: يمنع إبطاء الفحص (ReDoS)، والاحتيال لا يحتاج أكثر من هذا
-        const original = String(rawText || '').slice(0, MAX_TEXT_CHARS).trim();
-        if (!original) return { error: 'empty' };
-        const normalized = normalizeArabic(original);
+        const raw = String(rawText || '').slice(0, MAX_TEXT_CHARS).trim();
         const signals = [];
         const add = (weight, type, text) => signals.push({ weight, type, text });
         const hits = new Set();
+
+        // 0. مقاومة التمويه: نكشف المحارف الخفية والحروف المتشابهة ثم نحلل النص بعد تنظيفه
+        const hiddenInside = (raw.match(INVISIBLE_INSIDE_WORD) || []).length;
+        let original = raw.replace(INVISIBLE_CHARS, '').trim();
+        if (!original) return { error: 'empty' };
+        if (hiddenInside >= 2) {
+            hits.add('obfuscation');
+            add(0.3, 'warning', `النص يحتوي ${hiddenInside} محارف خفية مدسوسة داخل الكلمات، وهي حيلة لتجاوز فلاتر الرسائل المزعجة.`);
+        }
+        const mixed = mixedScriptWords(original);
+        if (mixed.length) {
+            hits.add('obfuscation');
+            add(0.4, 'danger', `كلمات مكتوبة بحروف كيريلية أو يونانية تشبه اللاتينية لخداع الفلاتر: «${mixed.slice(0, 3).join('»، «')}».`);
+            for (const w of new Set(mixed)) original = original.split(w).join(asciiSkeleton(w));
+        }
+        const normalized = normalizeArabic(original);
 
         for (const rule of TEXT_RULES) {
             const matches = [];
@@ -807,6 +910,15 @@
                 add(0.6, 'danger', `الرابط ${worst.url} خطِر (${worst.result.score}%). ${why}`);
             } else if (worst.result.level === 'warning') {
                 add(0.25, 'warning', `الرابط ${worst.url} عليه مؤشرات مخاطرة (${worst.result.score}%).`);
+            }
+
+            // عدم تطابق الهوية: الرسالة تتكلم باسم جهة، والرابط يذهب لنطاق لا يتبع أي جهة رسمية نعرفها
+            const mentioned = brandsMentioned(original.toLowerCase(), normalized);
+            const foreign = urls.find(u => !u.result.official && u.result.host && !u.result.brand);
+            if (mentioned.length && foreign) {
+                hits.add('brand_mismatch');
+                const names = mentioned.slice(0, 2).map(b => b.name).join(' / ');
+                add(0.3, 'warning', `الرسالة تتكلم باسم ${names}، لكن الرابط يأخذك إلى ${foreign.result.registrable || foreign.result.host} وهو ليس نطاقاً رسمياً لها.`);
             }
         }
 
@@ -1242,6 +1354,7 @@
         if (trustFactor < 1) {
             result.score = Math.round(result.score * trustFactor);
             result.level = levelFor(result.score, THRESHOLDS);
+            result.confidence = confidenceFor(result.score, THRESHOLDS, result.indicators.length);
         }
         return result;
     }
@@ -1262,6 +1375,10 @@
         shannonEntropy,
         splitDomain,
         looksRandom,
+        mixedScriptWords,
+        contributions,
+        confidenceFor,
+        ENGINE_VERSION,
         THRESHOLDS,
         STRICT_THRESHOLDS,
         BRANDS

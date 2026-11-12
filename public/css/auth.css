@@ -190,3 +190,6 @@
 
 .auth-link { background: none; border: 0; padding: 0; color: var(--accent, #3aa0ff); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
 .auth-link:hover { opacity: .85; }
+.auth-legal { margin-top: 6px; }
+.auth-legal a, .footer-links a { color: var(--text-muted); text-decoration: underline; }
+.auth-legal a:hover, .footer-links a:hover { color: var(--accent-blue); }

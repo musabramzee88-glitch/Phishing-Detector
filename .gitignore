@@ -32,3 +32,7 @@ run.vbs
 manifest.txt
 config.yml
 logo.jpg
+
+# ملفات تنفيذية وعينات اختبار خبيثة لا تُرفع للمستودع العام
+*.exe
+samples/

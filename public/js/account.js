@@ -77,8 +77,11 @@
         $('usageChatLimit').textContent = usage.chatLimit;
         $('usageScanBar').style.width = Math.min(100, usage.scanLimit ? (usage.scan / usage.scanLimit) * 100 : 0) + '%';
         const btn = $('planBannerBtn');
-        btn.hidden = u.plan === 'pro' && u.planSource === 'paid' && daysLeft(u.planUntil) > 7;
-        btn.lastChild.textContent = u.planSource === 'paid' ? ' جدّد اشتراكك' : ' اشترك بـ Pro';
+        // مشترك Pro (مدفوع أو بالتجربة) لا نعرض له زر الاشتراك إلا قرب انتهاء خطته
+        const left = daysLeft(u.planUntil);
+        btn.hidden = u.plan === 'pro' && left > 7;
+        btn.lastChild.textContent = u.plan !== 'pro' ? ' اشترك بـ Pro'
+            : u.planSource === 'trial' ? ' اشترك قبل انتهاء التجربة' : ' جدّد اشتراكك';
     }
 
     function noteUsage(kind, used, limit) {

@@ -21,6 +21,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const zlib = require("node:zlib");
 const { loadConfig } = require("./server/config");
 const h = require("./server/http");
 const { createRateLimiter } = require("./server/rate-limit");
@@ -61,13 +62,21 @@ function createApp(config = loadConfig(), overrides = {}) {
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
     const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, settings });
 
-    const pages = {
-        app: fs.readFileSync(path.join(config.publicDir, "index.html")),
-        login: fs.readFileSync(path.join(config.publicDir, "login.html"))
+    // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
+    const loadPage = name => {
+        // %APP_URL% بالصفحة يُستبدل بعنوان الموقع (للروابط المطلقة: canonical و og:image)
+        const raw = Buffer.from(fs.readFileSync(path.join(config.publicDir, name), "utf8").split("%APP_URL%").join(config.appUrl));
+        return { raw, br: zlib.brotliCompressSync(raw), gzip: zlib.gzipSync(raw, { level: 9 }) };
     };
+    const pages = { app: loadPage("index.html"), login: loadPage("login.html") };
 
-    function sendPage(req, res, body) {
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store" });
+    function sendPage(req, res, page) {
+        const accept = String(req.headers["accept-encoding"] || "");
+        const encoding = /\bbr\b/.test(accept) ? "br" : /\bgzip\b/.test(accept) ? "gzip" : "";
+        const body = encoding ? page[encoding] : page.raw;
+        const headers = { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store", Vary: "Accept-Encoding" };
+        if (encoding) headers["Content-Encoding"] = encoding;
+        res.writeHead(200, headers);
         res.end(req.method === "HEAD" ? undefined : body);
     }
 
@@ -76,7 +85,7 @@ function createApp(config = loadConfig(), overrides = {}) {
         const message = String(settings.get().features.maintenanceMessage).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
         const body = Buffer.from(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>صيانة - Phishing Detector</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0f1d;color:#e8edf9;font-family:Tahoma,system-ui,sans-serif;padding:16px}main{max-width:520px;text-align:center;background:#131b2e;border:1px solid #243152;border-radius:18px;padding:32px 24px}img{width:84px;height:84px;border-radius:18px}h1{font-size:1.4rem;margin:18px 0 8px}p{color:#8e9aaf;line-height:1.9}</style></head>
-<body><main><img src="/img/logo.png" alt="Phishing Detector"><h1>الموقع تحت الصيانة</h1><p>${message}</p></main></body></html>`);
+<body><main><img src="/img/logo-256.jpg" alt="Phishing Detector"><h1>الموقع تحت الصيانة</h1><p>${message}</p></main></body></html>`);
         res.writeHead(503, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store", "Retry-After": "600" });
         res.end(req.method === "HEAD" ? undefined : body);
     }
@@ -156,6 +165,17 @@ function createApp(config = loadConfig(), overrides = {}) {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
                 const critical = currentHealth().status === "critical";
                 return h.sendText(res, critical ? 503 : 200, critical ? "unhealthy" : "ok");
+            }
+
+            // robots.txt و sitemap.xml تُبنى من عنوان الموقع (APP_URL) حتى تبقى صحيحة على أي نطاق
+            if (pathname === "/robots.txt" || pathname === "/sitemap.xml") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                const base = config.appUrl.replace(/\/+$/, "");
+                const body = pathname === "/robots.txt"
+                    ? `User-agent: *\nAllow: /login\nAllow: /privacy\nAllow: /terms\nDisallow: /admin\nDisallow: /api/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`
+                    : `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${["/login", "/privacy", "/terms"].map(p => `  <url><loc>${base}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
+                res.writeHead(200, { "Content-Type": pathname.endsWith(".xml") ? "application/xml; charset=utf-8" : "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(body), "Cache-Control": "public, max-age=3600" });
+                return res.end(req.method === "HEAD" ? undefined : body);
             }
 
             // إعدادات الموقع العامة (نصوص الرئيسية، الخدمات المفعّلة، CyberBot)
@@ -244,6 +264,8 @@ async function main() {
         console.log(`Sign-in providers: email${providers.length ? ", " + providers.join(", ") : ""}.`);
         console.log(config.openai.apiKey && config.openai.model ? `CyberBot: ${config.openai.model} via ${config.openai.style === "gemini" ? "Gemini native" : config.openai.style} API.` : "CyberBot: no AI_API_KEY/AI_MODEL, using local replies.");
         console.log(admin.enabled ? `Admin page enabled (${config.admins.size} account(s)).` : "Admin page disabled: set ADMINS (run: npm run make-admin).");
+        const no2fa = [...config.admins].filter(([, a]) => !a.totpSecret).map(([name]) => name);
+        if (no2fa.length) console.log(`WARNING: admin account(s) without 2FA: ${no2fa.join(", ")}. Re-run "npm run make-admin" and add the secret to your authenticator app.`);
         intel.start();
     });
 

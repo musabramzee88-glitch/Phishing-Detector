@@ -1,7 +1,7 @@
 /* ==========================================
-   تعريف المظاهر البصرية العشرة (10 Themes)
+   المظاهر: داكن (الافتراضي) وفاتح. «تلقائي» يختار بينهما حسب إعداد الجهاز
    ========================================== */
-[data-theme="dark"] {
+:root, [data-theme="dark"] {
     --bg-primary: #0a0f1d;
     --bg-card: #131b2e;
     --accent-blue: #00f2fe;
@@ -29,126 +29,6 @@
     --border-color: rgba(0, 0, 0, 0.1);
     --header-bg: rgba(255, 255, 255, 0.9);
     --nav-bg: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="cyberpunk"] {
-    --bg-primary: #120418;
-    --bg-card: #20072b;
-    --accent-blue: #ff007f;
-    --accent-glow: rgba(255, 0, 127, 0.35);
-    --accent-green: #39ff14;
-    --accent-yellow: #f3e600;
-    --accent-red: #ff073a;
-    --text-main: #ffffff;
-    --text-muted: #c084fc;
-    --border-color: rgba(255, 0, 127, 0.25);
-    --header-bg: rgba(18, 4, 24, 0.85);
-    --nav-bg: rgba(255, 0, 127, 0.05);
-}
-
-[data-theme="matrix"] {
-    --bg-primary: #021204;
-    --bg-card: #05220a;
-    --accent-blue: #00ff66;
-    --accent-glow: rgba(0, 255, 102, 0.3);
-    --accent-green: #00ff66;
-    --accent-yellow: #ccff00;
-    --accent-red: #ff3333;
-    --text-main: #e2fce8;
-    --text-muted: #4ade80;
-    --border-color: rgba(0, 255, 102, 0.25);
-    --header-bg: rgba(2, 18, 4, 0.85);
-    --nav-bg: rgba(0, 255, 102, 0.05);
-}
-
-[data-theme="emerald"] {
-    --bg-primary: #021c17;
-    --bg-card: #042f27;
-    --accent-blue: #10b981;
-    --accent-glow: rgba(16, 185, 129, 0.3);
-    --accent-green: #34d399;
-    --accent-yellow: #fbbf24;
-    --accent-red: #f87171;
-    --text-main: #ecfdf5;
-    --text-muted: #6ee7b7;
-    --border-color: rgba(16, 185, 129, 0.25);
-    --header-bg: rgba(2, 28, 23, 0.85);
-    --nav-bg: rgba(16, 185, 129, 0.05);
-}
-
-[data-theme="sunset"] {
-    --bg-primary: #1a0f0a;
-    --bg-card: #2d1810;
-    --accent-blue: #f97316;
-    --accent-glow: rgba(249, 115, 22, 0.3);
-    --accent-green: #4ade80;
-    --accent-yellow: #facc15;
-    --accent-red: #ef4444;
-    --text-main: #fff7ed;
-    --text-muted: #fdba74;
-    --border-color: rgba(249, 115, 22, 0.25);
-    --header-bg: rgba(26, 15, 10, 0.85);
-    --nav-bg: rgba(249, 115, 22, 0.05);
-}
-
-[data-theme="purple"] {
-    --bg-primary: #0f071a;
-    --bg-card: #1c1033;
-    --accent-blue: #a855f7;
-    --accent-glow: rgba(168, 85, 247, 0.3);
-    --accent-green: #22c55e;
-    --accent-yellow: #eab308;
-    --accent-red: #ef4444;
-    --text-main: #faf5ff;
-    --text-muted: #d8b4fe;
-    --border-color: rgba(168, 85, 247, 0.25);
-    --header-bg: rgba(15, 7, 26, 0.85);
-    --nav-bg: rgba(168, 85, 247, 0.05);
-}
-
-[data-theme="ocean"] {
-    --bg-primary: #031323;
-    --bg-card: #08223c;
-    --accent-blue: #38bdf8;
-    --accent-glow: rgba(56, 189, 248, 0.3);
-    --accent-green: #22c55e;
-    --accent-yellow: #facc15;
-    --accent-red: #f87171;
-    --text-main: #f0f9ff;
-    --text-muted: #bae6fd;
-    --border-color: rgba(56, 189, 248, 0.25);
-    --header-bg: rgba(3, 19, 35, 0.85);
-    --nav-bg: rgba(56, 189, 248, 0.05);
-}
-
-[data-theme="coffee"] {
-    --bg-primary: #18120e;
-    --bg-card: #271e17;
-    --accent-blue: #d97706;
-    --accent-glow: rgba(217, 119, 6, 0.3);
-    --accent-green: #65a30d;
-    --accent-yellow: #ca8a04;
-    --accent-red: #dc2626;
-    --text-main: #fef3c7;
-    --text-muted: #d6d3d1;
-    --border-color: rgba(217, 119, 6, 0.25);
-    --header-bg: rgba(24, 18, 14, 0.85);
-    --nav-bg: rgba(217, 119, 6, 0.05);
-}
-
-[data-theme="crimson"] {
-    --bg-primary: #180507;
-    --bg-card: #2d0a0e;
-    --accent-blue: #f43f5e;
-    --accent-glow: rgba(244, 63, 94, 0.3);
-    --accent-green: #10b981;
-    --accent-yellow: #f59e0b;
-    --accent-red: #e11d48;
-    --text-main: #fff1f2;
-    --text-muted: #fecdd3;
-    --border-color: rgba(244, 63, 94, 0.25);
-    --header-bg: rgba(24, 5, 7, 0.85);
-    --nav-bg: rgba(244, 63, 94, 0.05);
 }
 
 * {
@@ -625,6 +505,50 @@ header {
     font-size: 1.2rem;
 }
 
+/* ---- تقرير الفحص v4: مقياس دائري، ثقة، تفصيل المؤشرات ---- */
+.report-header { gap: 12px; flex-wrap: wrap; }
+.report-title { display: flex; align-items: center; gap: 14px; }
+.report-sub { margin-top: 6px; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.report-tools { display: flex; gap: 6px; }
+.report-tools .btn-quick { white-space: nowrap; }
+
+.risk-gauge { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+.risk-gauge svg { display: block; }
+.gauge-track { fill: none; stroke: var(--border-color); stroke-width: 8; opacity: 0.6; }
+.gauge-value { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
+.gauge-safe .gauge-value { stroke: var(--accent-green); }
+.gauge-warning .gauge-value { stroke: var(--accent-yellow); }
+.gauge-danger .gauge-value { stroke: var(--accent-red); }
+.gauge-number { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem; color: var(--text-main); direction: ltr; }
+.gauge-number small { font-size: 0.7rem; opacity: 0.7; margin-inline-start: 1px; }
+
+.confidence-chip { font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border-color); }
+.conf-high { color: var(--accent-green); border-color: var(--accent-green); }
+.conf-medium { color: var(--accent-blue); border-color: var(--accent-blue); }
+.conf-low { color: var(--accent-yellow); border-color: var(--accent-yellow); }
+
+.indicators-box { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; }
+.indicators-box summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; }
+.indicators-list { margin-top: 10px; display: grid; gap: 8px; }
+.indicator-row { display: grid; grid-template-columns: 90px 1fr 32px; gap: 10px; align-items: center; font-size: 0.82rem; }
+.indicator-bar { height: 8px; border-radius: 999px; background: var(--border-color); overflow: hidden; }
+.indicator-bar span { display: block; height: 100%; border-radius: 999px; }
+.ind-danger .indicator-bar span { background: var(--accent-red); }
+.ind-warning .indicator-bar span { background: var(--accent-yellow); }
+.ind-info .indicator-bar span, .ind-safe .indicator-bar span { background: var(--accent-blue); }
+.indicator-weight { font-weight: 700; color: var(--text-muted); text-align: center; direction: ltr; }
+.indicators-note { margin-top: 10px; font-size: 0.75rem; color: var(--text-muted); }
+
+@media (max-width: 600px) {
+    .indicator-row { grid-template-columns: 60px 1fr 28px; }
+    .risk-gauge, .risk-gauge svg { width: 72px; height: 72px; }
+    .report-tools { width: 100%; }
+    /* حقل الرابط وزر الفحص: سطران على الهاتف بدل خروج الزر عن الشاشة */
+    .input-group { flex-wrap: wrap; }
+    .input-group input { min-width: 0; width: 100%; flex-basis: 100%; }
+    .input-group .btn-scan { width: 100%; justify-content: center; }
+}
+
 .li-danger::before { color: var(--accent-red); }
 .li-safe::before { color: var(--accent-green); }
 .li-warning::before { color: var(--accent-yellow); }
@@ -865,3 +789,43 @@ footer {
 .site-announcement.tone-success { border-color:color-mix(in srgb, var(--accent-green) 45%, transparent); background:color-mix(in srgb, var(--accent-green) 10%, transparent); }
 .site-announcement.tone-warn { border-color:color-mix(in srgb, var(--accent-yellow) 50%, transparent); background:color-mix(in srgb, var(--accent-yellow) 12%, transparent); }
 .action-card-btn[hidden] { display:none; }
+
+/* ==========================================
+   الواجهة الرئيسية (كانت تنسيقات داخل HTML)
+   ========================================== */
+.hero-logo-wrap { text-align: center; margin: 15px 0; }
+.hero-logo { width: 125px; height: 125px; border-radius: 22px; object-fit: cover; box-shadow: 0 0 40px var(--accent-glow); border: 2px solid var(--border-color); }
+.hero-title { text-align: center; margin-top: 15px; font-weight: 800; font-size: clamp(1.5rem, 4.5vw, 2.3rem); line-height: 1.4; }
+.hero-subtitle { text-align: center; color: var(--text-muted); max-width: 720px; margin: 12px auto; font-size: 1rem; line-height: 1.8; }
+.theme-dropdown-btn .chevron { font-size: 0.7rem; }
+.theme-option.active { color: var(--accent-blue); background: var(--nav-bg); }
+.theme-option.active::after { content: '✓'; margin-inline-start: auto; }
+
+/* ==========================================
+   الموبايل: الأدوات تظهر بأول شاشة
+   ========================================== */
+@media (max-width: 600px) {
+    /* الهيدر سطر واحد: الشعار يمين والأزرار أيقونات فقط */
+    header { flex-wrap: nowrap; padding: 0.55rem 12px; }
+    .logo span { display: none; }
+    .current-tab-indicator { display: none; }
+    .nav-controls { gap: 6px; }
+    .btn-label, .theme-dropdown-btn .chevron { display: none; }
+    .back-home-header-btn, .theme-dropdown-btn { padding: 8px 11px; }
+
+    /* شريط الخطة مضغوط */
+    .plan-banner { padding: 8px 12px; gap: 6px 10px; font-size: 0.82rem; }
+    .plan-banner .usage span:nth-child(2) { display: none; }
+    .plan-banner .meter { width: 70px; }
+    .plan-banner .app-btn.small { padding: 6px 12px; font-size: 0.8rem; }
+
+    /* البطل أصغر حتى تظهر بطاقات الأدوات */
+    .page-section { padding: 1.2rem 12px; }
+    .hero-logo-wrap { display: none; }
+    .hero-subtitle { font-size: 0.9rem; margin-bottom: 4px; }
+    .main-actions-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .action-card-btn { padding: 14px 8px; font-size: 0.9rem; gap: 8px; }
+    .action-card-btn .card-desc { display: none; }
+}
+.footer-privacy { font-size: 0.75rem; opacity: 0.75; margin-top: 6px; }
+.footer-links { font-size: 0.8rem; margin-top: 8px; }

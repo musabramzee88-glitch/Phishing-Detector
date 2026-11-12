@@ -6,10 +6,13 @@
     let mode = 'login';
     let busy = false;
 
-    try {
-        const theme = localStorage.getItem('selected_theme');
-        if (theme && /^[a-z]+$/.test(theme)) document.body.setAttribute('data-theme', theme);
-    } catch { /* المظهر اختياري */ }
+    // نفس منطق المظهر بالتطبيق: تلقائي حسب الجهاز، أو داكن/فاتح إذا اختاره المستخدم
+    let theme = 'auto';
+    try { theme = localStorage.getItem('selected_theme') || 'auto'; } catch { /* المظهر اختياري */ }
+    if (theme !== 'dark' && theme !== 'light') {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.body.setAttribute('data-theme', theme);
 
     const ERRORS = {
         cancelled: 'تم إلغاء الدخول.',

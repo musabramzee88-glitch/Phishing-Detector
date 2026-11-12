@@ -36,7 +36,17 @@ function merge(result, extra, thresholds) {
         .filter(r => !(level !== "safe" && r.type === "safe"))
         .sort((a, b) => (order[a.type] - order[b.type]) || (b.w - a.w))
         .map(({ w, ...r }) => r);
-    return { ...result, score, level, reasons };
+    // المؤشرات القابلة للقراءة آلياً: نضيف إشارات المصادر الخارجية ونعيد حساب مساهمة كل مؤشر بالدرجة
+    const all = [
+        ...extra.filter(s => s.weight > 0).map(s => ({ type: s.type, weight: s.weight, text: s.text })),
+        ...(result.indicators || []).map(i => ({ type: i.type, weight: i.weight / 100, text: i.text }))
+    ];
+    const impact = engine.contributions(all);
+    const indicators = all
+        .map((s, i) => ({ type: s.type, weight: Math.round(s.weight * 100), impact: impact[i], text: s.text }))
+        .sort((a, b) => (order[a.type] - order[b.type]) || (b.weight - a.weight));
+    const confidence = engine.confidenceFor(score, thresholds, indicators.length);
+    return { ...result, score, level, confidence, reasons, indicators };
 }
 
 function createScan({ config, users, auth, intel, stats }) {
@@ -122,7 +132,8 @@ function createScan({ config, users, auth, intel, stats }) {
     }
 
     const publicResult = r => ({
-        score: r.score, level: r.level, reasons: r.reasons, input: r.input, host: r.host, unicodeHost: r.unicodeHost,
+        score: r.score, level: r.level, confidence: r.confidence, reasons: r.reasons, indicators: r.indicators,
+        engineVersion: r.engineVersion, input: r.input, host: r.host, unicodeHost: r.unicodeHost,
         registrable: r.registrable, official: r.official, brand: r.brand, checks: r.checks,
         categories: r.categories, urls: r.urls, advice: r.advice
     });
@@ -212,7 +223,7 @@ function createScan({ config, users, auth, intel, stats }) {
                         try {
                             const r = await scanUrl(u, { deep: limits.deepChecks });
                             results[i] = r.error ? { url: u.slice(0, 200), error: r.error }
-                                : { url: u.slice(0, 200), level: r.level, score: r.score, host: r.host, registrable: r.registrable || "", brand: r.brand || r.official || "", reasons: r.reasons.filter(x => x.type !== "info").slice(0, 4) };
+                                : { url: u.slice(0, 200), level: r.level, score: r.score, confidence: r.confidence, host: r.host, registrable: r.registrable || "", brand: r.brand || r.official || "", reasons: r.reasons.filter(x => x.type !== "info").slice(0, 4) };
                         } catch {
                             results[i] = { url: u.slice(0, 200), error: "analysis_failed" };
                         }

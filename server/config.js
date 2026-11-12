@@ -172,6 +172,9 @@ function loadConfig(env = process.env) {
         host: env.HOST || (onRender ? "0.0.0.0" : "127.0.0.1"),
         port: Number(env.PORT || 8080),
         trustProxy: env.TRUST_PROXY === "1" || onRender,
+        // الترويسة التي يضعها الوسيط بعنوان الزائر الحقيقي ولا يستطيع الزائر تزويرها.
+        // تأكد منها بـ /api/admin/ipcheck. مثال: cf-connecting-ip إذا كان Cloudflare الخاص بك أمام الموقع.
+        clientIpHeader: /^[a-z0-9-]{1,40}$/i.test(env.CLIENT_IP_HEADER || "") ? env.CLIENT_IP_HEADER.toLowerCase() : "true-client-ip",
         allowedOrigin: env.CYBERBOT_ORIGIN || "",
         appUrl: parseAppUrl(env, Number(env.PORT || 8080)),
         openai: parseAi(env),

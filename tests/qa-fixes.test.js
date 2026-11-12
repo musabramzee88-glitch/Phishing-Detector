@@ -42,7 +42,8 @@ test('Permissions-Policy بدون ميزات لا يعرفها Chrome (تسبب 
     const headers = {};
     applySecurityHeaders({ socket: {}, headers: {} }, { setHeader: (k, v) => { headers[k] = v; } }, { trustProxy: false });
     assert.doesNotMatch(headers['Permissions-Policy'], /bluetooth/);
-    assert.match(headers['Permissions-Policy'], /camera=\(\)/);
+    assert.match(headers['Permissions-Policy'], /camera=\(self\)/);   // الكاميرا لموقعنا فقط (فحص QR)، وممنوعة على أي إطار خارجي
+    assert.match(headers['Permissions-Policy'], /microphone=\(\)/);
 });
 
 test('حقل الرابط يفحص عند الضغط على Enter', () => {

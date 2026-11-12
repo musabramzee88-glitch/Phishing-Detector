@@ -578,7 +578,8 @@ const LEVEL_UI = {
 const LEVEL_TITLES = {
     url:  { safe: 'لم تُرصد مؤشرات خطر في الرابط (Low Risk)', warning: 'تنبيه: مؤشرات مخاطرة تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: رابط تصيد واحتيال محتمل (High Risk)' },
     text: { safe: 'لم تُرصد أساليب احتيال معروفة في النص (Low Risk)', warning: 'تنبيه: في الرسالة مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير: رسالة احتيال وهندسة اجتماعية محتملة (High Risk)' },
-    file: { safe: 'لم تُرصد مؤشرات خطر في الملف (Low Risk)', warning: 'تنبيه: الملف فيه مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: ملف مشبوه أو خبيث محتمل (High Risk)' }
+    file: { safe: 'لم تُرصد مؤشرات خطر في الملف (Low Risk)', warning: 'تنبيه: الملف فيه مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير شديد: ملف مشبوه أو خبيث محتمل (High Risk)' },
+    email: { safe: 'ما لكينا مؤشرات انتحال بالمرسل (Low Risk)', warning: 'تنبيه: بالمرسل أو المصادقة مؤشرات تستدعي الحذر (Medium Risk)', danger: 'تحذير: المرسل غالباً منتحَل (High Risk)' }
 };
 // يحفظ نتيجة فحص تم داخل المتصفح (ملف/وسائط) بسجل الحساب لمشتركي Pro
 function recordScan(kind, label, score, level) {
@@ -753,8 +754,8 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">${metaHtml}</div>
         <ul class="report-details-list">${items}</ul>
         ${indicatorsHtml(result.indicators, result.level)}
-        ${result.level !== 'safe' ? responsePlanHtml(box.id) : ''}
         ${extraHtml || ''}
+        ${result.level !== 'safe' ? responsePlanHtml(box.id) : ''}
         <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px;">${SCAN_DISCLAIMER}${result.engineVersion ? ` · المحرك v${escapeHtml(result.engineVersion)}` : ''}</p>
     `;
 }

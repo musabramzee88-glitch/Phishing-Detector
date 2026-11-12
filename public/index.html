@@ -123,6 +123,21 @@
                     <span>المسار التوعوي</span>
                     <small class="card-desc">دروس ومحاكي تصيد تفاعلي</small>
                 </button>
+                <button class="action-card-btn" data-page="qrPage" data-title="فحص QR Code" data-icon="fa-solid fa-qrcode">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <span>فحص QR Code</span>
+                    <small class="card-desc">صوّر الباركود أو ارفع صورته واعرف وين يوديك</small>
+                </button>
+                <button class="action-card-btn" data-page="ocrPage" data-title="فحص لقطة شاشة" data-icon="fa-solid fa-image">
+                    <i class="fa-solid fa-image"></i>
+                    <span>فحص لقطة شاشة</span>
+                    <small class="card-desc">ارفع صورة الرسالة ونقرأها ونفحصها</small>
+                </button>
+                <button class="action-card-btn" data-page="headersPage" data-title="تحليل ترويسة الإيميل" data-icon="fa-solid fa-envelope-open-text">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                    <span>تحليل ترويسة الإيميل</span>
+                    <small class="card-desc">SPF و DKIM و DMARC وانتحال المرسل</small>
+                </button>
                 <button class="action-card-btn" data-page="checkupPage" data-title="فحص أمان حساباتك" data-icon="fa-solid fa-user-lock">
                     <i class="fa-solid fa-user-lock"></i>
                     <span>فحص أمان حساباتك</span>
@@ -429,6 +444,71 @@
     </div>
 
     <!-- الحساب والاشتراك -->
+    <div id="qrPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-qrcode"></i> فحص QR Code</h2>
+                <p class="muted">تصيد الباركود (Quishing) منتشر: ملصقات بالمطاعم، إعلانات جوائز، إيميلات بيها باركود بدل الرابط. افحصه قبل ما تفتحه: نطلعلك محتواه كنص ونفحص الرابط، وما نفتح أي شي تلقائياً.</p>
+            </div>
+            <div class="scanner-card">
+                <div class="qr-actions">
+                    <button type="button" class="btn-scan" data-action="startCamera"><i class="fa-solid fa-camera"></i> صوّر بالكاميرا</button>
+                    <label class="btn-scan secondary-scan"><i class="fa-solid fa-image"></i> ارفع صورة الباركود<input type="file" accept="image/*" data-change="scanQrImage" hidden></label>
+                </div>
+                <div id="qrCamera" class="qr-camera" hidden>
+                    <video id="qrVideo" playsinline muted></video>
+                    <div class="qr-frame" aria-hidden="true"></div>
+                    <button type="button" class="app-btn small secondary" data-action="stopCamera">إيقاف الكاميرا</button>
+                </div>
+                <p class="muted" style="font-size:.8rem">الصورة والكاميرا تنقرأ داخل جهازك ولا ترفع لأي مكان.</p>
+                <div id="qrReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ocrPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-image"></i> فحص لقطة شاشة</h2>
+                <p class="muted">وصلتك رسالة احتيال كصورة؟ ارفعها: نقرأ النص (عربي وإنكليزي) داخل جهازك، تصححه إذا احتاج، وبعدين نفحص الرسالة وروابطها.</p>
+            </div>
+            <div class="scanner-card">
+                <label class="btn-scan ocr-upload"><i class="fa-solid fa-upload"></i> ارفع لقطة الشاشة<input type="file" accept="image/*" data-change="scanScreenshot" hidden></label>
+                <p class="muted" style="font-size:.8rem">أول استخدام ينزّل قارئ النصوص (قرابة 12MB) مرة وحدة. الصورة ما ترفع للخادم.</p>
+                <p id="ocrStatus" class="ocr-status" role="status" hidden></p>
+                <div id="ocrEditor" hidden>
+                    <label for="ocrText" style="font-weight:700">النص المقروء (صحح أي خطأ قبل الفحص):</label>
+                    <textarea id="ocrText" rows="7" dir="auto" maxlength="10000"></textarea>
+                    <button type="button" class="btn-scan" data-action="analyzeOcrText"><i class="fa-solid fa-magnifying-glass"></i> افحص النص وروابطه</button>
+                </div>
+                <div id="ocrReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="headersPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-envelope-open-text"></i> تحليل ترويسة الإيميل</h2>
+                <p class="muted">الصق ترويسات (Headers) الإيميل المشبوه: نطلع نتيجة SPF و DKIM و DMARC، ونقارن اسم المرسل الظاهر بعنوانه الحقيقي و Reply-To، ونرسم مسار السيرفرات. التحليل يصير داخل متصفحك.</p>
+            </div>
+            <div class="scanner-card">
+                <details class="howto">
+                    <summary><i class="fa-solid fa-circle-question"></i> شلون أطلع الترويسات؟</summary>
+                    <p><strong>Gmail:</strong> افتح الرسالة ← النقاط الثلاث (⋮) يم زر الرد ← «إظهار النص الأصلي» (Show original) ← «نسخ إلى الحافظة».</p>
+                    <p><strong>Outlook (الويب):</strong> افتح الرسالة ← النقاط الثلاث (…) ← عرض ← «عرض تفاصيل الرسالة» (View message details) ← انسخ النص.</p>
+                    <p><strong>Outlook (الحاسبة):</strong> افتح الرسالة بنافذة ← ملف ← خصائص ← «رؤوس الإنترنت».</p>
+                </details>
+                <textarea id="headersInput" rows="9" dir="ltr" spellcheck="false" placeholder="Received: from ...&#10;Authentication-Results: ...&#10;From: ...&#10;Reply-To: ..."></textarea>
+                <button type="button" class="btn-scan" data-action="analyzeHeaders"><i class="fa-solid fa-magnifying-glass"></i> حلّل الترويسات</button>
+                <div id="headersReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="checkupPage" class="page-section">
         <div class="scanner-container">
             <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
@@ -680,5 +760,7 @@ Authorization: Bearer pd_...</pre>
     <script src="/js/app.js?v=4.0.0"></script>
     <script src="/js/account.js?v=4.0.0"></script>
     <script src="/js/checkup.js?v=1"></script>
+    <script src="/js/email-headers.js?v=1"></script>
+    <script src="/js/tools.js?v=1"></script>
 </body>
 </html>

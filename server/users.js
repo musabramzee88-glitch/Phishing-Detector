@@ -642,10 +642,24 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     // ---------- للأدمن ----------
     async function listUsers({ offset = 0, limit = 50, query = "" } = {}) {
         const total = Number(await db.cmd(["ZCARD", k("users")])) || 0;
-        if (query) {
-            const email = String(query).trim().toLowerCase();
-            const user = await findByEmail(email);
-            return { total, users: user ? [user] : [] };
+        const q = String(query || "").trim().toLowerCase();
+        if (q) {
+            // تطابق تام بالبريد أولاً (سريع)، وإلا بحث جزئي بالبريد أو الاسم في أحدث 5000 حساب
+            const exact = q.includes("@") ? await findByEmail(q) : null;
+            if (exact) return { total, users: [exact] };
+            const found = [];
+            for (let start = 0; start < Math.min(total, 5000) && found.length < limit; start += 500) {
+                const ids = await db.cmd(["ZREVRANGE", k("users"), String(start), String(start + 499)]);
+                if (!Array.isArray(ids) || !ids.length) break;
+                const raw = await db.pipe(ids.map(id => ["GET", k("u", id)]));
+                for (const r of raw) {
+                    let u;
+                    try { u = JSON.parse(r); } catch { continue; }
+                    if (u && (String(u.email).includes(q) || String(u.name || "").toLowerCase().includes(q))) found.push(u);
+                    if (found.length >= limit) break;
+                }
+            }
+            return { total, users: found };
         }
         const ids = await db.cmd(["ZREVRANGE", k("users"), String(offset), String(offset + limit - 1)]);
         const raw = (Array.isArray(ids) && ids.length) ? await db.pipe(ids.map(id => ["GET", k("u", id)])) : [];

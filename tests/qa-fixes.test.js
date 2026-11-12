@@ -49,3 +49,15 @@ test('حقل الرابط يفحص عند الضغط على Enter', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
     assert.match(html, /id="urlInput"[^>]*data-enter="analyzeUrl"/);
 });
+
+test('بحث الأدمن يجد الحسابات بجزء من البريد أو الاسم', async () => {
+    const config = loadConfig({});
+    const users = createUsers({ db: openDb(config), config });
+    await users.register({ email: 'ali.hassan@example.com', password: 'a long safe passphrase', name: 'علي حسن' });
+    await users.register({ email: 'sara@uni.edu.iq', password: 'a long safe passphrase', name: 'Sara' });
+    assert.deepStrictEqual((await users.listUsers({ query: 'hassan' })).users.map(u => u.email), ['ali.hassan@example.com']);
+    assert.deepStrictEqual((await users.listUsers({ query: 'edu.iq' })).users.map(u => u.email), ['sara@uni.edu.iq']);
+    assert.deepStrictEqual((await users.listUsers({ query: 'علي' })).users.map(u => u.email), ['ali.hassan@example.com']);
+    assert.strictEqual((await users.listUsers({ query: 'SARA@UNI.EDU.IQ' })).users.length, 1);
+    assert.strictEqual((await users.listUsers({ query: 'nobody' })).users.length, 0);
+});

@@ -49,7 +49,7 @@ function merge(result, extra, thresholds) {
     return { ...result, score, level, confidence, reasons, indicators };
 }
 
-function createScan({ config, users, auth, intel, stats, inspector = null, settings = null }) {
+function createScan({ config, users, auth, intel, stats, inspector = null, settings = null, community = null }) {
     const liveOn = () => Boolean(inspector) && (!settings || settings.get().features.liveInspect !== false);
     const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.scanPerMinute });
     const badKeys = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.badApiKeysPerWindow });
@@ -63,6 +63,9 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         const feedHits = result.host ? intel.lookup(result.input, result.host) : [];
         // النطاقات الرسمية المعروفة لا نحكم عليها من قوائم التهديدات إلا بتطابق الرابط كاملاً
         extra.push(...(result.official ? feedHits.filter(s => s.weight >= 0.9) : feedHits));
+        // نطاق أبلغ عنه المستخدمون وأكدته الإدارة
+        const confirmed = community && !result.official ? community.blockedMatch(result.host) : "";
+        if (confirmed) extra.push({ weight: 0.92, type: "danger", text: `النطاق ${confirmed} مؤكَّد كاحتيال: أبلغ عنه مستخدمو الموقع وراجعته الإدارة.` });
         // عمر النطاق (Pro) والزيارة الآمنة يعملان بالتوازي
         const wantsAge = deep && result.registrable && !result.official && !/^\d+\.\d+\.\d+\.\d+$/.test(result.host);
         // النطاقات الرسمية المعروفة ونطاق الموقع نفسه لا نزورها (ما نحتاج، وممكن الرابط يحمل رمزاً خاصاً بالمستخدم)
@@ -94,6 +97,8 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
             const analysis = engine.analyzeUrl(u.url);
             if (analysis.error) continue;
             const hits = intel.lookup(analysis.input, analysis.host).filter(s => !analysis.official || s.weight >= 0.9);
+            const confirmed = community && !analysis.official ? community.blockedMatch(analysis.host) : "";
+            if (confirmed) hits.unshift({ text: `النطاق ${confirmed} مؤكَّد كاحتيال ببلاغات المستخدمين.` });
             if (hits.length) extra.push({ weight: 0.9, type: "danger", text: `الرابط ${u.url} داخل الرسالة: ${hits[0].text}` });
         }
         return merge(result, extra, engine.THRESHOLDS);

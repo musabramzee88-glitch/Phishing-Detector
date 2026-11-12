@@ -194,6 +194,71 @@
         } catch { /* يُعاد المحاولة عند فتح الصفحة */ }
     }
 
+    // سجل الفحوصات مع فلاتر (النوع، النتيجة، الفترة) وإعادة فحص الروابط
+    const historyFilter = { kind: 'all', level: 'all', range: 'all' };
+    let historyItems = [];
+
+    function historyFilters() {
+        const bar = node('div', 'history-filters');
+        const group = (key, options) => {
+            const wrap = node('div', 'filter-group');
+            for (const [value, label] of options) {
+                const b = node('button', 'filter-chip' + (historyFilter[key] === value ? ' active' : ''), label);
+                b.type = 'button';
+                b.setAttribute('aria-pressed', String(historyFilter[key] === value));
+                b.addEventListener('click', () => { historyFilter[key] = value; renderHistory(); });
+                wrap.append(b);
+            }
+            return wrap;
+        };
+        bar.append(
+            group('level', [['all', 'الكل'], ['danger', 'خطر'], ['warning', 'تنبيه'], ['safe', 'آمن']]),
+            group('kind', [['all', 'كل الأنواع'], ['url', 'روابط'], ['text', 'رسائل'], ['file', 'ملفات']]),
+            group('range', [['all', 'كل الوقت'], ['week', 'هذا الأسبوع'], ['today', 'اليوم']])
+        );
+        return bar;
+    }
+
+    function renderHistory() {
+        const box = $('historyList');
+        const now = Date.now();
+        const since = historyFilter.range === 'today' ? now - 86400000 : historyFilter.range === 'week' ? now - 7 * 86400000 : 0;
+        const list = historyItems.filter(h =>
+            (historyFilter.level === 'all' || h.level === historyFilter.level) &&
+            (historyFilter.kind === 'all' || h.kind === historyFilter.kind || (historyFilter.kind === 'file' && h.kind === 'media')) &&
+            h.at >= since);
+        box.replaceChildren(historyFilters());
+        if (!list.length) {
+            box.append(node('p', 'muted', historyItems.length ? 'ما اكو فحوصات تطابق هذا الفلتر.' : 'لا توجد فحوصات محفوظة بعد.'));
+            return;
+        }
+        const table = node('table', 'simple-table');
+        const kinds = { url: 'رابط', text: 'رسالة', file: 'ملف', media: 'وسائط' };
+        for (const h of list.slice(0, 100)) {
+            const tr = node('tr');
+            const badge = node('td');
+            badge.append(node('span', 'status-pill ' + (h.level === 'danger' ? 'status-rejected' : h.level === 'warning' ? 'status-pending' : 'status-approved'), `${LEVEL_LABELS[h.level]} ${h.score}%`));
+            const label = node('td', '', h.label);
+            label.style.direction = h.kind === 'url' ? 'ltr' : '';
+            label.style.wordBreak = 'break-all';
+            const actions = node('td');
+            if (h.kind === 'url') {
+                const again = node('button', 'btn-quick', 'إعادة فحص');
+                again.type = 'button';
+                again.addEventListener('click', () => {
+                    switchPage('scannerPage', 'فحص الروابط', 'fa-solid fa-link');
+                    $('urlInput').value = h.label;
+                    analyzeUrl();
+                });
+                actions.append(again);
+            }
+            tr.append(node('td', '', new Date(h.at).toLocaleString('ar-IQ')), node('td', '', kinds[h.kind] || h.kind), label, badge, actions);
+            table.append(tr);
+        }
+        box.append(table);
+        box.append(node('p', 'muted', `يعرض ${Math.min(list.length, 100)} من ${historyItems.length} فحصاً محفوظاً.`));
+    }
+
     async function loadHistory() {
         const box = $('historyList');
         if (!isPro()) {
@@ -203,24 +268,8 @@
         try {
             const { ok, data } = await api('/api/account/history');
             if (!ok) return;
-            box.replaceChildren();
-            if (!data.history.length) {
-                box.textContent = 'لا توجد فحوصات محفوظة بعد.';
-                return;
-            }
-            const table = node('table', 'simple-table');
-            const kinds = { url: 'رابط', text: 'رسالة', file: 'ملف', media: 'وسائط' };
-            for (const h of data.history.slice(0, 50)) {
-                const tr = node('tr');
-                const badge = node('td');
-                badge.append(node('span', 'status-pill ' + (h.level === 'danger' ? 'status-rejected' : h.level === 'warning' ? 'status-pending' : 'status-approved'), `${LEVEL_LABELS[h.level]} ${h.score}%`));
-                const label = node('td', '', h.label);
-                label.style.direction = h.kind === 'url' ? 'ltr' : '';
-                label.style.wordBreak = 'break-all';
-                tr.append(node('td', '', new Date(h.at).toLocaleString('ar-IQ')), node('td', '', kinds[h.kind] || h.kind), label, badge);
-                table.append(tr);
-            }
-            box.append(table);
+            historyItems = data.history || [];
+            renderHistory();
         } catch { /* تجاهل */ }
     }
 

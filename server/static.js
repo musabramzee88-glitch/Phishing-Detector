@@ -23,6 +23,7 @@ const MIME_TYPES = {
     ".webp": "image/webp",
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon",
+    ".woff2": "font/woff2",
     ".txt": "text/plain; charset=utf-8",
     ".xml": "application/xml; charset=utf-8",
     ".webmanifest": "application/manifest+json; charset=utf-8"
@@ -53,7 +54,7 @@ function fingerprint(publicDir, assetPath) {
 }
 
 function versionAssets(html, publicDir) {
-    return String(html).replace(/(["'])(\/(?:css|js|img)\/[\w.-]+)\?v=[\w.-]+\1/g, (m, q, asset) => {
+    return String(html).replace(/(["'])(\/(?:css|js|img|vendor)\/[\w./-]+)\?v=[\w.-]+\1/g, (m, q, asset) => {
         const hash = fingerprint(publicDir, asset);
         return hash ? `${q}${asset}?v=${hash}${q}` : m;
     });

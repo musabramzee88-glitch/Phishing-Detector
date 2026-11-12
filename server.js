@@ -35,6 +35,7 @@ const { createOAuth } = require("./server/oauth");
 const { createAuth } = require("./server/auth");
 const { createIntel } = require("./server/intel");
 const { createInspector } = require("./server/inspect");
+const { createCommunity, CommunityError } = require("./server/community");
 const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
@@ -63,9 +64,10 @@ function createApp(config = loadConfig(), overrides = {}) {
     const auth = createAuth({ config, users, oauth, stats, mailer, settings });
     // الزيارة الآمنة للروابط ومعلومات الاستضافة (تتعطل مع THREAT_FEEDS=0 بالاختبارات، أو LIVE_INSPECT=0)
     const inspector = overrides.inspector !== undefined ? overrides.inspector : createInspector({ enabled: config.intel.enabled && config.liveInspect });
-    const scan = createScan({ config, users, auth, intel, stats, inspector, settings });
+    const community = createCommunity({ db });
+    const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings, community });
 
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {
@@ -120,6 +122,13 @@ function createApp(config = loadConfig(), overrides = {}) {
         return "";
     }
 
+    // معاملات المشاركة فقط (لا نمرّر أي شيء آخر بالتحويل)
+    function shareQuery(url) {
+        const keep = new URLSearchParams();
+        for (const k of ["share_title", "share_text", "share_url"]) if (url.searchParams.get(k)) keep.set(k, url.searchParams.get(k).slice(0, 10000));
+        return keep.toString() ? "?" + keep : "";
+    }
+
     function redirect(res, location) {
         res.writeHead(302, { Location: location, "Cache-Control": "no-store" });
         res.end();
@@ -138,6 +147,46 @@ function createApp(config = loadConfig(), overrides = {}) {
         }
         if (body === null || typeof body !== "object" || Array.isArray(body)) return reject(400, "Bad request");
         return body;
+    }
+
+    const escHtml = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const SEVERITY = { danger: ["خطر", "#e5484d"], warn: ["تحذير", "#f5b014"], info: ["معلومة", "#3b82f6"] };
+    function sendAlertsPage(req, res, list) {
+        const items = list.map(a => {
+            const [label, color] = SEVERITY[a.severity] || SEVERITY.warn;
+            const day = new Date(a.at).toISOString().slice(0, 10);
+            return `<article class="alert-item" style="border-inline-start:4px solid ${color}"><p class="muted"><b style="color:${color}">${label}</b> · <time datetime="${day}">${day}</time></p><h2>${escHtml(a.title)}</h2><p>${escHtml(a.body).replace(/\n/g, "<br>")}</p></article>`;
+        }).join("\n") || '<p class="muted">لا توجد تنبيهات حالياً.</p>';
+        const base = config.appUrl;
+        const body = Buffer.from(versionAssets(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تنبيهات الاحتيال الإلكتروني بالعراق | Phishing Detector</title>
+<meta name="description" content="آخر رسائل وروابط الاحتيال المنتشرة بالعراق (مصارف، زين كاش، جوائز وهمية) وشلون تحمي نفسك. من فريق ApexSec.">
+<link rel="canonical" href="${base}/alerts"><link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="stylesheet" href="/vendor/tajawal/tajawal.css?v=1"><link rel="stylesheet" href="/css/legal.css?v=1">
+<style>.alert-item{padding:4px 16px;margin:16px 0;border-radius:10px;background:rgba(127,127,127,.06)}.alert-item h2{margin:4px 0 8px;font-size:1.15rem}</style></head>
+<body><header class="legal-top"><a class="legal-brand" href="/login"><img src="/img/logo-192.jpg?v=1" width="192" height="192" alt=""> Phishing Detector</a><nav><a href="/login">افحص رابط أو رسالة</a></nav></header>
+<main><h1>تنبيهات الاحتيال الإلكتروني</h1><p class="muted">آخر عمليات الاحتيال المنتشرة وشلون تتجنبها. وصلتك رسالة مشكوك بيها؟ افحصها مجاناً من <a href="/login">Phishing Detector</a>.</p>
+${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a> · <a href="/terms">الشروط</a></footer></body></html>`, config.publicDir));
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "public, max-age=300" });
+        res.end(req.method === "HEAD" ? undefined : body);
+    }
+
+    // بلاغ احتيال من مستخدم مسجّل
+    async function handleReport(req, res) {
+        if (req.method !== "POST") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "POST" });
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        const body = await auth.jsonBody(req, res, 8 * 1024);
+        if (body === undefined) return;
+        try {
+            const report = await community.createReport(user, { kind: body.kind, content: body.content, note: body.note });
+            stats.count("reports");
+            stats.event("report", `بلاغ احتيال جديد (${report.kind === "url" ? report.domain : "رسالة"})`, h.getClientIp(req, config));
+            h.sendJson(res, 201, { ok: true, message: "وصلنا بلاغك، شكراً! راح نراجعه، وإذا تأكدنا ينضاف لقائمة الاحتيال ويحمي غيرك." });
+        } catch (error) {
+            if (error instanceof CommunityError) return h.sendJson(res, error.status, { error: error.message });
+            auth.sendError(res, error);
+        }
     }
 
     // إحصاءات مجهولة لفحوصات تتم داخل المتصفح (الوسائط): نوع ونتيجة فقط
@@ -184,8 +233,8 @@ function createApp(config = loadConfig(), overrides = {}) {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
                 const base = config.appUrl.replace(/\/+$/, "");
                 const body = pathname === "/robots.txt"
-                    ? `User-agent: *\nAllow: /login\nAllow: /privacy\nAllow: /terms\nDisallow: /admin\nDisallow: /api/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`
-                    : `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[["/login", "1.0", "weekly"], ["/privacy", "0.3", "monthly"], ["/terms", "0.3", "monthly"]].map(([p, pr, cf]) => `  <url><loc>${base}${p}</loc><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`).join("\n")}\n</urlset>\n`;
+                    ? `User-agent: *\nAllow: /login\nAllow: /alerts\nAllow: /privacy\nAllow: /terms\nDisallow: /admin\nDisallow: /api/\nDisallow: /auth/\n\nSitemap: ${base}/sitemap.xml\n`
+                    : `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[["/login", "1.0", "weekly"], ["/alerts", "0.8", "daily"], ["/privacy", "0.3", "monthly"], ["/terms", "0.3", "monthly"]].map(([p, pr, cf]) => `  <url><loc>${base}${p}</loc><changefreq>${cf}</changefreq><priority>${pr}</priority></url>`).join("\n")}\n</urlset>\n`;
                 res.writeHead(200, { "Content-Type": pathname.endsWith(".xml") ? "application/xml; charset=utf-8" : "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(body), "Cache-Control": "public, max-age=3600" });
                 return res.end(req.method === "HEAD" ? undefined : body);
             }
@@ -204,15 +253,27 @@ function createApp(config = loadConfig(), overrides = {}) {
                 const wantsLogin = pathname.startsWith("/login");
                 if (wantsLogin) {
                     // رابط إعادة تعيين كلمة السر يُعرض حتى لو كان المستخدم داخلاً
-                    if (user && !url.searchParams.has("reset")) return redirect(res, "/");
+                    if (user && !url.searchParams.has("reset")) return redirect(res, "/" + shareQuery(url));
                     if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
                     return sendPage(req, res, pages.login);
                 }
                 // الضيف يشوف واجهة التطبيق فقط (نفس الملفات العامة)، وكل الواجهات ترفضه
-                if (!user && !(auth.isGuest(req) && settings.get().features.guest !== false)) return redirect(res, "/login");
+                if (!user && !(auth.isGuest(req) && settings.get().features.guest !== false)) {
+                    // محتوى مشارك (Web Share Target) يبقى معه حتى بعد تسجيل الدخول
+                    return redirect(res, "/login" + shareQuery(url));
+                }
                 if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
                 return sendPage(req, res, pages.app);
             }
+
+            // تنبيهات الاحتيال: صفحة عامة (للناس ولمحركات البحث) + JSON للتطبيق
+            if (pathname === "/alerts" || pathname === "/api/alerts") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                const list = community.alerts().map(({ by, ...a }) => a);
+                if (pathname === "/api/alerts") return h.sendJson(res, 200, { alerts: list.slice(0, 20) });
+                return sendAlertsPage(req, res, list);
+            }
+            if (pathname === "/api/report") return await handleReport(req, res);
 
             const blocked = featureBlock(pathname);
             if (blocked) return h.sendJson(res, 503, { error: blocked, code: "feature_disabled" });
@@ -238,7 +299,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     server.requestTimeout = 60_000;
     server.keepAliveTimeout = 5_000;
     server.maxHeadersCount = 50;
-    server.on("close", () => { health.stop(); intel.stop(); settings.stop(); });
+    server.on("close", () => { health.stop(); intel.stop(); settings.stop(); community.stop(); });
 
     // نتأكد أن القاعدة تعمل قبل الاستماع (ونكمل حتى لو فشلت، مع تحذير)
     const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }))
@@ -249,6 +310,7 @@ function createApp(config = loadConfig(), overrides = {}) {
                 if (!loaded.ok) state.settingsError = loaded.error;
             }
             settings.start();
+            community.start();
             // الإحصاءات والزوار تُحفظ في القاعدة حتى لا تتصفّر عند كل نشر
             if (state.ok) {
                 const a = await stats.attach(db);

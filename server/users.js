@@ -619,11 +619,14 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (!raw) throw new UserError("not_found", "الطلب غير موجود.", 404);
         const payment = JSON.parse(raw);
         if (payment.status !== "pending") throw new UserError("decided", "تمت مراجعة هذا الطلب مسبقاً.", 409);
+        // SREM ذرّي: أول طلب فقط يحذف الطلب من قائمة المعلّقة. يمنع تمديد الاشتراك مرتين لو ضُغط «موافقة» مرتين بنفس اللحظة
+        const claimed = await db.cmd(["SREM", k("pays", "pending"), id]);
+        if (Number(claimed) !== 1) throw new UserError("decided", "تمت مراجعة هذا الطلب مسبقاً.", 409);
         payment.status = approve ? "approved" : "rejected";
         payment.decidedAt = clock();
         payment.decidedBy = cleanName(admin, 40);
         payment.reason = cleanName(reason, 200);
-        await db.pipe([["SET", k("pay", id), JSON.stringify(payment)], ["SREM", k("pays", "pending"), id]]);
+        await db.cmd(["SET", k("pay", id), JSON.stringify(payment)]);
         let user = null;
         if (approve) user = await extend(payment.uid, payment.months).catch(() => null);
         return { payment, user };

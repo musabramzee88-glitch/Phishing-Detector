@@ -523,8 +523,8 @@ header {
 .gauge-number small { font-size: 0.7rem; opacity: 0.7; margin-inline-start: 1px; }
 
 .confidence-chip { font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border-color); }
-.conf-high { color: var(--accent-green); border-color: var(--accent-green); }
-.conf-medium { color: var(--accent-blue); border-color: var(--accent-blue); }
+.conf-high { color: var(--text-main); border-color: var(--text-muted); }
+.conf-medium { color: var(--text-muted); border-color: var(--border-color); }
 .conf-low { color: var(--accent-yellow); border-color: var(--accent-yellow); }
 
 .indicators-box { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; }

@@ -82,3 +82,15 @@ test('رمز توثيق غير صالح يُتجاهل (لا حقن HTML)', () =
     const page = await request(app, 'GET', '/login');
     assert.doesNotMatch(page.text, /google-site-verification|<script>x/);
 }));
+
+test('ملفات CSS/JS بالصفحات تحمل بصمة محتواها (التحديث يصل للزوار بدل النسخة المخزنة)', () => withServer({}, async app => {
+    const crypto = require('node:crypto');
+    const page = await request(app, 'GET', '/login');
+    const appJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'login.js'));
+    const hash = crypto.createHash('sha1').update(appJs).digest('hex').slice(0, 10);
+    assert.match(page.text, new RegExp(`/js/login\\.js\\?v=${hash}"`));
+    assert.doesNotMatch(page.text, /\?v=4\.0\.0/);
+    const privacy = await request(app, 'GET', '/privacy');
+    assert.doesNotMatch(privacy.text, /\?v=4\.0\.0/);
+    assert.match(privacy.text, /\/css\/legal\.css\?v=[0-9a-f]{10}"/);
+}));

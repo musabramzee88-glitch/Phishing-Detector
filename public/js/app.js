@@ -561,7 +561,8 @@ function recordScan(kind, label, score, level) {
 const LEVEL_STATUS = { safe: 'لا مؤشرات', warning: 'تنبيه', danger: 'خطر' };
 const SCAN_DISCLAIMER = 'الفحص يعتمد على قواعد وخوارزميات وقوائم تهديدات عامة. غياب المؤشرات لا يثبت أن الهدف آمن، ووجودها لا يثبت أنه خبيث.';
 
-const CONFIDENCE_LABELS = { high: 'ثقة عالية', medium: 'ثقة متوسطة', low: 'ثقة منخفضة (قرب حدود التصنيف)' };
+// «ثقة» هنا = مدى تأكدنا من الحكم، مو ثقة بالموقع. نكتبها صريحة حتى ما تنفهم «الموقع موثوق»
+const CONFIDENCE_LABELS = { high: 'الحكم مؤكد', medium: 'الحكم شبه مؤكد', low: 'الحكم غير محسوم (قريب من الحد)' };
 const LAST_REPORTS = {};
 
 // مقياس دائري للدرجة (SVG): يعطي قراءة فورية للخطورة
@@ -608,7 +609,7 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
     const items = result.reasons
         .map(r => `<li class="li-${r.type}">${escapeHtml(r.text)}</li>`)
         .join('');
-    const confidence = result.confidence ? `<span class="confidence-chip conf-${result.confidence}">${CONFIDENCE_LABELS[result.confidence]}</span>` : '';
+    const confidence = result.confidence ? `<span class="confidence-chip conf-${result.confidence}" title="مدى تأكد المحرك من هذا الحكم، وليس مدى الثقة بالموقع">${CONFIDENCE_LABELS[result.confidence]}</span>` : '';
     box.style.display = 'block';
     box.innerHTML = `
         <div class="report-header">

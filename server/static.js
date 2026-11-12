@@ -32,13 +32,40 @@ const COMPRESSIBLE = /^(text\/|application\/(json|xml|manifest\+json)|image\/svg
 const MAX_CACHED_FILE = 2 * 1024 * 1024;
 const cache = new Map();   // path -> { mtimeMs, size, etag, raw, br, gzip }
 
+// بصمة محتوى لكل ملف: /js/app.js?v=4.0.0 ← /js/app.js?v=<أول 10 من sha1>
+// الملفات برقم نسخة تُخزَّن سنة بالمتصفح، فلو بقي الرقم ثابتاً بعد التحديث يبقى الزائر على النسخة القديمة.
+// البصمة تتغير تلقائياً مع أي تعديل، فما نحتاج نتذكر نغيّر الرقم يدوياً.
+const crypto = require("node:crypto");
+const fingerprints = new Map();   // path -> { mtimeMs, hash }
+function fingerprint(publicDir, assetPath) {
+    const file = path.resolve(publicDir, "." + assetPath);
+    if (!file.startsWith(publicDir + path.sep)) return "";
+    try {
+        const stat = fs.statSync(file);
+        const hit = fingerprints.get(file);
+        if (hit && hit.mtimeMs === stat.mtimeMs) return hit.hash;
+        const hash = crypto.createHash("sha1").update(fs.readFileSync(file)).digest("hex").slice(0, 10);
+        fingerprints.set(file, { mtimeMs: stat.mtimeMs, hash });
+        return hash;
+    } catch {
+        return "";
+    }
+}
+
+function versionAssets(html, publicDir) {
+    return String(html).replace(/(["'])(\/(?:css|js|img)\/[\w.-]+)\?v=[\w.-]+\1/g, (m, q, asset) => {
+        const hash = fingerprint(publicDir, asset);
+        return hash ? `${q}${asset}?v=${hash}${q}` : m;
+    });
+}
+
 let notFoundPage = null;
 function sendNotFound(req, res, config) {
     // المتصفح يحصل على صفحة 404 مفهومة، وبرامج الـ API تحصل على JSON
     const wantsHtml = /text\/html/.test(String(req.headers.accept || ""));
     if (wantsHtml) {
         try {
-            notFoundPage = notFoundPage || fs.readFileSync(path.join(config.publicDir, "404.html"));
+            notFoundPage = notFoundPage || Buffer.from(versionAssets(fs.readFileSync(path.join(config.publicDir, "404.html"), "utf8"), config.publicDir));
             res.writeHead(404, { "Content-Type": "text/html; charset=utf-8", "Content-Length": notFoundPage.length, "Cache-Control": "no-cache" });
             res.end(req.method === "HEAD" ? undefined : notFoundPage);
             return;
@@ -54,10 +81,11 @@ function pickEncoding(req) {
     return "";
 }
 
-function loadEntry(candidate, stats) {
+function loadEntry(candidate, stats, publicDir) {
     const cached = cache.get(candidate);
     if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) return cached;
-    const raw = fs.readFileSync(candidate);
+    let raw = fs.readFileSync(candidate);
+    if (candidate.endsWith(".html")) raw = Buffer.from(versionAssets(raw.toString("utf8"), publicDir));
     const entry = {
         mtimeMs: stats.mtimeMs,
         size: stats.size,
@@ -129,7 +157,7 @@ function serveStatic(req, res, pathname, config) {
 
         let entry;
         try {
-            entry = loadEntry(candidate, stats);
+            entry = loadEntry(candidate, stats, config.publicDir);
         } catch {
             sendNotFound(req, res, config);
             return;
@@ -150,4 +178,4 @@ function serveStatic(req, res, pathname, config) {
     });
 }
 
-module.exports = { serveStatic };
+module.exports = { serveStatic, versionAssets };

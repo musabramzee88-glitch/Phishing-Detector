@@ -75,7 +75,8 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         if (inspection) extra.push(...inspection.signals.filter(s => s.weight > 0 || s.type === "info"));
         const merged = merge(result, extra, thresholds);
         // الموقع غير موجود: ملاحظة «الاتصال مشفر» لا معنى لها
-        if (inspection && inspection.exists === false) merged.reasons = merged.reasons.filter(r => !(r.type === "info" && /HTTPS/.test(r.text)));
+        // الموقع غير موجود أو شهادته غير صالحة: ملاحظة «الاتصال مشفر» تناقض الواقع
+        if (inspection && (inspection.exists === false || (inspection.tls && inspection.tls.valid === false))) merged.reasons = merged.reasons.filter(r => !(r.type === "info" && /HTTPS/.test(r.text)));
         merged.checks = { feeds: intel.status().enabled, deep, domainAge: age, live: Boolean(inspection), liveSkipped: inspect && !wantsVisit ? (result.official ? "official" : liveOn() ? "site" : "disabled") : "" };
         if (inspection) {
             const { signals, ...visible } = inspection;

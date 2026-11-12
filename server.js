@@ -208,7 +208,8 @@ function createApp(config = loadConfig(), overrides = {}) {
                     if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
                     return sendPage(req, res, pages.login);
                 }
-                if (!user) return redirect(res, "/login");
+                // الضيف يشوف واجهة التطبيق فقط (نفس الملفات العامة)، وكل الواجهات ترفضه
+                if (!user && !(auth.isGuest(req) && settings.get().features.guest !== false)) return redirect(res, "/login");
                 if (req.method === "GET") visitors.hit(h.getClientIp(req, config), req.headers["user-agent"]);
                 return sendPage(req, res, pages.app);
             }

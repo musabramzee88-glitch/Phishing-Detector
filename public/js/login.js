@@ -208,6 +208,24 @@
         }
     }
 
+    // الدخول كضيف: مشاهدة الواجهة فقط، والخادم يرفض أي فحص أو عملية
+    async function enterAsGuest() {
+        if (busy) return;
+        busy = true;
+        try {
+            const response = await fetch('/api/auth/guest', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'تعذر الدخول كضيف.');
+            }
+            window.location.replace('/');
+        } catch (error) {
+            notice(error.message);
+        } finally {
+            busy = false;
+        }
+    }
+
     async function loadConfig() {
         try {
             const response = await fetch('/api/auth/config', { credentials: 'same-origin' });
@@ -230,6 +248,7 @@
                 document.querySelector('.auth-tab[data-mode="register"]').hidden = true;
                 if (mode === 'register') setMode('login', true);
             }
+            $('guestBtn').hidden = config.guest === false;
             if (config.trialDays > 0) {
                 $('trialOfferText').textContent = `لكل حساب جديد ${config.trialDays} يوماً مجاناً، وبعدها ${config.priceUsd}$ شهرياً أو الخطة المجانية.`;
             } else {
@@ -241,6 +260,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        $('guestBtn').addEventListener('click', enterAsGuest);
         const params = new URLSearchParams(window.location.search);
         if (params.get('reset')) {
             $('authMain').hidden = true;

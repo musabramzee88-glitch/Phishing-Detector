@@ -846,3 +846,11 @@ footer {
 .snap-box { margin-top: 10px; }
 .snap-warn { font-size: .8rem; color: var(--text-muted); margin: 0 0 8px; line-height: 1.7; }
 .snap-frame { width: 100%; height: 520px; max-height: 70vh; border: 2px dashed var(--border-color); border-radius: 12px; background: #fff; display: block; }
+
+/* زر زيارة الصفحة (للروابط الآمنة فقط) */
+.visit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
+.visit-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.visit-row small { color: var(--text-muted); font-size: .78rem; flex: 1 1 220px; }
+/* وضع الضيف: تنبيه يلمع عند محاولة استخدام خدمة */
+.plan-banner.flash { animation: guestFlash 1.2s ease; }
+@keyframes guestFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 4px var(--accent-yellow); } }

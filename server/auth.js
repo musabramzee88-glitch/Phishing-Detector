@@ -84,6 +84,14 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         return token;
     }
 
+    // وضع الضيف: كوكي للمشاهدة فقط. لا يفتح أي صلاحية؛ كل الواجهات تبقى تطلب حساباً حقيقياً
+    function guestCookie(req, on) {
+        const parts = [`pd_guest=${on ? "1" : ""}`, "Path=/", "HttpOnly", "SameSite=Lax", `Max-Age=${on ? 86400 : 0}`];
+        if (secure(req)) parts.push("Secure");
+        return parts.join("; ");
+    }
+    const isGuest = req => h.parseCookies(req.headers.cookie).pd_guest === "1";
+
     function sessionToken(req) {
         return h.parseCookies(req.headers.cookie)[sessionCookieName(req)] || "";
     }
@@ -323,7 +331,15 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (req.method !== "POST") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "POST" });
         if (!h.isSameOrigin(req)) return h.sendJson(res, 403, { error: "Forbidden" });
         await users.destroySession(sessionToken(req)).catch(() => {});
-        h.sendJson(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(req, "", 0) });
+        h.sendJson(res, 200, { ok: true }, { "Set-Cookie": [sessionCookie(req, "", 0), guestCookie(req, false)] });
+    }
+
+    async function startGuest(req, res) {
+        const body = await jsonBody(req, res, 256);
+        if (body === undefined) return;
+        if (!feature("guest")) return h.sendJson(res, 403, { error: "وضع الضيف متوقف حالياً." });
+        stats.event("guest", "دخول بوضع الضيف", h.getClientIp(req, config));
+        h.sendJson(res, 200, { ok: true }, { "Set-Cookie": guestCookie(req, true) });
     }
 
     async function resetPassword(req, res) {
@@ -411,7 +427,8 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
 
     async function requireUser(req, res) {
         const user = await currentUser(req);
-        if (!user) h.sendJson(res, 401, { error: "سجّل الدخول أولاً.", code: "login_required" });
+        if (!user && isGuest(req)) h.sendJson(res, 401, { error: "أنت بوضع الضيف (مشاهدة فقط). أنشئ حساباً مجانياً أو سجّل دخولك حتى تفحص وتستخدم الخدمات.", code: "guest" });
+        else if (!user) h.sendJson(res, 401, { error: "سجّل الدخول أولاً.", code: "login_required" });
         return user;
     }
 
@@ -486,7 +503,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (p === "/api/auth/config") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
             h.sendJson(res, 200, {
-                providers: oauth.providers, emailVerification: mailer.enabled, mfa: mfaActive(), registration: feature("registration"),
+                providers: oauth.providers, emailVerification: mailer.enabled, mfa: mfaActive(), registration: feature("registration"), guest: feature("guest"),
                 trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd
             });
             return true;
@@ -494,6 +511,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (p === "/api/auth/register") return await register(req, res), true;
         if (p === "/api/auth/login") return await login(req, res), true;
         if (p === "/api/auth/logout") return await logout(req, res), true;
+        if (p === "/api/auth/guest") return await startGuest(req, res), true;
         if (p === "/api/auth/mfa") return await mfaVerify(req, res), true;
         if (p === "/api/auth/mfa/resend") return await mfaResend(req, res), true;
         if (p === "/api/auth/reset") return await resetPassword(req, res), true;
@@ -524,7 +542,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         return false;
     }
 
-    return { handle, currentUser, requireUser, jsonBody, sendError };
+    return { handle, currentUser, requireUser, jsonBody, sendError, isGuest };
 }
 
 module.exports = { createAuth, maskEmail };

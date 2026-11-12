@@ -61,6 +61,7 @@
     }
 
     function renderBanner() {
+        renderHero();
         const u = state.user;
         const usage = state.usage;
         const banner = $('planBanner');
@@ -144,7 +145,7 @@
         list.replaceChildren();
         if (state.payments.length) {
             const table = node('table', 'simple-table');
-            const head = node('tr');
+            const head = node('tr', 'head-row');
             for (const t of ['التاريخ', 'المدة', 'المبلغ', 'الطريقة', 'الحالة']) head.append(node('th', '', t));
             table.append(head);
             for (const pay of state.payments) {
@@ -166,12 +167,58 @@
         $('payTotal').textContent = `المجموع: ${m * p.monthlyUsd}$ (≈ ${(m * p.monthlyIqd).toLocaleString('ar-IQ')} د.ع)`;
     }
 
+    // ملخص الحساب بأعلى الصفحة: الصورة والاسم والخطة واستهلاك اليوم
+    function renderHero() {
+        const u = state.user;
+        if (!u) return;
+        $('accAvatar').textContent = (u.name || u.email || '؟').trim().charAt(0).toUpperCase();
+        $('accName').textContent = u.name || 'حسابي';
+        const badge = $('accPlanBadge');
+        badge.textContent = u.plan === 'pro' ? (u.planSource === 'trial' ? 'Pro تجربة' : 'Pro') : 'مجاني';
+        badge.classList.toggle('pro', u.plan === 'pro');
+        $('accSince').textContent = 'عضو منذ ' + fmtDate(u.createdAt);
+        const usage = state.usage;
+        if (usage) {
+            const meter = (textId, barId, used, limit) => {
+                $(textId).textContent = `${used} / ${limit}`;
+                const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
+                const bar = $(barId);
+                bar.style.width = pct + '%';
+                bar.classList.toggle('high', pct >= 80);
+            };
+            meter('accScanText', 'accScanBar', usage.scan, usage.scanLimit);
+            meter('accChatText', 'accChatBar', usage.chat, usage.chatLimit);
+        }
+    }
+
+    // تبويبات صفحة الحساب (القسم المفتوح يُحفظ للجلسة)
+    const ACC_TABS = ['overview', 'billing', 'security', 'history'];
+    function showAccountTab(name) {
+        const tab = ACC_TABS.includes(name) ? name : 'overview';
+        document.querySelectorAll('[data-acc-panel]').forEach(p => { p.hidden = p.dataset.accPanel !== tab; });
+        document.querySelectorAll('[data-acc-tab]').forEach(b => {
+            const active = b.dataset.accTab === tab;
+            b.classList.toggle('active', active);
+            b.setAttribute('aria-selected', String(active));
+            if (active && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+        });
+        try { sessionStorage.setItem('acc_tab', tab); } catch { /* اختياري */ }
+        if (tab === 'history') loadHistory();
+        if (tab === 'billing') loadBilling();
+    }
+    document.addEventListener('click', event => {
+        const t = event.target.closest('[data-acc-tab],[data-acc-goto]');
+        if (t) showAccountTab(t.dataset.accTab || t.dataset.accGoto);
+    });
+
     function renderAccount() {
         const u = state.user;
         if (!u) return;
-        $('accountPlanLine').textContent = `خطتك: ${planText(u)}`;
+        renderHero();
+        $('accountPlanLine').textContent = planText(u);
+        $('accPlanFact').textContent = planText(u);
         $('profileEmail').textContent = u.email;
-        $('profileProviders').textContent = 'طرق الدخول: ' + [u.hasPassword ? 'البريد وكلمة السر' : '', ...u.providers.map(p => PROVIDER_NAMES[p] || p)].filter(Boolean).join('، ');
+        $('profileProviders').textContent = [u.hasPassword ? 'البريد وكلمة السر' : '', ...u.providers.map(p => PROVIDER_NAMES[p] || p)].filter(Boolean).join('، ');
         if (document.activeElement !== $('profileName')) $('profileName').value = u.name;
         $('pwCurrent').hidden = !u.hasPassword;
         $('apiKeyHint').textContent = u.limits.api
@@ -326,6 +373,7 @@
     function openUpgrade() {
         $('userDropdown').classList.remove('show');
         switchPage('accountPage', 'حسابي واشتراكي', 'fa-solid fa-user-shield');
+        showAccountTab('billing');
         loadBilling().then(() => {
             const card = $('subscribeCard');
             if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -506,5 +554,7 @@
         if (!event.target.closest('#userMenu')) $('userDropdown').classList.remove('show');
     });
 
-    refreshMe().then(() => { if (!state.guest) loadBilling(); });
+    let savedTab = 'overview';
+    try { savedTab = sessionStorage.getItem('acc_tab') || 'overview'; } catch { /* اختياري */ }
+    refreshMe().then(() => { if (!state.guest) { loadBilling(); showAccountTab(savedTab); } });
 })();

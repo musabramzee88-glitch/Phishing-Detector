@@ -308,6 +308,52 @@
         box.innerHTML = '<div class="live-card">' + data.results.map(h => `<div class="live-row"><span dir="ltr">${escapeHtml(h.ip)}</span><b>${h.country ? flagEmoji(h.country) + ' ' + escapeHtml(h.countryName || h.country) : '—'}${h.org ? ' · <span dir="ltr">' + escapeHtml(h.org.split(',')[0]) + '</span>' : ''}</b></div>`).join('') + '<p class="live-note">دولة الاستضافة هي مكان تسجيل السيرفر، مو بالضرورة مكان المرسل.</p></div>';
     }
 
+    // ================================================================ فحص رقم أو حساب
+    const CATEGORY_NAMES = { fake_seller: 'بائع أو متجر وهمي', transfer: 'طلب تحويل رصيد أو فلوس', impersonation: 'انتحال جهة أو شخص', otp: 'طلب رمز تحقق أو بيانات', blackmail: 'ابتزاز أو تهديد', investment: 'استثمار أو ربح وهمي', other: 'أخرى' };
+    async function lookupIdentifierForm() {
+        const kind = $('idKind').value, value = $('idValue').value.trim();
+        const box = $('idResult');
+        box.style.display = 'block';
+        if (!value) { box.innerHTML = errorHtml('اكتب الرقم أو الحساب.'); return; }
+        box.innerHTML = loadingHtml('جارٍ البحث بالبلاغات...');
+        const { ok, data } = await api('/api/identifier/lookup', { kind, value });
+        if (!ok) { box.innerHTML = errorHtml(data.error || 'تعذر البحث.'); return; }
+        const r = data.result;
+        const card = el('div', 'id-card ' + (r.reporters >= 2 ? 'many' : r.reporters === 1 ? 'one' : 'none'));
+        const shown = el('code', '', value);
+        shown.dir = 'ltr';
+        const head = el('p', 'id-head');
+        head.append(shown);
+        card.append(head);
+        if (!r.reporters) {
+            card.append(el('strong', '', 'ما انبلغ عنه بموقعنا.'), el('p', 'muted', 'هذا ما يعني إنه آمن: ممكن ما أحد بلّغ عنه بعد. لا تحوّل فلوس أو ترسل رموز لأي أحد ما تعرفه.'));
+        } else {
+            card.append(el('strong', '', r.reporters === 1 ? 'انبلغ عنه مرة وحدة.' : `انبلغ عنه ${r.reporters} مرات من ${r.reporters} مستخدمين مختلفين.`));
+            card.append(el('p', 'muted', r.reporters === 1 ? 'بلاغ واحد مو حكم، بس كن حذر وتأكد بنفسك قبل أي تحويل.' : 'كن حذر جداً: لا تحوّل فلوس ولا ترسل رموز أو بيانات.'));
+            const cats = Object.entries(r.categories).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${CATEGORY_NAMES[c] || c} (${n})`);
+            if (cats.length) card.append(el('p', '', 'نوع البلاغات: ' + cats.join('، ')));
+            if (r.lastAt) card.append(el('p', 'muted', 'آخر بلاغ: ' + new Date(r.lastAt).toLocaleDateString('ar-IQ')));
+        }
+        box.replaceChildren(card);
+    }
+
+    async function reportIdentifierForm() {
+        const msg = $('idrMsg');
+        if (!$('idrConfirm').checked) { msg.textContent = 'أكّد إن البلاغ صحيح أولاً.'; return; }
+        const { ok, data } = await api('/api/identifier/report', { kind: $('idrKind').value, value: $('idrValue').value.trim(), category: $('idrCategory').value, note: $('idrNote').value.trim() });
+        msg.textContent = ok ? data.message : (data.error || 'تعذر الإرسال.');
+        if (ok) { $('idrValue').value = ''; $('idrNote').value = ''; $('idrConfirm').checked = false; }
+    }
+
+    // من قارئ لقطة الشاشة: افحص الرقم مباشرة
+    function lookupIdentifier(value) {
+        switchPage('identifierPage', 'فحص رقم أو حساب', 'fa-solid fa-address-book');
+        $('idKind').value = 'phone';
+        $('idValue').value = String(value).slice(0, 200);
+        lookupIdentifierForm();
+    }
+
+    Object.assign(ACTIONS, { lookupIdentifierForm, reportIdentifierForm, lookupIdentifier });
     Object.assign(ACTIONS, { scanQrImage, startCamera, stopCamera, scanScreenshot, analyzeOcrText, scanFoundUrl, analyzeHeaders, lookupHeaderIps });
     // نوقف الكاميرا إذا المستخدم طلع من الصفحة
     document.addEventListener('click', e => { if (e.target.closest('[data-page]') && !e.target.closest('#qrPage')) stopCamera(); });

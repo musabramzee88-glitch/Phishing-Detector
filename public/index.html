@@ -138,6 +138,11 @@
                     <span>تحليل ترويسة الإيميل</span>
                     <small class="card-desc">SPF و DKIM و DMARC وانتحال المرسل</small>
                 </button>
+                <button class="action-card-btn" data-page="identifierPage" data-title="فحص رقم أو حساب" data-icon="fa-solid fa-address-book">
+                    <i class="fa-solid fa-address-book"></i>
+                    <span>فحص رقم أو حساب</span>
+                    <small class="card-desc">هل انبلغ عن هذا الرقم أو الحساب أو المحفظة؟</small>
+                </button>
                 <button class="action-card-btn" data-page="checkupPage" data-title="فحص أمان حساباتك" data-icon="fa-solid fa-user-lock">
                     <i class="fa-solid fa-user-lock"></i>
                     <span>فحص أمان حساباتك</span>
@@ -365,6 +370,12 @@
                 <p style="color:var(--text-muted); font-size:0.9rem;">حقيبة تدريبية تفاعلية متعددة السيناريوهات للرفع من الحس الأمني وكشف أساليب الهندسة الاجتماعية</p>
             </div>
 
+            <div class="scanner-card course-card">
+                <h3><i class="fa-solid fa-graduation-cap"></i> الدورة التوعوية والشهادة</h3>
+                <p class="muted" style="font-size:.88rem">3 مستويات، كل مستوى دروس قصيرة واختبار من 5 أسئلة عشوائية. اجتز الثلاثة وخذ شهادة إتمام برقم تحقق ورمز QR.</p>
+                <div id="courseBox"><p class="muted">جارٍ التحميل...</p></div>
+            </div>
+
             <div class="scanner-card" style="border-color: var(--accent-blue);">
                 <h3 style="color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 10px;"><i class="fa-solid fa-gamepad"></i> محاكي التصيد الإلكتروني التفاعلي المتعدد</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">اختر أحد السيناريوهات السيبرانية أدناه واختبر مهاراتك في كشف الهجمات:</p>
@@ -505,6 +516,60 @@
                 <textarea id="headersInput" rows="9" dir="ltr" spellcheck="false" placeholder="Received: from ...&#10;Authentication-Results: ...&#10;From: ...&#10;Reply-To: ..."></textarea>
                 <button type="button" class="btn-scan" data-action="analyzeHeaders"><i class="fa-solid fa-magnifying-glass"></i> حلّل الترويسات</button>
                 <div id="headersReportBox" class="report-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="identifierPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-address-book"></i> فحص رقم أو حساب أو محفظة</h2>
+                <p class="muted">بائع وهمي بالانستغرام؟ شخص يطلب تحويل رصيد؟ اكتب رقمه أو حسابه وشوف إذا بلّغ عنه مستخدمين ثانيين.</p>
+            </div>
+            <div class="scanner-card">
+                <form class="id-form" data-submit="lookupIdentifierForm">
+                    <select class="app-select" id="idKind" aria-label="النوع">
+                        <option value="phone">رقم هاتف</option>
+                        <option value="whatsapp">رقم واتساب</option>
+                        <option value="instagram">حساب انستغرام</option>
+                        <option value="telegram">حساب تيليجرام</option>
+                        <option value="facebook">حساب فيسبوك</option>
+                        <option value="wallet">محفظة إلكترونية أو حساب مصرفي</option>
+                    </select>
+                    <input class="app-input" id="idValue" maxlength="200" dir="ltr" placeholder="07701234567 أو @username" autocomplete="off">
+                    <button class="btn-scan" type="submit"><i class="fa-solid fa-magnifying-glass"></i> افحص</button>
+                </form>
+                <div id="idResult" class="report-box"></div>
+                <p class="muted id-legal">النتائج من بلاغات مستخدمي الموقع، ونعرضها كعدد فقط: ما نعرض أسماء ولا نحكم على أحد. غياب البلاغات ما يعني إن الرقم آمن. انبلغ عن رقمك بالغلط؟ <a href="/dispute" target="_blank" rel="noopener noreferrer">قدّم اعتراض</a>.</p>
+            </div>
+            <div class="scanner-card">
+                <h3><i class="fa-regular fa-flag"></i> بلّغ عن رقم أو حساب</h3>
+                <p class="muted" style="font-size:.86rem">بلّغ فقط إذا تعرضت للاحتيال فعلاً أو عندك دليل. البلاغ الكاذب ممنوع بشروط الاستخدام. كل حساب ينحسب مرة وحدة لكل رقم.</p>
+                <form class="id-report" data-submit="reportIdentifierForm">
+                    <select class="app-select" id="idrKind" aria-label="النوع">
+                        <option value="phone">رقم هاتف</option>
+                        <option value="whatsapp">رقم واتساب</option>
+                        <option value="instagram">حساب انستغرام</option>
+                        <option value="telegram">حساب تيليجرام</option>
+                        <option value="facebook">حساب فيسبوك</option>
+                        <option value="wallet">محفظة إلكترونية أو حساب مصرفي</option>
+                    </select>
+                    <input class="app-input" id="idrValue" maxlength="200" dir="ltr" placeholder="الرقم أو الحساب" autocomplete="off">
+                    <select class="app-select" id="idrCategory" aria-label="نوع الاحتيال">
+                        <option value="fake_seller">بائع أو متجر وهمي</option>
+                        <option value="transfer">طلب تحويل رصيد أو فلوس</option>
+                        <option value="impersonation">انتحال جهة أو شخص</option>
+                        <option value="otp">طلب رمز تحقق أو بيانات</option>
+                        <option value="blackmail">ابتزاز أو تهديد</option>
+                        <option value="investment">استثمار أو ربح وهمي</option>
+                        <option value="other">أخرى</option>
+                    </select>
+                    <input class="app-input" id="idrNote" maxlength="300" placeholder="شنو صار؟ (اختياري، تشوفه الإدارة فقط)">
+                    <label class="checkbox-label"><input type="checkbox" id="idrConfirm"> أأكد إن البلاغ صحيح وعن تجربة فعلية</label>
+                    <button class="app-btn" type="submit"><i class="fa-regular fa-flag"></i> إرسال البلاغ</button>
+                    <div class="inline-msg" id="idrMsg"></div>
+                </form>
             </div>
         </div>
     </div>
@@ -762,5 +827,6 @@ Authorization: Bearer pd_...</pre>
     <script src="/js/checkup.js?v=1"></script>
     <script src="/js/email-headers.js?v=1"></script>
     <script src="/js/tools.js?v=1"></script>
+    <script src="/js/course.js?v=1"></script>
 </body>
 </html>

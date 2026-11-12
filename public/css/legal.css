@@ -25,3 +25,7 @@ footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 0
 @media (max-width: 600px) { .legal-top nav a { margin-inline-start: 10px; font-size: 0.85rem; } main { margin: 0 12px 28px; padding: 22px 16px; } }
 .legal-foot { max-width: 860px; margin: 0 auto 28px; padding: 0 16px; text-align: center; color: var(--muted); font-size: .85rem; }
 .legal-foot a { color: var(--muted); }
+.dispute-form { display: grid; gap: 12px; margin-top: 18px; }
+.dispute-form label { display: grid; gap: 6px; font-weight: 700; font-size: .92rem; }
+.dispute-form input, .dispute-form select, .dispute-form textarea { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border, rgba(127,127,127,.35)); font: inherit; background: transparent; color: inherit; }
+.dispute-form button { padding: 12px; border: 0; border-radius: 10px; background: var(--accent, #0066ff); color: var(--bg, #fff); font: inherit; font-weight: 800; cursor: pointer; }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اعتراض على بلاغ | Phishing Detector</title>
+    <meta name="description" content="انبلغ عن رقمك أو حسابك بالغلط؟ قدّم اعتراضاً وتراجعه الإدارة.">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="stylesheet" href="/vendor/tajawal/tajawal.css?v=1">
+    <link rel="stylesheet" href="/css/legal.css?v=1">
+</head>
+<body>
+    <header class="legal-top">
+        <a class="legal-brand" href="/login"><img src="/img/logo-192.jpg?v=1" width="192" height="192" alt=""> Phishing Detector</a>
+        <nav><a href="/privacy">الخصوصية</a><a href="/terms">الشروط</a></nav>
+    </header>
+    <main>
+        <h1>اعتراض على بلاغ</h1>
+        <p>مستخدمو الموقع يكدرون يبلّغون عن أرقام أو حسابات استُعملت بالاحتيال، ونعرض للناس <strong>عدد البلاغات فقط</strong>: ما نعرض اسم أحد، وما نحكم على أحد إنه محتال، وبلاغ واحد ما يُعتبر حكماً.</p>
+        <p>إذا رقمك أو حسابك انبلغ عنه بالغلط (مثلاً رقم جديد كان لشخص ثاني، أو حسابك انسرق واستُعمل)، اكتب اعتراضك. الإدارة تراجعه، وإذا كان محقاً تنحذف كل البلاغات عنه ولا تنقبل بلاغات جديدة إلا بمراجعة.</p>
+        <form id="disputeForm" class="dispute-form">
+            <label>النوع
+                <select id="dKind">
+                    <option value="phone">رقم هاتف</option>
+                    <option value="whatsapp">رقم واتساب</option>
+                    <option value="telegram">حساب تيليجرام</option>
+                    <option value="instagram">حساب انستغرام</option>
+                    <option value="facebook">حساب فيسبوك</option>
+                    <option value="wallet">محفظة إلكترونية أو حساب مصرفي</option>
+                </select>
+            </label>
+            <label>الرقم أو الحساب<input id="dValue" maxlength="200" dir="ltr" required></label>
+            <label>وسيلة للتواصل وياك (اختياري: بريد أو رقم)<input id="dContact" maxlength="120" dir="ltr"></label>
+            <label>سبب الاعتراض<textarea id="dReason" rows="5" maxlength="1000" required></textarea></label>
+            <button type="submit">إرسال الاعتراض</button>
+            <p id="dMsg" role="status"></p>
+        </form>
+    </main>
+    <footer class="legal-foot"><a href="/privacy">الخصوصية</a> · <a href="/terms">الشروط</a></footer>
+    <script src="/js/dispute.js?v=1"></script>
+</body>
+</html>

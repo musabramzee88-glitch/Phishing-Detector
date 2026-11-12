@@ -534,6 +534,34 @@ function createAdmin(config, stats, extras = {}) {
         }
 
         // ---------- المستخدمون والمدفوعات والإيرادات (تتطلب جلسة أدمن) ----------
+        if (p === "/api/admin/identifiers" || p.startsWith("/api/admin/identifiers/")) {
+            const session = currentSession(req);
+            if (!session) return http.sendJson(res, 401, { error: "Unauthorized" }), true;
+            const ids = extras.identifiers;
+            if (!ids) return http.sendJson(res, 404, { error: "Not found" }), true;
+            try {
+                if (p === "/api/admin/identifiers" && req.method === "GET") return http.sendJson(res, 200, await ids.adminView()), true;
+                if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
+                const body = await adminPostBody(req, res);
+                if (body === undefined) return true;
+                const ip = http.getClientIp(req, config);
+                if (p === "/api/admin/identifiers/dispute") {
+                    const item = await ids.decideDispute(String(body.id || ""), { remove: body.remove === true, admin: session.user });
+                    stats.event("identifier_dispute", `${item.status === "removed" ? "قبول اعتراض وحذف بلاغات" : "رفض اعتراض"} (${item.masked})`, ip);
+                    return http.sendJson(res, 200, { item }), true;
+                }
+                if (p === "/api/admin/identifiers/remove") {
+                    await ids.removeByHash(String(body.h || ""));
+                    stats.event("identifier_dispute", "حذف بلاغات معرّف يدوياً", ip);
+                    return http.sendJson(res, 200, { ok: true }), true;
+                }
+                return http.sendJson(res, 404, { error: "Not found" }), true;
+            } catch (error) {
+                if (error && typeof error.status === "number" && error.name !== "UpstashError") return http.sendJson(res, error.status, { error: error.message }), true;
+                if (error && error.name === "UpstashError") return http.sendJson(res, 503, { error: "تعذر الوصول لقاعدة البيانات." }), true;
+                throw error;
+            }
+        }
         if (p === "/api/admin/community" || p.startsWith("/api/admin/community/")) {
             return await communityRoutes(req, res, p, url), true;
         }

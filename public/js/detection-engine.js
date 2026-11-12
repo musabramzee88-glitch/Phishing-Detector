@@ -456,6 +456,7 @@
         return best;
     }
 
+    const MAX_URL_CHARS = 4096;
     function analyzeUrl(rawInput, options = {}) {
         const strict = Boolean(options.strict);
         const depth = options.depth || 0;
@@ -463,7 +464,8 @@
         const signals = [];
         const add = (weight, type, text) => signals.push({ weight, type, text });
 
-        const cleaned = cleanUrlInput(rawInput);
+        // سقف للطول: بعض الفحوصات تكبر تربيعياً مع الطول، والروابط الحقيقية نادراً ما تتجاوز بضعة آلاف حرف
+        const cleaned = cleanUrlInput(String(rawInput == null ? '' : rawInput).slice(0, MAX_URL_CHARS));
         let text = cleaned.text;
         if (!text) return { error: 'empty' };
         if (cleaned.defanged) add(0, 'info', 'الرابط مكتوب بصيغة معطّلة (hxxp أو [.]) وتمت إعادته لصيغته الأصلية لغرض الفحص.');
@@ -506,7 +508,7 @@
 
         // 2. بيانات قبل علامة @
         if (url.username || url.password) {
-            const fake = decodeURIComponent(url.username + (url.password ? ':' + url.password : ''));
+            const fake = decodeURIComponentSafe(url.username + (url.password ? ':' + url.password : ''));
             add(official ? 0.3 : 0.6, 'danger', `الرابط يحتوي "${fake}@" في بدايته. المتصفح يتجاهل كل ما قبل @، والموقع الذي سيفتح فعلاً هو ${host}.`);
         }
 
@@ -648,10 +650,23 @@
                 : 'الرابط يحمل بريداً إلكترونياً داخله: صفحات التصيد تعبّئ بريد الضحية مسبقاً حتى تبدو صفحة دخول حقيقية مخصصة لك.');
         }
 
+        // 11.5 تقليد اسم موقعنا نفسه (evil-phishing-detector.onrender.com أو phishing-detect0r...)
+        for (const site of siteHosts) {
+            const siteLabel = splitDomain(site).label;
+            if (!siteLabel || siteLabel.length < 6 || host.replace(/^www\./, '') === site) continue;
+            const label = parts.label;
+            const decoded = label.replace(/0/g, 'o').replace(/1/g, 'l').replace(/3/g, 'e');
+            if (label.includes(siteLabel) || decoded.includes(siteLabel) || similarity(label, siteLabel) >= 0.85 || host.startsWith(site + '.')) {
+                add(0.6, 'danger', `النطاق يقلّد اسم موقع Phishing Detector نفسه (${site}) وهو مو تابع إلنا.`);
+                break;
+            }
+        }
+
         // 12. بنية النطاق والرابط
         if (parts.subdomains.length >= 3) add(0.2, 'warning', `عدد كبير من النطاقات الفرعية (${parts.subdomains.length})، وهي طريقة لإخفاء النطاق الحقيقي في نهاية الرابط.`);
         const hyphens = (parts.label.match(/-/g) || []).length;
-        if (hyphens >= 2) add(hyphens >= 3 ? 0.2 : 0.12, 'warning', `اسم النطاق فيه ${hyphens} شرطات (-)، وهذا شائع في نطاقات التصيد.`);
+        // على الاستضافة المجانية الاسم يختاره صاحب الموقع (my-cool-portfolio.netlify.app)، والاستضافة نفسها محسوبة أعلاه، فنخفف وزن الشرطات
+        if (hyphens >= (parts.isHosting ? 3 : 2)) add(hyphens >= (parts.isHosting ? 4 : 3) ? 0.2 : 0.12, 'warning', `اسم النطاق فيه ${hyphens} شرطات (-)، وهذا شائع في نطاقات التصيد.`);
         if ((parts.label.match(/\d/g) || []).length >= 4) add(0.1, 'warning', 'اسم النطاق يحتوي أرقاماً كثيرة.');
         if (host.length > 45) add(0.1, 'warning', `اسم المضيف طويل بشكل غير معتاد (${host.length} حرفاً).`);
         // اسم عشوائي المظهر (مولَّد آلياً): شائع في نطاقات الحملات المؤقتة والبرمجيات الخبيثة
@@ -702,7 +717,8 @@
                 rx('كلمه\\s*(ال)?(سر|مرور)'), rx('الرقم السري'), rx('\\b(otp|pin|cvv|cvc|password|passcode)\\b'),
                 rx('verification code|security code|one[- ]time (pass)?code'),
                 rx('رقم\\s*(ال)?بطاق'), rx('(تاريخ|سنه)\\s*(ال)?(انتهاء|صلاحيه)'), rx('بيانات\\s*(ال)?(بطاق|دخول|حساب)'),
-                rx('credit card|card number|login details|bank details')
+                rx('credit card|card number|login details|bank details'),
+                rx('صوره\\s*(ال)?(هويه|بطاقه\\s*(ال)?وطنيه|البطاقه الوطنيه|جواز|الجواز|جنسيه|الجنسيه)|(photo|picture|copy) of (your )?(id|passport|national id)')
             ]
         },
         {
@@ -736,6 +752,7 @@
                 rx(`(حول|حولي|حوللي|تحويل|ارسل|ادفع|دفع|اشحن|اشحنلي)\\s*${W}{0,2}?(مبلغ|رصيد|فلوس|اموال|دولار|دينار|رسوم|\\d+\\s*(\\$|دولار|الف|دينار))`),
                 rx('رسوم\\s*(رمزيه|الشحن|شحن|تسجيل|التسجيل|تفعيل|جمرك|كمرك|توصيل|التوصيل|اداريه|معامله)'),
                 rx('(كارت|بطاقه|بطاقات)\\s*(شحن|ايتونز|هدايا|جوجل بلاي|ستيم)'),
+                rx('send (me )?(some )?money|transfer (me )?(some )?money|lend me \\$?\\d*|(need|send) \\$?\\d+ (urgently|now|asap)'),
                 rx('gift ?cards?|wire transfer|western union|moneygram|bitcoin|\\bbtc\\b|\\busdt\\b|crypto|processing fee|delivery fee|customs fee|pay (a|the) fee'),
                 rx('(محفظه|محافظ)\\s*(رقميه|الكترونيه)')
             ]
@@ -753,7 +770,7 @@
         {
             id: 'action', label: 'دفعك للضغط على رابط أو تسجيل الدخول', weight: 0.2, patterns: [
                 rx(`(اضغط|انقر|دوس|اكبس|ادخل|افتح|زور)\\s*${W}{0,2}?(على\\s*)?(ال)?(رابط|لينك|هنا)`),
-                rx('(سجل|تسجيل)\\s*(ال)?دخول'), rx(`(حدث|تحديث)\\s*${W}{0,1}?(ال)?(بيانات|معلومات|حساب)`),
+                rx('(سجل|تسجيل)\\s*(ال)?دخول'), rx('(سجل|ادخل|املي|املا|املئ|ارسل)\\s*(بياناتك|معلوماتك|اسمك ورقمك)'), rx(`(حدث|تحديث)\\s*${W}{0,1}?(ال)?(بيانات|معلومات|حساب)`),
                 rx(`(تاكيد|اكد|تحقق من)\\s*${W}{0,1}?(ال)?(هويت|حساب|بيانات|معلومات)`),
                 rx('click (here|the link|below|on the link)|log ?in (now|here|to)|sign ?in to|verify (your )?(account|identity|information)|update your (details|information|account|payment)|confirm your (account|identity|details)')
             ]
@@ -797,7 +814,15 @@
                 rx('(سلفه|سلف|قرض|قروض)\\s*(بدون|بلا)\\s*(فوايد|فوائد|كفيل|ضمان)'),
                 rx(`(رابط|استماره)\\s*${W}{0,1}?(التقديم|التسجيل)\\s*${W}{0,2}?(على|ب)?\\s*(ال)?(منحه|سلفه|قرض|وظايف|وظائف|التعيين)`),
                 rx('(التقديم|التسجيل)\\s*على\\s*(ال)?(منحه|سلفه|القرض)'),
+                rx('(منحه|منح|مساعده|مساعدات)\\s*${W}{0,2}?(من\\s*)?(الامم المتحده|اليونيسف|منظمه|الحكومه|الوزاره|رئاسه الوزراء|الهلال الاحمر)'),
+                rx('(منحه|مساعده)\\s*(ماليه\\s*)?(بقيمه\\s*)?\\d+\\s*(الف|دولار|دينار|\\$)'),
                 rx('government grant|free grant|loan without (interest|guarantor)')
+            ]
+        },
+        {
+            id: 'newnumber', label: 'انتحال قريب أو صديق برقم جديد', weight: 0.3, patterns: [
+                rx('(غيرت|بدلت|تبدل|هذا)\\s*(رقمي|رقم\\s*(ي\\s*)?(ال)?جديد)|رقمي\\s*(ال)?(جديد|القديم)|(ضاع|انسرق|انكسر|طاح)\\s*(موبايلي|تلفوني|جوالي|هاتفي)'),
+                rx("(this is|it'?s|here'?s) my new (number|phone)|new number|lost my phone|broke my phone|\\bhi (mom|mum|dad|mama)\\b")
             ]
         },
         {
@@ -823,6 +848,7 @@
         { all: 'windfall', any: ['payment', 'secrecy', 'channel', 'credentials', 'urgency', 'action', 'link'], weight: 0.4, text: 'قصة ثروة أو ميراث أو أموال عالقة مع طلب مساعدة أو تواصل: احتيال الدفع المقدم المعروف (419).' },
         { all: 'macro', any: ['urgency', 'impersonation', 'action', 'payment', 'threat'], weight: 0.35, text: 'مستند يطلب تفعيل الماكرو مع صيغة استعجال أو انتحال: أسلوب شائع لنشر البرمجيات الخبيثة.' },
         { all: 'job', any: ['payment'], weight: 0.35, text: 'عرض عمل أو استثمار يطلب دفع مبلغ مقدماً (Advance-fee scam).' },
+        { all: 'newnumber', any: ['payment', 'credentials', 'urgency', 'secrecy'], weight: 0.4, text: 'شخص يدّعي إنه قريبك أو صديقك برقم جديد ويطلب فلوس أو رمز: اتصل على رقمه القديم أو صوتياً وتأكد قبل أي شي.' },
         { all: 'impersonation', any: ['payment'], weight: 0.25, text: 'جهة تدّعي أنها رسمية وتطلب تحويل أموال.' },
         { all: 'grant', any: ['action', 'credentials', 'payment', 'link'], weight: 0.35, text: 'منحة أو قرض يُطلب التقديم عليه عبر رابط أو بإدخال بيانات: من أكثر أساليب الاحتيال انتشاراً بالعراق.' },
         { all: 'brand_mismatch', any: ['credentials', 'action', 'threat', 'payment', 'urgency', 'prize'], weight: 0.4, text: 'رسالة باسم جهة معروفة تطلب إجراءً عبر رابط لا يتبعها: هذا جوهر هجمات التصيد.' },
@@ -915,6 +941,12 @@
                 const weight = Math.min(rule.weight + 0.1 * (matches.length - 1), 0.6);
                 add(weight, weight >= 0.35 ? 'danger' : 'warning', `${rule.label}: «${matches.join('»، «')}»`);
             }
+        }
+
+        // ذكر اسم مصرف أو جهة وحده (مثل إشعار راتب حقيقي) ليس احتيالاً: نخفّض وزنه ما لم يرافقه طلب أو تهديد
+        if (hits.has('impersonation') && [...hits].every(id => id === 'impersonation' || id === 'greeting')) {
+            const s = signals.find(x => x.text.startsWith('انتحال جهة'));
+            if (s) { s.weight = 0.08; s.type = 'info'; s.text = 'الرسالة تذكر جهة رسمية أو شركة. وحده هذا مو دليل احتيال، بس تأكد إن المرسل هو الجهة نفسها.'; }
         }
 
         // الروابط داخل الرسالة تُفحص بمحرك الروابط

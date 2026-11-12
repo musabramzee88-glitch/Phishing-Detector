@@ -152,6 +152,7 @@ function createAdmin(config, stats, extras = {}) {
         let body;
         try {
             body = await http.readJsonBody(req, 2048);
+            if (body === null || typeof body !== "object" || Array.isArray(body)) throw new Error("bad body");
         } catch {
             http.sendJson(res, 400, { error: "Bad request" });
             return;

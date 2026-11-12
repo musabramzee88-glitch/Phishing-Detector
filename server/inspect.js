@@ -137,23 +137,54 @@ const OTP_FIELD = /(\botp\b|one-time-code|verif\w*.?code|sms.?code|\bpin\b|passc
 const EMAIL_FIELD = /(e-?mail|username|user.?name|login|البريد|اسم المستخدم|رقم الهاتف|phone)/i;
 
 // يحلل HTML ويرجع حقائق فقط (بدون أي HTML)
-function analyzeHtml(html, pageUrl) {
+// يحذف التعليقات والسكربتات والأنماط والوسوم بمرور خطي واحد (indexOf فقط).
+// التعابير النمطية الكسولة ([\s\S]*?) تصير تربيعية مع وسوم غير مغلقة، فصفحة خبيثة كانت توقف الخادم ثواني.
+const SKIP_BLOCKS = ["script", "style", "noscript", "template", "svg", "title"];   // العنوان يُعرض بسطره الخاص
+function stripToText(html, lower) {
+    let out = "";
+    let i = 0;
+    while (i < html.length && out.length < 20_000) {
+        const lt = html.indexOf("<", i);
+        if (lt < 0) { out += html.slice(i); break; }
+        out += html.slice(i, lt) + " ";
+        if (lower.startsWith("<!--", lt)) {
+            const end = lower.indexOf("-->", lt + 4);
+            if (end < 0) break;
+            i = end + 3;
+            continue;
+        }
+        const block = SKIP_BLOCKS.find(name => lower.startsWith("<" + name, lt) && !/[a-z0-9-]/.test(lower[lt + name.length + 1] || ""));
+        if (block) {
+            const end = lower.indexOf("</" + block, lt + 1);
+            if (end < 0) break;
+            const close = lower.indexOf(">", end);
+            i = close < 0 ? html.length : close + 1;
+            continue;
+        }
+        const gt = html.indexOf(">", lt + 1);
+        if (gt < 0) break;
+        i = gt + 1;
+    }
+    return out;
+}
+
+const MAX_HTML_ANALYZE = 300 * 1024;
+function analyzeHtml(rawHtml, pageUrl) {
+    // نحلل أول 300KB فقط، وكل أنماط الوسوم محدودة الطول: صفحة خبيثة (آلاف الوسوم غير المغلقة) ما تكدر تشغّل الخادم ثواني
+    const html = String(rawHtml == null ? "" : rawHtml).slice(0, MAX_HTML_ANALYZE);
     const lower = html.toLowerCase();
     const titleMatch = /<title[^>]*>([\s\S]{0,400}?)<\/title>/i.exec(html);
     const title = titleMatch ? cleanLine(titleMatch[1], 160) : "";
-    const descTag = /<meta\b[^>]*name\s*=\s*["']?description["']?[^>]*>/i.exec(html);
+    const descTag = /<meta\b[^>]{0,500}name\s*=\s*["']?description["']?[^>]{0,1000}>/i.exec(html);
     const description = descTag ? cleanLine(attr(descTag[0], "content"), 200) : "";
 
     // النص الظاهر تقريباً: نحذف السكربتات والأنماط والوسوم
-    const text = cleanLine(html
-        .replace(/<(script|style|noscript|template|svg)\b[\s\S]*?<\/\1>/gi, " ")
-        .replace(/<!--[\s\S]*?-->/g, " ")
-        .replace(/<[^>]+>/g, " "), 4000);
+    const text = cleanLine(stripToText(html, lower), 4000);
 
     const pageHost = pageUrl.hostname.toLowerCase();
     const pageReg = registrableOf(pageHost);
 
-    const inputs = html.match(/<input\b[^>]*>/gi) || [];
+    const inputs = html.match(/<input\b[^>]{0,1000}>/gi) || [];
     let password = 0, card = 0, otp = 0, identity = 0;
     for (const tag of inputs.slice(0, 300)) {
         const type = attr(tag, "type").toLowerCase();
@@ -166,7 +197,7 @@ function analyzeHtml(html, pageUrl) {
     }
 
     const forms = [];
-    for (const tag of (html.match(/<form\b[^>]*>/gi) || []).slice(0, 30)) {
+    for (const tag of (html.match(/<form\b[^>]{0,1000}>/gi) || []).slice(0, 30)) {
         const raw = attr(tag, "action");
         const target = raw ? resolveUrl(raw, pageUrl) : pageUrl;
         const mailto = /^mailto:/i.test(raw);
@@ -181,7 +212,7 @@ function analyzeHtml(html, pageUrl) {
 
     // موارد تُسحب من نطاقات رسمية لعلامات معروفة (شعار/أيقونة/أنماط) بينما الصفحة على نطاق آخر
     const hotlinked = new Set();
-    for (const m of html.matchAll(/<(?:img|link|script)\b[^>]*\s(?:src|href)\s*=\s*["']?(https?:\/\/[^"'\s>]{4,300})/gi)) {
+    for (const m of html.matchAll(/<(?:img|link|script)\b[^>]{0,500}\s(?:src|href)\s*=\s*["']?(https?:\/\/[^"'\s>]{4,300})/gi)) {
         const u = resolveUrl(m[1], pageUrl);
         if (!u) continue;
         const official = engine.officialBrandFor(u.hostname.toLowerCase().replace(/^www\./, ""));
@@ -191,7 +222,7 @@ function analyzeHtml(html, pageUrl) {
 
     // التحويل من داخل الصفحة (meta refresh أو JavaScript)
     let redirectTo = "";
-    const refresh = /<meta\b[^>]*http-equiv\s*=\s*["']?refresh["']?[^>]*>/i.exec(html);
+    const refresh = /<meta\b[^>]{0,500}http-equiv\s*=\s*["']?refresh["']?[^>]{0,1000}>/i.exec(html);
     if (refresh) {
         const m = /url\s*=\s*['"]?([^'">\s]+)/i.exec(attr(refresh[0], "content"));
         if (m) redirectTo = m[1];

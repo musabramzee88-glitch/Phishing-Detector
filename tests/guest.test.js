@@ -64,3 +64,40 @@ test('صفحة الدخول فيها زر الضيف، وزر زيارة الص�
     assert.match(app, /function visitButtonHtml[\s\S]{0,200}result\.level !== 'safe'/);
     assert.match(app, /target="_blank" rel="noopener noreferrer"/);
 });
+
+const { adminEntry, registerUser, authed } = require('./helpers');
+
+test('الأدمن: «خروج من كل الأجهزة» يُسقط جلسات المستخدم ويسجَّل بالسجل', async () => {
+    const admins = await adminEntry('qa', 'QA-admin-pass-123');
+    await withServer({ ADMINS: admins }, async app => {
+        const user = await registerUser(app, { email: 'victim@example.com' });
+        assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: user.cookie } })).status, 200);
+        const login = await request(app, 'POST', '/api/admin/login', { headers: sameOrigin(app), body: { username: 'qa', password: 'QA-admin-pass-123' } });
+        const admin = cookieFrom(login);
+        const r = await request(app, 'POST', '/api/admin/users/action', { headers: authed(app, admin), body: { id: user.json.user.id, action: 'revoke-sessions' } });
+        assert.equal(r.status, 200);
+        await new Promise(res => setTimeout(res, 5));
+        assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: user.cookie } })).status, 401);
+        // يقدر يدخل من جديد
+        const again = await request(app, 'POST', '/api/auth/login', { headers: sameOrigin(app), body: { email: 'victim@example.com', password: 'a long safe passphrase' } });
+        assert.equal((await request(app, 'GET', '/api/auth/me', { headers: { Cookie: cookieFrom(again) } })).status, 200);
+        const stats = await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: admin } });
+        assert.ok(stats.json.events.some(e => /إنهاء كل جلسات/.test(e.detail)));
+    });
+});
+
+test('محاولة فحص رابط داخلي (SSRF) تُمنع وتظهر كحدث أمني بلوحة الإدارة', async () => {
+    const { createInspector } = require('../server/inspect');
+    const inspector = createInspector({ lookup: async () => [{ address: '10.0.0.7', family: 4 }], resolveTxt: async () => [] });
+    const admins = await adminEntry('qa', 'QA-admin-pass-123');
+    await withServer({ ADMINS: admins }, async app => {
+        const user = await registerUser(app);
+        const r = await request(app, 'POST', '/api/scan/url', { headers: authed(app, user.cookie), body: { url: 'http://internal-service.example/admin' } });
+        assert.equal(r.status, 200);
+        assert.equal(r.json.result.inspection.reason, 'blocked');
+        const login = await request(app, 'POST', '/api/admin/login', { headers: sameOrigin(app), body: { username: 'qa', password: 'QA-admin-pass-123' } });
+        const stats = await request(app, 'GET', '/api/admin/stats', { headers: { Cookie: cookieFrom(login) } });
+        assert.equal(stats.json.counters.ssrfBlocked, 1);
+        assert.ok(stats.json.events.some(e => e.type === 'ssrf_blocked'));
+    }, null, { inspector });
+});

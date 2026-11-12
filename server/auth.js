@@ -338,7 +338,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         const body = await jsonBody(req, res, 256);
         if (body === undefined) return;
         if (!feature("guest")) return h.sendJson(res, 403, { error: "وضع الضيف متوقف حالياً." });
-        stats.event("guest", "دخول بوضع الضيف", h.getClientIp(req, config));
+        stats.count("guestEntries");
         h.sendJson(res, 200, { ok: true }, { "Set-Cookie": guestCookie(req, true) });
     }
 

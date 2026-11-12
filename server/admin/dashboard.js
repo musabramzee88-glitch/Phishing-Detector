@@ -5,6 +5,7 @@
 const REFRESH_MS = 10_000;
 const KIND_LABELS = { url: "الروابط", text: "الرسائل والنصوص", file: "الملفات", media: "الصوت والفيديو" };
 const EVENT_LABELS = {
+    ssrf_blocked: ["محاولة SSRF مُنعت", "bad"],
     login_ok: ["دخول ناجح", "ok"],
     login_failed: ["دخول فاشل", "bad"],
     login_throttled: ["سقف محاولات الدخول", "warn"],
@@ -262,7 +263,9 @@ function renderKpis(data) {
         { label: "المستخدمون المسجّلون", value: data.usersTotal === null || data.usersTotal === undefined ? "—" : fmt(data.usersTotal), sub: `${fmt(c.registrations)} حساب جديد منذ بدء الإحصاء`, tone: "ok" },
         { label: "زوار اليوم", value: fmt(v.uniqueToday), sub: `${fmt(v.activeNow)} نشط الآن`, tone: "" },
         { label: "محادثات CyberBot", value: fmt(c.chatOk), sub: c.chatOk ? `${aiShare}% بالذكاء الاصطناعي` : "لا محادثات بعد", tone: "" },
-        { label: "قاعدة التهديدات", value: fmt(threatDb), sub: "رابط ونطاق تصيد محدّثة كل 3 ساعات", tone: "" }
+        { label: "قاعدة التهديدات", value: fmt(threatDb), sub: "رابط ونطاق تصيد محدّثة كل 3 ساعات", tone: "" },
+        { label: "زيارات آمنة للروابط", value: fmt(c.liveVisits || 0), sub: `${fmt(c.snapshotViews || 0)} معاينة لشكل الصفحة`, tone: "accent" },
+        { label: "دخول كضيف", value: fmt(c.guestEntries || 0), sub: (c.ssrfBlocked || 0) ? `⚠️ ${fmt(c.ssrfBlocked)} محاولة وصول لعنوان داخلي مُنعت` : "لا محاولات وصول لعناوين داخلية", tone: (c.ssrfBlocked || 0) ? "bad" : "" }
     ];
     document.getElementById("kpis").replaceChildren(...tiles.map(x => {
         const tile = el("div", "kpi " + x.tone);

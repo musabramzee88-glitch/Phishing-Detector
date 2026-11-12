@@ -1031,6 +1031,26 @@
     const MACRO_EXTENSIONS = ['docm', 'dotm', 'xlsm', 'xlam', 'pptm'];
     const SUSPICIOUS_NAME_WORDS = ['crack', 'keygen', 'patch', 'activator', 'loader', 'hack', 'cheat', 'injector', 'stealer', 'trojan', 'payload', 'exploit', 'free-robux', 'robux', 'generator', 'kms'];
 
+    // أسماء الملفات داخل أرشيف ZIP من «الدليل المركزي» (آخر الملف عادةً، وبأوله للأرشيفات الصغيرة)
+    function zipEntryNames(...chunks) {
+        const names = new Set();
+        for (const bytes of chunks) {
+            if (!bytes || bytes.length < 46) continue;
+            for (let i = 0; i + 46 <= bytes.length && names.size < 300; i++) {
+                if (bytes[i] !== 0x50 || bytes[i + 1] !== 0x4B || bytes[i + 2] !== 0x01 || bytes[i + 3] !== 0x02) continue;
+                const len = bytes[i + 28] | (bytes[i + 29] << 8);
+                if (!len || len > 512 || i + 46 + len > bytes.length) continue;
+                let name = '';
+                for (let j = 0; j < len; j++) name += String.fromCharCode(bytes[i + 46 + j]);
+                try { name = decodeURIComponent(escape(name)); } catch { /* اسم بترميز قديم: نبقيه كما هو */ }
+                names.add(name);
+                i += 45 + len;
+            }
+        }
+        return [...names];
+    }
+
+    const h4Of = bytes => hexAt(bytes, 0, 4);
     function familyOfExtension(ext) {
         for (const [family, list] of Object.entries(EXT_FAMILIES)) if (list.includes(ext)) return family;
         return 'other';
@@ -1250,6 +1270,8 @@
     };
 
     const SCRIPT_PATTERNS = [
+        // حقن صيغ Excel في CSV (DDE): خلية تبدأ بـ = وتشغّل برنامجاً عند فتح الملف بـ Excel
+        { re: /(^|[\n,;\t])\s*["']?[=+\-@]\s*(cmd|powershell|mshta|msexcel|rundll32|regsvr32)\s*\||(^|[\n,;\t])\s*["']?=\s*(dde|hyperlink|webservice|importxml|importdata)\s*\(/i, weight: 0.45, text: 'الملف يحتوي صيغة Excel تشغّل برامج أو تتصل بالإنترنت (حقن صيغ / DDE) عند فتحه بـ Excel.' },
         { re: /powershell(\.exe)?[^\n]*\s-(e|en|enc|encodedcommand)\s/i, weight: 0.6, text: 'يشغّل PowerShell بأوامر مشفرة (-EncodedCommand).' },
         { re: /\b(iex|invoke-expression)\b/i, weight: 0.4, text: 'ينفّذ نصاً كأوامر برمجية (Invoke-Expression).' },
         { re: /downloadstring|downloadfile|invoke-webrequest|\biwr\b|net\.webclient|start-bitstransfer|bitsadmin/i, weight: 0.45, text: 'ينزّل ملفات أو أوامر من الإنترنت.' },
@@ -1360,16 +1382,49 @@
 
         if (type.kind === 'ooxml' && (containsAscii(head, 'vbaProject.bin') || containsAscii(tail, 'vbaProject.bin'))) {
             add(0.5, 'danger', 'المستند يحتوي ماكرو VBA (vbaProject.bin). لا تضغط "تمكين المحتوى" إذا لم تكن تثق بالمرسل.');
+            // docx/xlsx/pptx صيغ لا تحمل ماكرو أصلاً: وجوده = ملف docm أُعيدت تسميته لخداعك
+            if (['docx', 'xlsx', 'pptx', 'dotx', 'xltx', 'potx'].includes(ext)) add(0.45, 'danger', `الامتداد .${ext} مخصص لمستندات بدون ماكرو، لكن الملف يحمل ماكرو: غُيّر اسمه عمداً حتى يبدو آمناً.`);
         }
         if (type.kind === 'ole' && (containsUtf16(head, '_VBA_PROJECT') || containsUtf16(head, 'Macros') || containsAscii(head, 'VBA'))) {
             add(0.5, 'danger', 'المستند القديم يحتوي ماكرو VBA. لا تفعّل المحتوى إذا لم تكن تثق بالمرسل.');
         }
+        // ماكرو يشتغل تلقائياً عند الفتح ويستدعي أوامر النظام: سلوك برمجية تحميل (Downloader) كلاسيكي
+        if (type.kind === 'ole' || type.kind === 'ooxml') {
+            const autoRun = ['AutoOpen', 'Auto_Open', 'Document_Open', 'Workbook_Open', 'AutoExec'].some(w => containsAscii(head, w) || containsUtf16(head, w) || containsAscii(tail, w));
+            const callsOs = ['Shell', 'WScript', 'CreateObject', 'powershell', 'URLDownloadToFile', 'XMLHTTP'].some(w => containsAscii(head, w) || containsUtf16(head, w) || containsAscii(tail, w));
+            if (autoRun && callsOs) add(0.55, 'danger', 'الماكرو يشتغل تلقائياً عند فتح المستند ويستدعي أوامر النظام أو ينزّل ملفات: هذا سلوك برمجيات التحميل الخبيثة.');
+        }
         if (type.kind === 'pdf') {
             const has = needle => containsAscii(head, needle) || containsAscii(tail, needle);
-            if (has('/Launch')) add(0.5, 'danger', 'ملف PDF يحتوي أمر Launch لتشغيل برامج خارجية.');
-            if (has('/JavaScript') || has('/JS')) add(0.35, 'warning', 'ملف PDF يحتوي كود JavaScript.');
+            const js = has('/JavaScript') || has('/JS');
+            const auto = has('/OpenAction') || has('/AA');
+            if (has('/Launch')) add(0.65, 'danger', 'ملف PDF يحتوي أمر Launch لتشغيل برامج خارجية. ملفات PDF العادية ما تحتاج هذا أبداً.');
+            if (js) add(0.35, 'warning', 'ملف PDF يحتوي كود JavaScript.');
             if (has('/EmbeddedFile')) add(0.25, 'warning', 'ملف PDF يحتوي ملفات مدمجة بداخله.');
-            if (has('/OpenAction') || has('/AA')) add(0.1, 'warning', 'ملف PDF ينفّذ إجراءً تلقائياً عند فتحه.');
+            if (auto) add(0.1, 'warning', 'ملف PDF ينفّذ إجراءً تلقائياً عند فتحه.');
+            if (js && auto) add(0.45, 'danger', 'ملف PDF يشغّل كود JavaScript تلقائياً بمجرد فتحه: أسلوب معروف لاستغلال ثغرات قارئات PDF.');
+        }
+        // محتويات الأرشيف: برنامج أو اختصار أو سكربت داخل ZIP (الطريقة الأشيع لتمرير البرمجيات عبر واتساب والبريد)
+        if (type.kind === 'archive' && h4Of(head) === '504B0304') {
+            const members = zipEntryNames(tail, head).filter(n => !n.endsWith('/'));
+            const risky = [];
+            for (const n of members) {
+                const parts = n.split('/').pop().toLowerCase().split('.');
+                const mExt = parts.length > 1 ? parts.pop().trim() : '';
+                const fam = familyOfExtension(mExt);
+                if (!dangerousFamilies.includes(fam) && fam !== 'disk') continue;
+                const decoy = parts.length > 1 && familyOfExtension(parts[parts.length - 1]) !== 'other' && !dangerousFamilies.includes(familyOfExtension(parts[parts.length - 1]));
+                risky.push({ n, fam, decoy, rlo: /[\u202a-\u202e\u2066-\u2069]/.test(n) });
+            }
+            const worst = risky.find(r => r.decoy || r.rlo) || risky.find(r => r.fam === 'shortcut') || risky.find(r => r.fam === 'script') || risky[0];
+            if (worst) {
+                const shown = worst.n.slice(0, 80);
+                if (worst.decoy || worst.rlo) add(0.8, 'danger', `الأرشيف يحتوي ملفاً متنكراً: «${shown}» يبدو مستنداً أو صورة لكنه ${worst.fam === 'shortcut' ? 'اختصار يشغّل أوامر' : worst.fam === 'script' ? 'سكربت' : 'برنامج تنفيذي'}.`);
+                else if (worst.fam === 'shortcut') add(0.6, 'danger', `الأرشيف يحتوي ملف اختصار («${shown}»)، والاختصارات داخل المرفقات من أشهر طرق تشغيل البرمجيات الخبيثة.`);
+                else if (worst.fam === 'script') add(0.45, 'danger', `الأرشيف يحتوي سكربت («${shown}») يشتغل بمجرد فتحه.`);
+                else add(0.35, 'warning', `الأرشيف يحتوي ${worst.fam === 'disk' ? 'صورة قرص' : 'برنامجاً تنفيذياً'} («${shown}»). لا تشغّله إلا إذا تعرف مصدره.`);
+                if (risky.length > 1) add(0, 'info', `عدد الملفات الخطرة داخل الأرشيف: ${risky.length}.`);
+            }
         }
         if (type.kind === 'rtf' && (containsAscii(head, '\\objdata') || containsAscii(head, '\\object'))) {
             add(0.35, 'warning', 'مستند RTF يحتوي كائنات مدمجة، وهي طريقة معروفة لاستغلال ثغرات Office.');

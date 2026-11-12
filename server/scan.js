@@ -151,6 +151,17 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         categories: r.categories, urls: r.urls, advice: r.advice, inspection: r.inspection
     });
 
+    // مراقبة الزيارة الآمنة بلوحة الإدارة: عدد الزيارات، ومحاولات الوصول لعناوين داخلية (SSRF) كحدث أمني
+    function noteInspection(result, req) {
+        const v = result.inspection;
+        if (!v) return;
+        if (v.visited) stats.count("liveVisits");
+        if (v.reason === "blocked") {
+            stats.count("ssrfBlocked");
+            stats.event("ssrf_blocked", `فحص رابط يشير لعنوان داخلي أو محلي (${String(result.host || "").slice(0, 60)}). مُنع الاتصال.`, h.getClientIp(req, config));
+        }
+    }
+
     // معاينة الصفحة المعقّمة: تُعرض داخل إطار معزول (sandbox) بصفحة الفحص فقط
     const SNAPSHOT_CSP = "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'";
     async function snapshot(req, res, id) {
@@ -160,6 +171,7 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         const doc = inspector && inspector.getSnapshot ? inspector.getSnapshot(id) : null;
         if (!doc) return h.sendJson(res, 404, { error: "انتهت صلاحية المعاينة. أعد فحص الرابط." });
         const body = Buffer.from(doc);
+        stats.count("snapshotViews");
         res.setHeader("Content-Security-Policy", SNAPSHOT_CSP);
         res.setHeader("X-Frame-Options", "SAMEORIGIN");
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
@@ -196,6 +208,7 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
                 const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks, inspect: input.inspect !== false });
                 if (result.error) return h.sendJson(res, 400, { error: "الرابط غير صالح هيكلياً.", code: result.error }), true;
                 stats.scan("url", result.level);
+                noteInspection(result, req);
                 await users.addHistory(user, { kind: "url", label: result.input.slice(0, 200), score: result.score, level: result.level }).catch(() => {});
                 h.sendJson(res, 200, { result: publicResult(result) });
                 return true;

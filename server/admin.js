@@ -608,6 +608,11 @@ function createAdmin(config, stats, extras = {}) {
                     stats.event("admin_user", `منح اشتراك Pro يدوياً (${months} شهر)`, ip);
                     return http.sendJson(res, 200, { user: adminUserView(user) });
                 }
+                if (body.action === "revoke-sessions") {
+                    const user = await users.revokeSessions(id);
+                    stats.event("admin_user", "إنهاء كل جلسات مستخدم (خروج من كل الأجهزة)", ip);
+                    return http.sendJson(res, 200, { user: adminUserView(user) });
+                }
                 if (body.action === "reset-link") {
                     const token = await users.createResetLink(id);
                     stats.event("admin_user", "إصدار رابط إعادة تعيين كلمة السر", ip);

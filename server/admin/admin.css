@@ -283,6 +283,7 @@ section h3 { margin: 22px 0 10px; font-size: .95rem; color: var(--text); }
 
 /* ---------- المؤشرات والبطاقات ---------- */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+@media (min-width: 1100px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
 .kpi { position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
 .kpi::after { content: ""; position: absolute; inset-inline-end: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: var(--border-soft); }
 .kpi.accent::after { background: rgba(34, 211, 238, .08); }
@@ -361,7 +362,11 @@ th, td { padding: 11px 14px; text-align: right; border-bottom: 1px solid var(--b
 th { position: sticky; top: 0; background: var(--card-2); color: var(--muted); font-weight: 700; font-size: .82rem; }
 tbody tr:hover td { background: rgba(255, 255, 255, .02); }
 tr:last-child td { border-bottom: 0; }
-td.detail { white-space: normal; min-width: 220px; }
+td.detail { white-space: normal; min-width: 160px; }
+td.wrap { white-space: normal; min-width: 110px; }
+/* عمود الإجراءات مثبّت على الحافة حتى يبقى ظاهراً مهما كان الجدول عريضاً */
+th.actions, td.actions { position: sticky; left: 0; background: var(--card); box-shadow: 8px 0 12px -8px rgba(0, 0, 0, .45); z-index: 1; }
+th.actions { background: var(--card-2); z-index: 2; }
 td.num { font-variant-numeric: tabular-nums; }
 .disabled-row td { opacity: .55; }
 #usersTable select { display: inline-block; width: auto; margin: 0 0 4px; padding: 6px 8px; font-size: .85rem; }
@@ -475,6 +480,7 @@ code.key { display: block; margin: 8px 0; padding: 10px; border-radius: 8px; bac
 
     /* الجدول يصير قائمة بطاقات: كل صف بطاقة، وكل خلية سطر "العنوان: القيمة" */
     .table-wrap { background: transparent; border: 0; overflow: visible; }
+    th.actions, td.actions { position: static; box-shadow: none; background: transparent; }
     table.stackable thead { display: none; }
     table.stackable, table.stackable tbody, table.stackable tr, table.stackable td { display: block; width: 100%; }
     table.stackable tr { margin-bottom: 10px; padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }

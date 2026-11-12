@@ -440,8 +440,9 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (entry.exp <= clock()) return null;
         const user = await get(entry.uid);
         if (!user || user.disabled) return null;
-        // تغيير كلمة السر يُسقط كل الجلسات الأقدم منه (حتى لو سُرقت جلسة قديمة)
-        if (user.pwAt && (entry.iat || 0) < user.pwAt) {
+        // تغيير كلمة السر أو «خروج من كل الأجهزة» يُسقط كل الجلسات الأقدم منه (حتى لو سُرقت جلسة قديمة)
+        const cutoff = Math.max(Number(user.pwAt) || 0, Number(user.revokedAt) || 0);
+        if (cutoff && (entry.iat || 0) < cutoff) {
             sessionCache.delete(sha);
             return null;
         }
@@ -671,6 +672,13 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         return Number(await db.cmd(["ZCARD", k("users")])) || 0;
     }
 
+    // ينهي كل جلسات المستخدم الحالية (بأي جهاز) بدون تغيير كلمة السر
+    async function revokeSessions(userId) {
+        const user = await update(userId, u => { u.revokedAt = clock(); });
+        for (const [sha, entry] of sessionCache) if (entry.uid === userId) sessionCache.delete(sha);
+        return user;
+    }
+
     async function setDisabled(userId, disabled) {
         const user = await update(userId, u => { u.disabled = Boolean(disabled); });
         if (disabled) for (const [sha, entry] of sessionCache) if (entry.uid === userId) sessionCache.delete(sha);
@@ -698,7 +706,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
-        createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revenue,
+        createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revokeSessions, revenue,
         publicUser: user => publicUser(user, clock())
     };
 }

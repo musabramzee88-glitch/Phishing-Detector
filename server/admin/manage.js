@@ -68,11 +68,11 @@
             const data = await call("/api/admin/payments" + ($("showAllPayments").checked ? "" : "?status=pending"));
             methods = data.methods || [];
             const head = node("tr");
-            for (const t of ["التاريخ", "المستخدم", "المدة / المبلغ", "الطريقة", "رقم العملية", "ملاحظة", "الحالة / الإجراء"]) head.append(node("th", "", t));
+            for (const t of ["التاريخ", "المستخدم", "المدة / المبلغ", "الطريقة", "رقم العملية", "ملاحظة", "الحالة / الإجراء"]) head.append(node("th", t === "الحالة / الإجراء" ? "actions" : "", t));
             const rows = data.payments.map(p => {
                 const tr = node("tr");
                 const methodLabel = (methods.find(m => m.id === p.method) || {}).label || p.method;
-                const action = node("td");
+                const action = node("td", "actions");
                 if (p.status === "pending") {
                     const approve = node("button", "", "موافقة وتفعيل");
                     approve.type = "button";
@@ -86,9 +86,9 @@
                     action.append(node("div", "muted", `${shortDate(new Date(p.decidedAt).toISOString())} — ${p.decidedBy}${p.reason ? " — " + p.reason : ""}`));
                 }
                 tr.append(
-                    node("td", "num", date(new Date(p.createdAt).toISOString())),
+                    node("td", "num wrap", date(new Date(p.createdAt).toISOString())),
                     node("td", "ltr", p.email),
-                    node("td", "", `${p.months} شهر — ${p.amountUsd}$ (≈ ${num(p.amountIqd)} د.ع)`),
+                    node("td", "wrap", `${p.months} شهر — ${p.amountUsd}$ (≈ ${num(p.amountIqd)} د.ع)`),
                     node("td", "", methodLabel),
                     node("td", "ltr", p.reference),
                     node("td", "detail", p.note || ""),
@@ -138,11 +138,11 @@
             total = data.total;
             $("usersTotal").textContent = `إجمالي المستخدمين: ${num(total)}`;
             const head = node("tr");
-            for (const t of ["البريد", "الاسم", "الخطة", "حتى", "الدخول", "التسجيل / آخر دخول", "إجراءات"]) head.append(node("th", "", t));
+            for (const t of ["البريد", "الاسم", "الخطة", "حتى", "الدخول", "التسجيل / آخر دخول", "إجراءات"]) head.append(node("th", t === "إجراءات" ? "actions" : "", t));
             const rows = data.users.map(u => {
                 const tr = node("tr");
                 if (u.disabled) tr.className = "disabled-row";
-                const actions = node("td");
+                const actions = node("td", "actions");
                 const grant = node("select");
                 grant.append(new Option("منح Pro...", ""), ...[1, 3, 6, 12].map(m => new Option(`${m} شهر`, String(m))));
                 grant.addEventListener("change", () => { if (grant.value) userAction(u, "grant", Number(grant.value)); grant.value = ""; });
@@ -152,7 +152,11 @@
                 const reset = node("button", "secondary", "رابط كلمة سر");
                 reset.type = "button";
                 reset.addEventListener("click", () => userAction(u, "reset-link"));
-                actions.append(grant, toggle, " ", reset);
+                const revoke = node("button", "secondary", "خروج من كل الأجهزة");
+                revoke.type = "button";
+                revoke.title = "ينهي كل جلسات هذا المستخدم فوراً (مثلاً إذا أبلغ أن حسابه مخترق)";
+                revoke.addEventListener("click", () => userAction(u, "revoke-sessions"));
+                actions.append(grant, toggle, " ", reset, " ", revoke);
                 tr.append(
                     node("td", "ltr", u.email + (u.disabled ? " (موقوف)" : "")),
                     node("td", "", u.name),
@@ -181,6 +185,7 @@
 
     async function userAction(u, action, months) {
         if (action === "disable" && !window.confirm(`إيقاف حساب ${u.email}؟ سيخرج من كل الأجهزة.`)) return;
+        if (action === "revoke-sessions" && !window.confirm(`إنهاء كل جلسات ${u.email}؟ سيحتاج يسجّل دخوله من جديد على كل أجهزته.`)) return;
         if (action === "grant" && !window.confirm(`منح ${u.email} اشتراك Pro لمدة ${months} شهر بدون طلب دفع؟`)) return;
         try {
             const data = await call("/api/admin/users/action", { id: u.id, action, months });

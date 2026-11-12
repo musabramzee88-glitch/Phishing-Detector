@@ -1,0 +1,42 @@
+"use strict";
+// رسائل احتيال حقيقية الشكل (عراقي/فصحى/إنكليزي) ورسائل عادية يجب ألا تُتهم
+const SCAM = [
+ 'عزيزي العميل تم تجميد حسابك في مصرف الرافدين يرجى تحديث بياناتك عبر الرابط http://rafidain-update.com',
+ 'مبروك! ربحت جائزة 5 ملايين دينار من زين كاش، ارسل رمز التحقق اللي وصلك حتى نحولها',
+ 'اخي هذا انا محمد غيرت رقمي، دزلي الكود اللي يوصلك على واتساب ضروري',
+ 'تم ايقاف بطاقة كي كارد الخاصة بك، اتصل بنا وارسل رقم البطاقة والرمز السري لاعادة التفعيل',
+ 'Your PayPal account has been limited. Verify your identity within 24 hours: https://paypal-verify.xyz',
+ 'Dear customer, your Netflix payment failed. Update your card details here: https://netflix-billing.top',
+ 'Congratulations! You won an iPhone 15. Claim now at http://apple-prize.click before it expires',
+ 'هلو حبيبي، اكو عرض وظيفة اونلاين راتب 1000 دولار بس ادفع رسوم تسجيل 50 دولار',
+ 'السلام عليكم، شحنتك من DHL معلقة بسبب رسوم جمركية 2 دولار ادفعها هنا https://dhl-fee.online',
+ 'تنبيه امني: تم تسجيل دخول لحسابك في فيسبوك من جهاز غريب، اضغط هنا لتأمين الحساب http://fb-secure.site',
+ 'وزارة الداخلية: لديك مخالفة مرورية غير مدفوعة، ادفعها خلال 48 ساعة لتجنب الغرامة http://moi-pay.info',
+ 'Your Microsoft 365 password expires today. Keep your password: https://office365-keep.live',
+ 'منحة من الامم المتحدة 3000 دولار لكل عائلة عراقية، سجل بياناتك وصورة الهوية بالرابط',
+ 'استثمر 100 دولار وخذ 1000 خلال اسبوع بالعملات الرقمية، ارباح مضمونة 100%',
+ 'آسياسيل تهديك 50 جيجا مجاناً، فعّل الهدية الآن من الرابط http://asiacell-gift.xyz',
+ 'URGENT: Your bank account will be closed. Reply with your PIN and card number to keep it active.',
+ 'شلونك؟ سويت حساب جديد بالانستا، صوتلي بهاي المسابقة ودخل رقمك والكود http://insta-vote.top',
+ 'Hi mom, I lost my phone, this is my new number. Can you send me money urgently?',
+ 'Your Binance account: withdrawal of 2.5 BTC pending. If not you, cancel here: https://binance-cancel.xyz',
+ 'المصرف العراقي الاول: حسابك بحاجة تحديث، ادخل اسم المستخدم وكلمة المرور https://fib-update.site',
+];
+const LEGIT = [
+ 'رمز التحقق الخاص بك هو 482913. لا تشارك هذا الرمز مع أي شخص.',
+ 'Your verification code is 482913. Do not share it with anyone.',
+ 'هلو شلونك؟ نلتقي باجر الساعة 5 بالكافتريا؟',
+ 'تم ايداع راتبك لشهر تشرين الثاني في حسابك. شكراً لتعاملك مع مصرف الرافدين.',
+ 'Meeting moved to 3pm tomorrow, see you there.',
+ 'شكراً لشرائك من متجرنا، طلبك رقم 4521 بالطريق ويوصلك خلال يومين.',
+ 'الامتحان النهائي يوم الاحد بالقاعة 12، لا تنسون الهوية الجامعية.',
+ 'Happy birthday! Hope you have a great day 🎉',
+ 'محاضرة اليوم تأجلت للاسبوع الجاي، الدكتور مريض.',
+ 'Your Amazon order #112-4455 has shipped and will arrive Thursday.',
+ 'ماما اشتريلي خبز وانت راجعة',
+ 'تذكير: موعدك بعيادة الاسنان يوم الخميس الساعة 4.',
+ 'Your Uber ride receipt: 4500 IQD. Thanks for riding.',
+ 'اكو مباراة الليلة الساعة 9 تجي نشوفها سوا؟',
+ 'The quarterly report is attached, let me know if you have questions.',
+];
+module.exports = { SCAM, LEGIT };

@@ -13,6 +13,7 @@ const CSP = [
     "media-src 'self' blob:",
     "connect-src 'self'",
     "manifest-src 'self'",
+    "frame-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "form-action 'self'",

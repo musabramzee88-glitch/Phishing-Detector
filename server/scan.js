@@ -151,8 +151,25 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         categories: r.categories, urls: r.urls, advice: r.advice, inspection: r.inspection
     });
 
+    // معاينة الصفحة المعقّمة: تُعرض داخل إطار معزول (sandbox) بصفحة الفحص فقط
+    const SNAPSHOT_CSP = "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'";
+    async function snapshot(req, res, id) {
+        if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" });
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        const doc = inspector && inspector.getSnapshot ? inspector.getSnapshot(id) : null;
+        if (!doc) return h.sendJson(res, 404, { error: "انتهت صلاحية المعاينة. أعد فحص الرابط." });
+        const body = Buffer.from(doc);
+        res.setHeader("Content-Security-Policy", SNAPSHOT_CSP);
+        res.setHeader("X-Frame-Options", "SAMEORIGIN");
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Content-Length": body.length, "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex" });
+        res.end(body);
+    }
+
     async function handle(req, res, url) {
         const p = url.pathname;
+        const snap = /^\/api\/scan\/snapshot\/([A-Za-z0-9_-]{1,64})$/.exec(p);
+        if (snap) return await snapshot(req, res, snap[1]), true;
         const viaApi = p.startsWith("/api/v1/");
         const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/scan/clean", "/api/v1/scan-url", "/api/v1/scan-text"];
         if (!routes.includes(p)) return false;

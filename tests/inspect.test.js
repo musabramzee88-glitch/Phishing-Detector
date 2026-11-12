@@ -182,3 +182,59 @@ test('تحليل HTML مقاوم: كيانات HTML، ترميز windows-1256، 
     assert.equal(r.title, 'Sign & in — Bank');
     assert.deepEqual(r.fields, { password: 0, card: 0, otp: 1, identity: 1 });
 });
+
+const { sanitizeForSnapshot, sanitizeCss } = require('../server/inspect');
+
+test('المعاينة المعقّمة: لا أكواد ولا روابط فعّالة ولا حقول مخفية، والحقول معطّلة', () => {
+    const page = `<html dir="rtl"><head><link rel="stylesheet" href="/a.css"><script>alert(1)</script><style>.x{background:url(https://evil.example/t.gif)}</style></head>
+        <body onload="alert(2)"><img src="/logo.png" onerror="alert(3)" alt="شعار"><a href="javascript:alert(4)" onclick="x()">رابط</a>
+        <form action="https://grab.example"><input type="password" value="secret1"><input type="hidden" value="secret2"><input type="submit" value="دخول"></form>
+        <iframe src="https://evil.example"></iframe><svg onload="alert(5)"></svg><object data="x.swf"></object><p style="color:red;background:url(javascript:alert(6))">نص &amp; <b>عريض</b></p>
+        <div class="a&quot;onmouseover=&quot;alert(7)">x</div></body></html>`;
+    const r = sanitizeForSnapshot(page, new URL('https://bad.example/login'));
+    assert.doesNotMatch(r.body, /<script|\son\w+\s*=|javascript:|<iframe|<svg|<object|href=|action=|secret1|secret2|evil\.example/i);
+    assert.match(r.body, /class="aonmouseoveralert7"/);   // يبقى نصاً داخل اسم الصنف بلا علامات تنصيص، فلا يُنفَّذ
+    assert.match(r.body, /<input type="password" disabled>/);
+    assert.match(r.body, /<input type="submit" value="دخول" disabled>/);
+    assert.match(r.body, /نص &amp; <b>عريض<\/b>/);
+    assert.equal(r.dir, 'rtl');
+    assert.deepEqual(r.stylesheets.map(u => u.href), ['https://bad.example/a.css']);
+    assert.deepEqual(r.images.map(u => u.href), ['https://bad.example/logo.png']);
+    assert.doesNotMatch(r.inlineCss.join(''), /url\(|evil/);
+    assert.equal(sanitizeCss('@import "x.css"; a{b:url(x)} </style><script>'), ' a{b:none} /style>script>');
+});
+
+test('المعاينة: الصور والأنماط تُجلب من الخادم وتُضمَّن، والرابط يحتاج دخول وعزل كامل', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    await withSite({
+        '/': html('<html><head><link rel="stylesheet" href="/s.css"></head><body><img src="/i.png"><h1>Hi</h1></body></html>'),
+        '/s.css': (req, res) => { res.writeHead(200, { 'Content-Type': 'text/css' }); res.end('h1{color:#123456}'); },
+        '/i.png': (req, res) => { res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(png); }
+    }, async port => {
+        const inspector = localInspector(port);
+        const r = await inspector.inspect(`http://shop.test:${port}/`);
+        assert.match(r.snapshotId, /^[A-Za-z0-9_-]{24}$/);
+        const doc = inspector.getSnapshot(r.snapshotId);
+        assert.match(doc, /h1\{color:#123456\}/);
+        assert.match(doc, /<img src="data:image\/png;base64,/);
+        assert.equal(inspector.getSnapshot('x'.repeat(24)), null);
+
+        const { startServer, request, registerUser, authed } = require('./helpers');
+        const app = await startServer({}, null, { inspector });
+        try {
+            const anon = await request(app, 'GET', `/api/scan/snapshot/${r.snapshotId}`);
+            assert.equal(anon.status, 401);
+            const { cookie } = await registerUser(app);
+            const ok = await request(app, 'GET', `/api/scan/snapshot/${r.snapshotId}`, { headers: authed(app, cookie) });
+            assert.equal(ok.status, 200);
+            assert.match(ok.headers['content-security-policy'], /^sandbox; default-src 'none'; img-src data:/);
+            assert.equal(ok.headers['x-frame-options'], 'SAMEORIGIN');
+            const gone = await request(app, 'GET', `/api/scan/snapshot/${'A'.repeat(24)}`, { headers: authed(app, cookie) });
+            assert.equal(gone.status, 404);
+            const main = await request(app, 'GET', '/login');
+            assert.match(main.headers['content-security-policy'], /frame-src 'self'/);
+        } finally {
+            await app.close();
+        }
+    });
+});

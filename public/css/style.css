@@ -1027,3 +1027,15 @@ footer {
 .quiz-explain.ok, .quiz-verdict.ok { color: var(--accent-green); } .quiz-explain.bad, .quiz-verdict.bad { color: var(--accent-red); }
 .quiz-verdict { font-weight: 800; }
 .course-cert { border: 2px dashed var(--accent-yellow); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+
+/* مراقبة انتحال الدومين */
+.mon-form { grid-template-columns: 1fr auto; }
+@media (max-width: 700px) { .mon-form { grid-template-columns: 1fr; } }
+.mon-card { border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+.mon-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mon-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.mon-meta { font-size: .8rem; margin: 6px 0; }
+.mon-error { color: var(--accent-yellow); font-size: .85rem; }
+.mon-finding { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px dashed var(--border-color); flex-wrap: wrap; }
+.mon-finding p { margin: 4px 0; font-size: .86rem; }
+.mon-finding code { font-weight: 800; color: var(--accent-red); overflow-wrap: anywhere; }

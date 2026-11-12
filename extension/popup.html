@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Phishing Detector</title>
+    <link rel="stylesheet" href="ui.css">
+</head>
+<body class="popup">
+    <header><img src="icons/icon-48.png" width="28" height="28" alt=""> <strong>Phishing Detector</strong></header>
+    <section id="current"><p class="muted">جارٍ فحص هذي الصفحة...</p></section>
+    <button id="deep" class="primary">فحص عميق بالموقع</button>
+    <label class="toggle"><input type="checkbox" id="enabled"> الحماية التلقائية مفعّلة</label>
+    <p class="small muted" id="sync"></p>
+    <p class="small muted">الفحص داخل متصفحك. الفحص العميق يرسل الرابط للموقع فقط لما تضغط زره.</p>
+    <script src="popup.js"></script>
+</body>
+</html>

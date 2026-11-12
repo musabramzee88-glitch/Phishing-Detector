@@ -419,94 +419,157 @@
 
     <!-- الحساب والاشتراك -->
     <div id="accountPage" class="page-section">
-        <div class="scanner-container">
+        <div class="scanner-container account-page">
             <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house">
                 <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
             </button>
 
-            <div style="text-align:center; margin-bottom: 1.5rem;">
-                <h2>حسابي واشتراكي</h2>
-                <p class="muted" id="accountPlanLine" style="font-size:0.95rem;">...</p>
-            </div>
-
-            <div class="plan-cards" id="planCards"></div>
-
-            <div class="scanner-card" id="subscribeCard">
-                <h3><i class="fa-solid fa-credit-card"></i> الاشتراك أو التجديد</h3>
-                <p class="muted" style="font-size:.9rem;">1) حوّل المبلغ لأحد الحسابات أدناه. 2) اكتب رقم العملية من إشعار التحويل وأرسل الطلب. 3) نراجع الطلب ونفعّل حسابك (عادة خلال ساعات).</p>
-                <div class="pay-methods" id="payMethods"></div>
-                <p class="muted" id="payNote" style="font-size:.85rem;"></p>
-                <form id="paymentForm" data-submit="submitPayment">
-                    <div class="form-row">
-                        <label>المدة
-                            <select class="app-select" id="payMonths"></select>
-                        </label>
-                        <label>طريقة الدفع
-                            <select class="app-select" id="payMethod"></select>
-                        </label>
-                        <label>رقم العملية / الحوالة
-                            <input class="app-input" id="payReference" maxlength="80" autocomplete="off" placeholder="مثال: 48213977">
-                        </label>
+            <!-- ملخص الحساب -->
+            <section class="acc-hero" aria-label="ملخص حسابك">
+                <div class="acc-id">
+                    <span class="acc-avatar" id="accAvatar" aria-hidden="true">؟</span>
+                    <div class="acc-id-text">
+                        <h2 id="accName">حسابي</h2>
+                        <p class="acc-email" id="profileEmail" dir="ltr"></p>
+                        <p class="acc-meta"><span class="acc-plan" id="accPlanBadge">...</span> <span id="accountPlanLine" class="muted"></span></p>
                     </div>
-                    <label style="display:grid; gap:6px; font-size:.85rem; font-weight:700;">ملاحظة (اختياري)
-                        <input class="app-input" id="payNoteInput" maxlength="300" placeholder="مثلاً: حوّلت من رقم ينتهي بـ 1234">
-                    </label>
-                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px;">
-                        <button class="app-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال طلب التفعيل</button>
-                        <strong id="payTotal"></strong>
+                </div>
+                <div class="acc-usage">
+                    <div class="acc-meter">
+                        <div class="acc-meter-head"><span>فحوصات اليوم</span><b id="accScanText">0 / 0</b></div>
+                        <div class="acc-bar"><span id="accScanBar"></span></div>
                     </div>
-                    <div class="inline-msg" id="paymentMsg"></div>
-                </form>
-                <div id="paymentsList" style="margin-top:14px;"></div>
+                    <div class="acc-meter">
+                        <div class="acc-meter-head"><span>رسائل المساعد اليوم</span><b id="accChatText">0 / 0</b></div>
+                        <div class="acc-bar"><span id="accChatBar"></span></div>
+                    </div>
+                    <p class="acc-since muted" id="accSince"></p>
+                </div>
+            </section>
+
+            <!-- أقسام الحساب -->
+            <nav class="acc-tabs" role="tablist" aria-label="أقسام الحساب">
+                <button type="button" role="tab" data-acc-tab="overview" aria-selected="true"><i class="fa-solid fa-user"></i> الملف الشخصي</button>
+                <button type="button" role="tab" data-acc-tab="billing" aria-selected="false"><i class="fa-solid fa-crown"></i> الاشتراك</button>
+                <button type="button" role="tab" data-acc-tab="security" aria-selected="false"><i class="fa-solid fa-shield-halved"></i> الأمان</button>
+                <button type="button" role="tab" data-acc-tab="history" aria-selected="false"><i class="fa-solid fa-clock-rotate-left"></i> السجل</button>
+            </nav>
+
+            <!-- الملف الشخصي -->
+            <div class="acc-panel" data-acc-panel="overview" role="tabpanel">
+                <div class="acc-grid">
+                    <div class="scanner-card acc-card">
+                        <h3><i class="fa-solid fa-id-card"></i> بياناتك</h3>
+                        <form data-submit="saveProfileName" class="acc-form">
+                            <label>الاسم الظاهر
+                                <span class="acc-inline">
+                                    <input class="app-input" id="profileName" maxlength="60" placeholder="الاسم" autocomplete="name">
+                                    <button class="app-btn small" type="submit">حفظ</button>
+                                </span>
+                            </label>
+                        </form>
+                        <div class="inline-msg" id="profileMsg"></div>
+                        <dl class="acc-facts">
+                            <div><dt>طرق الدخول</dt><dd id="profileProviders"></dd></div>
+                            <div><dt>الخطة</dt><dd id="accPlanFact"></dd></div>
+                        </dl>
+                    </div>
+                    <div class="scanner-card acc-card">
+                        <h3><i class="fa-solid fa-bolt"></i> وصول سريع</h3>
+                        <div class="acc-quick">
+                            <button type="button" class="acc-quick-btn" data-page="scannerPage" data-title="فحص الروابط" data-icon="fa-solid fa-link"><i class="fa-solid fa-link"></i> فحص رابط</button>
+                            <button type="button" class="acc-quick-btn" data-page="textScannerPage" data-title="فحص النصوص والرسائل" data-icon="fa-solid fa-comment-sms"><i class="fa-solid fa-comment-sms"></i> فحص رسالة</button>
+                            <button type="button" class="acc-quick-btn" data-acc-goto="history"><i class="fa-solid fa-clock-rotate-left"></i> سجل فحوصاتي</button>
+                            <button type="button" class="acc-quick-btn" data-acc-goto="billing"><i class="fa-solid fa-crown"></i> الاشتراك والتجديد</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="account-grid">
-                <div class="scanner-card">
-                    <h3><i class="fa-solid fa-id-card"></i> الملف الشخصي</h3>
-                    <p class="muted" style="font-size:.85rem; direction:ltr; text-align:right;" id="profileEmail"></p>
-                    <p class="muted" style="font-size:.8rem;" id="profileProviders"></p>
-                    <form data-submit="saveProfileName" style="display:flex; gap:8px; margin-top:10px;">
-                        <input class="app-input" id="profileName" maxlength="60" placeholder="الاسم">
-                        <button class="app-btn small" type="submit">حفظ</button>
+            <!-- الاشتراك -->
+            <div class="acc-panel" data-acc-panel="billing" role="tabpanel" hidden>
+                <div class="plan-cards" id="planCards"></div>
+                <div class="scanner-card" id="subscribeCard">
+                    <h3><i class="fa-solid fa-credit-card"></i> الاشتراك أو التجديد</h3>
+                    <ol class="acc-steps">
+                        <li>حوّل المبلغ لأحد الحسابات أدناه.</li>
+                        <li>اكتب رقم العملية من إشعار التحويل وأرسل الطلب.</li>
+                        <li>نراجع الطلب ونفعّل حسابك (عادة خلال ساعات).</li>
+                    </ol>
+                    <div class="pay-methods" id="payMethods"></div>
+                    <p class="muted" id="payNote" style="font-size:.85rem;"></p>
+                    <form id="paymentForm" data-submit="submitPayment">
+                        <div class="form-row">
+                            <label>المدة
+                                <select class="app-select" id="payMonths"></select>
+                            </label>
+                            <label>طريقة الدفع
+                                <select class="app-select" id="payMethod"></select>
+                            </label>
+                            <label>رقم العملية / الحوالة
+                                <input class="app-input" id="payReference" maxlength="80" autocomplete="off" inputmode="numeric" placeholder="مثال: 48213977">
+                            </label>
+                        </div>
+                        <label class="acc-label">ملاحظة (اختياري)
+                            <input class="app-input" id="payNoteInput" maxlength="300" placeholder="مثلاً: حوّلت من رقم ينتهي بـ 1234">
+                        </label>
+                        <div class="acc-submit-row">
+                            <button class="app-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال طلب التفعيل</button>
+                            <strong id="payTotal"></strong>
+                        </div>
+                        <div class="inline-msg" id="paymentMsg"></div>
                     </form>
-                    <div class="inline-msg" id="profileMsg"></div>
+                    <div id="paymentsList" class="acc-payments"></div>
+                </div>
+            </div>
+
+            <!-- الأمان -->
+            <div class="acc-panel" data-acc-panel="security" role="tabpanel" hidden>
+                <div class="acc-grid">
+                    <div class="scanner-card acc-card">
+                        <h3><i class="fa-solid fa-key"></i> كلمة السر</h3>
+                        <form data-submit="changePassword" class="acc-form">
+                            <input class="app-input" type="password" id="pwCurrent" autocomplete="current-password" placeholder="كلمة السر الحالية" dir="ltr">
+                            <input class="app-input" type="password" id="pwNext" autocomplete="new-password" placeholder="كلمة السر الجديدة (8 أحرف أو أكثر)" dir="ltr">
+                            <button class="app-btn small" type="submit">تغيير كلمة السر</button>
+                        </form>
+                        <p class="muted acc-note">تغيير كلمة السر يسجّل خروجك من كل الأجهزة الثانية.</p>
+                        <div class="inline-msg" id="passwordMsg"></div>
+                    </div>
+
+                    <div class="scanner-card acc-card">
+                        <h3><i class="fa-solid fa-code"></i> مفتاح API <span class="pro-tag">Pro</span></h3>
+                        <p class="muted acc-note">اربط أنظمتك بالفحص من أي برنامج:</p>
+                        <pre class="acc-code" dir="ltr">POST /api/v1/scan-url
+Authorization: Bearer pd_...</pre>
+                        <p class="muted acc-note" id="apiKeyHint"></p>
+                        <div id="apiKeyBox"></div>
+                        <button class="app-btn small secondary" type="button" data-action="rotateApiKey"><i class="fa-solid fa-rotate"></i> إنشاء مفتاح جديد</button>
+                        <div class="inline-msg" id="apiKeyMsg"></div>
+                    </div>
                 </div>
 
-                <div class="scanner-card">
-                    <h3><i class="fa-solid fa-key"></i> كلمة السر</h3>
-                    <form data-submit="changePassword" style="display:grid; gap:8px; margin-top:10px;">
-                        <input class="app-input" type="password" id="pwCurrent" autocomplete="current-password" placeholder="كلمة السر الحالية" dir="ltr">
-                        <input class="app-input" type="password" id="pwNext" autocomplete="new-password" placeholder="كلمة السر الجديدة (8 أحرف أو أكثر)" dir="ltr">
-                        <button class="app-btn small" type="submit">تغيير كلمة السر</button>
+                <div class="scanner-card acc-danger">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> حذف الحساب</h3>
+                    <p class="muted acc-note">يحذف حسابك وسجلك ومفتاح API نهائياً. لا يمكن التراجع، والاشتراك المدفوع لا يُسترد.</p>
+                    <form data-submit="deleteAccount" class="acc-inline">
+                        <input class="app-input" id="deleteConfirm" placeholder="اكتب بريدك للتأكيد" dir="ltr" autocomplete="off">
+                        <button class="app-btn danger small" type="submit">حذف حسابي نهائياً</button>
                     </form>
-                    <div class="inline-msg" id="passwordMsg"></div>
+                    <div class="inline-msg" id="deleteMsg"></div>
                 </div>
+            </div>
 
+            <!-- السجل -->
+            <div class="acc-panel" data-acc-panel="history" role="tabpanel" hidden>
                 <div class="scanner-card">
-                    <h3><i class="fa-solid fa-code"></i> مفتاح API (Pro)</h3>
-                    <p class="muted" style="font-size:.85rem;">اربط أنظمتك بالفحص: <code style="direction:ltr;">POST /api/v1/scan-url</code> مع الترويسة <code style="direction:ltr;">Authorization: Bearer pd_...</code></p>
-                    <p class="muted" style="font-size:.85rem;" id="apiKeyHint"></p>
-                    <div id="apiKeyBox"></div>
-                    <button class="app-btn small secondary" type="button" data-action="rotateApiKey"><i class="fa-solid fa-rotate"></i> إنشاء مفتاح جديد</button>
-                    <div class="inline-msg" id="apiKeyMsg"></div>
+                    <div class="acc-card-head">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل فحوصاتي <span class="pro-tag">Pro</span></h3>
+                        <button class="app-btn small secondary" type="button" data-action="clearHistory"><i class="fa-solid fa-trash"></i> مسح السجل</button>
+                    </div>
+                    <label class="checkbox-label acc-toggle"><input type="checkbox" id="historyToggle" data-change="toggleHistory"> حفظ سجل فحوصاتي بحسابي</label>
+                    <div id="historyList" class="acc-history"></div>
                 </div>
-            </div>
-
-            <div class="scanner-card">
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل فحوصاتي (Pro)</h3>
-                <label class="checkbox-label" style="margin:8px 0;"><input type="checkbox" id="historyToggle" data-change="toggleHistory"> حفظ سجل فحوصاتي بحسابي</label>
-                <div id="historyList" class="muted" style="font-size:.88rem;"></div>
-                <button class="app-btn small secondary" type="button" data-action="clearHistory" style="margin-top:10px;"><i class="fa-solid fa-trash"></i> مسح السجل</button>
-            </div>
-
-            <div class="scanner-card" style="border-color: rgba(255,23,68,.35);">
-                <h3 style="color:var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> حذف الحساب</h3>
-                <p class="muted" style="font-size:.85rem;">يحذف حسابك وسجلك ومفتاح API نهائياً. لا يمكن التراجع، والاشتراك المدفوع لا يُسترد.</p>
-                <form data-submit="deleteAccount" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <input class="app-input" id="deleteConfirm" placeholder="اكتب بريدك للتأكيد" dir="ltr" style="flex:1; min-width:200px;">
-                    <button class="app-btn danger small" type="submit">حذف حسابي نهائياً</button>
-                </form>
-                <div class="inline-msg" id="deleteMsg"></div>
             </div>
         </div>
     </div>

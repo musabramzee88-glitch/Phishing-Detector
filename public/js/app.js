@@ -596,6 +596,12 @@ function indicatorsHtml(indicators) {
 }
 
 // يرسم تقرير الفحص. كل نص قادم من المستخدم أو من المحرك يمر عبر escapeHtml.
+// الرابط لا يؤدي لأي موقع: نقولها صراحة بدل «لم تُرصد مؤشرات»
+function headlineFor(kind, result) {
+    if (kind === 'url' && result.inspection && result.inspection.exists === false && result.level === 'safe') return 'هذا الرابط لا يؤدي لأي موقع حالياً';
+    return LEVEL_TITLES[kind][result.level];
+}
+
 function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
     const ui = LEVEL_UI[result.level];
     LAST_REPORTS[box.id] = { kind, result, at: new Date().toISOString() };
@@ -609,7 +615,7 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
             <div class="report-title">
                 ${gaugeHtml(result.score, result.level)}
                 <div>
-                    <strong style="font-size:1.1rem;"><i class="fa-solid ${ui.icon}"></i> ${LEVEL_TITLES[kind][result.level]}</strong>
+                    <strong style="font-size:1.1rem;"><i class="fa-solid ${ui.icon}"></i> ${escapeHtml(headlineFor(kind, result))}</strong>
                     <div class="report-sub">${scoreLabel}: ${result.score}% ${confidence}</div>
                 </div>
             </div>
@@ -669,6 +675,53 @@ function downloadReport(boxId) {
 }
 
 let urlScanBusy = false;
+// بطاقة «معاينة الموقع»: ما شفناه لما زرنا الرابط من خادمنا (حقائق فقط، كل النصوص تُهرَّب)
+function flagEmoji(cc) {
+    return /^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map(c => 0x1F1A5 + c.charCodeAt(0))) : '';
+}
+
+function inspectionHtml(result) {
+    const checks = result.checks || {};
+    const v = result.inspection;
+    if (!v) {
+        if (checks.liveSkipped === 'official') return '<div class="live-card"><div class="live-head"><i class="fa-solid fa-circle-check"></i> نطاق رسمي معروف، فما احتجنا نزوره.</div></div>';
+        return '';
+    }
+    const rows = [];
+    const row = (label, value) => rows.push(`<div class="live-row"><span>${label}</span><b>${value}</b></div>`);
+    let head;
+    if (v.exists === false) head = '<i class="fa-solid fa-ban"></i> هذا الموقع غير موجود (النطاق ما إله عنوان على الإنترنت)';
+    else if (v.reason === 'blocked') head = '<i class="fa-solid fa-shield-halved"></i> ما زرناه: الرابط يشير لعنوان داخلي';
+    else if (v.download) head = '<i class="fa-solid fa-file-arrow-down"></i> الرابط ينزّل ملفاً مباشرة';
+    else if (v.visited) head = '<i class="fa-solid fa-eye"></i> زرنا الموقع بأمان من خادمنا، وهذا اللي شفناه';
+    else if (v.reason === 'port') head = '<i class="fa-solid fa-door-closed"></i> ما زرناه: الرابط يستخدم منفذاً غير معتاد للمواقع';
+    else if (v.reason === 'busy') head = '<i class="fa-solid fa-hourglass-half"></i> ما زرنا الموقع هسه (ضغط على الخادم). أعد الفحص بعد قليل';
+    else head = '<i class="fa-solid fa-plug-circle-xmark"></i> الموقع موجود بس ما فتح لنا';
+
+    if (v.status) row('رد الخادم', `${v.status >= 200 && v.status < 300 ? '✅' : '⚠️'} ${v.status}`);
+    if (v.redirects) row('التحويلات', `${v.redirects}`);
+    if (v.finalUrl && v.finalUrl !== result.input && v.exists !== false) row('الوجهة النهائية', `<code dir="ltr">${escapeHtml(v.finalUrl)}</code>`);
+    if (v.tls) row('شهادة HTTPS', v.tls.valid ? '✅ صالحة' : '❌ غير صالحة');
+    else if (v.visited && !v.https) row('التشفير', '⚠️ بدون HTTPS');
+    if (v.page) {
+        if (v.page.title) row('عنوان الصفحة', escapeHtml(v.page.title));
+        if (v.page.claims) row('تدّعي إنها', escapeHtml(v.page.claims));
+        const f = v.page.fields || {};
+        const asks = [f.password ? 'كلمة سر' : '', f.card ? 'بيانات بطاقة' : '', f.otp ? 'رمز تحقق' : '', f.identity ? 'بريد/هاتف' : ''].filter(Boolean);
+        row('تطلب منك', asks.length ? '⚠️ ' + escapeHtml(asks.join('، ')) : 'لا شي حساس');
+        if (v.page.exfil) row('ترسل البيانات إلى', '🚨 بوت تيليجرام/Discord');
+    }
+    if (v.download) row('الملف', escapeHtml(v.download.name || v.download.type || 'غير معروف'));
+    const h = v.hosting;
+    if (h && (h.country || h.org)) {
+        const where = h.cdn ? 'مخفي خلف خدمة حماية' : `${flagEmoji(h.country)} ${escapeHtml(h.countryName || h.country || '')}`;
+        row('الاستضافة', `${where}${h.org ? ` · <span dir="ltr">${escapeHtml(h.org.split(',')[0])}</span>` : ''}`);
+    }
+    const excerpt = v.page && v.page.excerpt ? `<p class="live-excerpt">«${escapeHtml(v.page.excerpt)}${v.page.excerpt.length >= 240 ? '…' : ''}»</p>` : '';
+    const note = h && (h.country || h.org) ? '<p class="live-note">دولة الاستضافة هي مكان تسجيل خادم الموقع، مو بالضرورة مكان المحتال.</p>' : '';
+    return `<div class="live-card"><div class="live-head">${head}</div>${rows.join('')}${excerpt}${note}</div>`;
+}
+
 async function analyzeUrl() {
     const input = document.getElementById('urlInput').value.trim();
     const reportBox = document.getElementById('reportBox');
@@ -682,7 +735,7 @@ async function analyzeUrl() {
     if (urlScanBusy) return;
     urlScanBusy = true;
     reportBox.style.display = 'block';
-    reportBox.innerHTML = loadingHtml('جارٍ فحص الرابط بالمحرك وقوائم التهديدات...');
+    reportBox.innerHTML = loadingHtml('جارٍ فحص الرابط وزيارته بأمان من خادمنا...');
 
     let response;
     try {
@@ -711,9 +764,10 @@ async function analyzeUrl() {
     const layers = ['محرك القواعد'];
     if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / Phishing Army)');
     if (checks.deep) layers.push('عمر النطاق (RDAP)');
+    if (checks.live) layers.push('زيارة الموقع والاستضافة');
     meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
-    const extra = checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>';
+    const extra = inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
     renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta, extra);
 
     addToHistory(input, 'رابط URL', result.score, LEVEL_STATUS[result.level]);

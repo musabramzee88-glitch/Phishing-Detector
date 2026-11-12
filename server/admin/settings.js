@@ -21,6 +21,7 @@
                 { key: "mediaScan", label: "فحص الصوت والفيديو", type: "toggle" },
                 { key: "cyberbot", label: "CyberBot", type: "toggle" },
                 { key: "bulk", label: "الفحص الجماعي (Pro)", type: "toggle" },
+                { key: "liveInspect", label: "زيارة الرابط الآمنة ومعلومات الاستضافة", type: "toggle" },
                 { key: "awareness", label: "المسار التوعوي ومحاكي التصيد", type: "toggle" },
                 { key: "registration", label: "إنشاء حسابات جديدة", type: "toggle" },
                 { key: "maintenance", label: "وضع الصيانة (يوقف الموقع للزوار؛ لوحة الإدارة تبقى تعمل)", type: "toggle", danger: true },

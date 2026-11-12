@@ -202,6 +202,7 @@ function loadConfig(env = process.env) {
         openai: parseAi(env),
         oauth: parseOAuth(env),
         intel: { enabled: env.THREAT_FEEDS !== "0" },
+        liveInspect: env.LIVE_INSPECT !== "0",
         plans: {
             priceUsd: numberEnv(env.PRICE_USD, 2, 0, 1000),
             priceIqd: numberEnv(env.PRICE_IQD, 3000, 0, 10_000_000),

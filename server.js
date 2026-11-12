@@ -34,6 +34,7 @@ const { createMailer } = require("./server/mailer");
 const { createOAuth } = require("./server/oauth");
 const { createAuth } = require("./server/auth");
 const { createIntel } = require("./server/intel");
+const { createInspector } = require("./server/inspect");
 const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
@@ -60,7 +61,9 @@ function createApp(config = loadConfig(), overrides = {}) {
     const mailer = createMailer(config);
     const settings = createSettings({ db, config });
     const auth = createAuth({ config, users, oauth, stats, mailer, settings });
-    const scan = createScan({ config, users, auth, intel, stats });
+    // الزيارة الآمنة للروابط ومعلومات الاستضافة (تتعطل مع THREAT_FEEDS=0 بالاختبارات، أو LIVE_INSPECT=0)
+    const inspector = overrides.inspector !== undefined ? overrides.inspector : createInspector({ enabled: config.intel.enabled && config.liveInspect });
+    const scan = createScan({ config, users, auth, intel, stats, inspector, settings });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
     const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings });
 

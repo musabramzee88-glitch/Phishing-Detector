@@ -84,7 +84,16 @@ function describeProviderError(status, payload) {
 function summarizeScan(url, r) {
     if (r.error) return `- ${url}: invalid URL`;
     const reasons = r.reasons.filter(x => x.type !== "info").slice(0, 4).map(x => "  • " + x.text).join("\n");
-    return `- ${r.input} → level=${r.level}, risk=${r.score}%${r.official ? ", official domain of " + r.official : ""}${r.brand ? ", impersonates " + r.brand : ""}\n${reasons}`;
+    const v = r.inspection;
+    let live = "";
+    if (v) {
+        if (v.exists === false) live = "\n  live visit: domain does not exist (no DNS)";
+        else if (v.page) live = `\n  live visit: HTTP ${v.status}, title="${v.page.title.slice(0, 80)}", password fields=${v.page.fields.password}, card fields=${v.page.fields.card}, claims brand=${v.page.claims || "none"}${v.finalUrl !== r.input ? ", final URL=" + v.finalUrl.slice(0, 120) : ""}`;
+        else if (v.download) live = `\n  live visit: direct file download ${v.download.name || v.download.type}`;
+        else if (!v.visited) live = `\n  live visit failed: ${v.reason}`;
+        if (v.hosting && v.hosting.country) live += `\n  hosting: ${v.hosting.org || "AS" + v.hosting.asn} (IP registered in ${v.hosting.country}${v.hosting.cdn ? ", behind CDN" : ""}) — server location, not the attacker's location`;
+    }
+    return `- ${r.input} → level=${r.level}, risk=${r.score}%${r.official ? ", official domain of " + r.official : ""}${r.brand ? ", impersonates " + r.brand : ""}${live}\n${reasons}`;
 }
 
 const LEVEL_AR = { safe: "لم تُرصد مؤشرات خطر", warning: "تنبيه: فيه مؤشرات تستدعي الحذر", danger: "خطر: مؤشرات تصيد واضحة" };
@@ -301,9 +310,10 @@ function createChatHandler({ config, users, auth, scan, stats, settings, fetchIm
 
         // نفحص الروابط الموجودة بالرسالة أولاً (حتى 3)
         const scans = [];
-        for (const url of engine.extractUrls(message).slice(0, 3)) {
+        for (const [i, url] of engine.extractUrls(message).slice(0, 3).entries()) {
             try {
-                scans.push({ url, result: await scan.scanUrl(url, { deep: limitsFor(user).deepChecks }) });
+                // نزور أول رابط فقط (الزيارة أبطأ من الفحص)
+                scans.push({ url, result: await scan.scanUrl(url, { deep: limitsFor(user).deepChecks, inspect: i === 0 }) });
             } catch { /* رابط واحد معطوب لا يوقف الرد */ }
         }
 

@@ -49,11 +49,12 @@ function merge(result, extra, thresholds) {
     return { ...result, score, level, confidence, reasons, indicators };
 }
 
-function createScan({ config, users, auth, intel, stats }) {
+function createScan({ config, users, auth, intel, stats, inspector = null, settings = null }) {
+    const liveOn = () => Boolean(inspector) && (!settings || settings.get().features.liveInspect !== false);
     const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.scanPerMinute });
     const badKeys = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.badApiKeysPerWindow });
 
-    async function scanUrl(rawUrl, { strict = false, deep = false } = {}) {
+    async function scanUrl(rawUrl, { strict = false, deep = false, inspect = false } = {}) {
         const url = String(rawUrl || "").trim().slice(0, MAX_URL);
         const result = engine.analyzeUrl(url, { strict });
         if (result.error) return result;
@@ -62,13 +63,24 @@ function createScan({ config, users, auth, intel, stats }) {
         const feedHits = result.host ? intel.lookup(result.input, result.host) : [];
         // النطاقات الرسمية المعروفة لا نحكم عليها من قوائم التهديدات إلا بتطابق الرابط كاملاً
         extra.push(...(result.official ? feedHits.filter(s => s.weight >= 0.9) : feedHits));
-        let age = null;
-        if (deep && result.registrable && !result.official && !/^\d+\.\d+\.\d+\.\d+$/.test(result.host)) {
-            age = await intel.domainAge(result.registrable);
-            extra.push(...intel.ageSignals(age));
-        }
+        // عمر النطاق (Pro) والزيارة الآمنة يعملان بالتوازي
+        const wantsAge = deep && result.registrable && !result.official && !/^\d+\.\d+\.\d+\.\d+$/.test(result.host);
+        // النطاقات الرسمية المعروفة ونطاق الموقع نفسه لا نزورها (ما نحتاج، وممكن الرابط يحمل رمزاً خاصاً بالمستخدم)
+        const wantsVisit = inspect && liveOn() && !result.official && !engine.isSiteHost(result.host);
+        const [age, inspection] = await Promise.all([
+            wantsAge ? intel.domainAge(result.registrable) : null,
+            wantsVisit ? inspector.inspect(result.input, result).catch(() => null) : null
+        ]);
+        extra.push(...intel.ageSignals(age));
+        if (inspection) extra.push(...inspection.signals.filter(s => s.weight > 0 || s.type === "info"));
         const merged = merge(result, extra, thresholds);
-        merged.checks = { feeds: intel.status().enabled, deep, domainAge: age };
+        // الموقع غير موجود: ملاحظة «الاتصال مشفر» لا معنى لها
+        if (inspection && inspection.exists === false) merged.reasons = merged.reasons.filter(r => !(r.type === "info" && /HTTPS/.test(r.text)));
+        merged.checks = { feeds: intel.status().enabled, deep, domainAge: age, live: Boolean(inspection), liveSkipped: inspect && !wantsVisit ? (result.official ? "official" : liveOn() ? "site" : "disabled") : "" };
+        if (inspection) {
+            const { signals, ...visible } = inspection;
+            merged.inspection = visible;
+        }
         return merged;
     }
 
@@ -135,7 +147,7 @@ function createScan({ config, users, auth, intel, stats }) {
         score: r.score, level: r.level, confidence: r.confidence, reasons: r.reasons, indicators: r.indicators,
         engineVersion: r.engineVersion, input: r.input, host: r.host, unicodeHost: r.unicodeHost,
         registrable: r.registrable, official: r.official, brand: r.brand, checks: r.checks,
-        categories: r.categories, urls: r.urls, advice: r.advice
+        categories: r.categories, urls: r.urls, advice: r.advice, inspection: r.inspection
     });
 
     async function handle(req, res, url) {
@@ -163,7 +175,7 @@ function createScan({ config, users, auth, intel, stats }) {
             if (p === "/api/scan/url" || (p === "/api/v1/scan-url" && !Array.isArray(input.urls))) {
                 if (typeof input.url !== "string" || !input.url.trim()) return h.sendJson(res, 400, { error: "أرسل الرابط بالحقل url." }), true;
                 if (!(await quota(res, user, "scan"))) return true;
-                const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks });
+                const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks, inspect: input.inspect !== false });
                 if (result.error) return h.sendJson(res, 400, { error: "الرابط غير صالح هيكلياً.", code: result.error }), true;
                 stats.scan("url", result.level);
                 await users.addHistory(user, { kind: "url", label: result.input.slice(0, 200), score: result.score, level: result.level }).catch(() => {});

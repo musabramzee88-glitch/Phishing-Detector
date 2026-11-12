@@ -53,6 +53,7 @@ if (systemDark && systemDark.addEventListener) {
 }
 
 // إعدادات الموقع من لوحة الإدارة: النصوص، الإعلان، الخدمات المفعّلة، CyberBot
+let SITE_SETTINGS = {};
 async function applySiteSettings() {
     let site;
     try {
@@ -60,6 +61,7 @@ async function applySiteSettings() {
         if (!response.ok) return;
         site = await response.json();
     } catch { return; }
+    SITE_SETTINGS = site;
     const home = site.home || {};
     if (home.title) document.getElementById('heroTitle').textContent = home.title;
     if (home.subtitle) document.getElementById('heroSubtitle').textContent = home.subtitle;
@@ -100,6 +102,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadSimulation(0);
     applySiteSettings();
     guarded('share', handleSharedContent);
+    guarded('pwa', setupInstall);
     loadHomeAlerts();
 
     window.addEventListener('click', (e) => {
@@ -604,20 +607,116 @@ function gaugeHtml(score, level) {
 }
 
 // تفصيل المؤشرات: وزن كل مؤشر كشريط، حتى يفهم المستخدم لماذا خرجت هذه الدرجة
-function indicatorsHtml(indicators) {
+// «ليش هذي الدرجة؟»: كل مؤشر وشكد ساهم بالدرجة (نقاط، بطريقة الحذف واحد واحد)، مع شرح مبسّط عند الضغط
+const EXPLAIN = [
+    [/punycode|homograph|الأحرف المتشابهة|كيريلي|يوناني/i, 'بعض الحروف من لغات ثانية تشبه الحروف الإنكليزية بالضبط، فالرابط يبين مثل الموقع الأصلي بس هو موقع ثاني.'],
+    [/حروفاً بأرقام|رموز مشابهة|g00gle|الأخطاء الإملائية|قريب جداً من|Typosquatting/i, 'المحتالين يسجلون اسم يشبه الموقع المعروف بحرف أو رقم مختلف حتى ما تنتبه.'],
+    [/عمر النطاق|مسجّل قبل|جديد جداً|حديث نسبياً/i, 'أغلب مواقع التصيد تنعمل وتُستخدم خلال أيام، فالموقع الجديد جداً يستاهل حذر أكثر.'],
+    [/HTTPS|مشفر|شهادة/i, 'القفل (HTTPS) يعني الاتصال مشفّر بس، ما يعني إن صاحب الموقع موثوق.'],
+    [/قائمة|OpenPhish|Phishing Army|مؤكَّد كاحتيال|أبلغ عنه/i, 'هذا الرابط أو النطاق مسجّل فعلاً كاحتيال بقوائم تهديدات عامة أو ببلاغات مؤكدة.'],
+    [/مستضاف على خدمة مجانية|استضافة مجانية/i, 'أي شخص يكدر يسوي موقع مجاني بثواني، فالمواقع الرسمية للبنوك والشركات ما تكون هيج.'],
+    [/مختصر|إعادة التوجيه|يحوّلك|تحويل/i, 'الرابط يخفي وجهته الحقيقية ويوديك لمكان ثاني.'],
+    [/كلمة السر|بيانات البطاقة|رمز تحقق|بيانات سرية/i, 'أي جهة حقيقية ما تطلب كلمة سرك أو رمز التحقق برسالة أو رابط.'],
+    [/تهديد|إيقاف|تجميد|إغلاق|استعجال|خلال \d/i, 'الضغط والتهديد بوقت قصير أسلوب حتى تتصرف بسرعة بدون تفكير.'],
+    [/جائزة|ربحت|مبروك|هدية|منحة/i, 'الجوائز والمنح اللي ما شاركت بيها أشهر طُعم للاحتيال.'],
+    [/تيليجرام|Discord/i, 'الصفحة ترسل اللي تكتبه مباشرة للمحتال عن طريق بوت.'],
+    [/ماكرو|PowerShell|سكربت|تنفيذي|EXE|APK|اختصار/i, 'الملف ممكن يشغّل أوامر على جهازك، وهذا أسلوب نشر البرمجيات الخبيثة.'],
+    [/Combosquatting|يدمج اسم/i, 'المحتال يلزق اسم شركة معروفة ويّا كلمات مثل secure أو login حتى يبين الرابط رسمي، بس الشركة ما تملك هذا النطاق.'],
+    [/امتداد النطاق|منخفض التكلفة/i, 'بعض الامتدادات (مثل .xyz و .top) رخيصة جداً، فيستعملها المحتالين بكثرة لأنهم يرمون النطاق بعد أيام.'],
+    [/كلمات تُستخدم عادة|سرقة البيانات/i, 'كلمات مثل login و verify و secure بالرابط تحاول تقنعك إن الصفحة رسمية.'],
+    [/شرطات/i, 'النطاقات الرسمية نادراً تكون طويلة وبيها شرطات كثيرة؛ المحتالين يستعملوها حتى يجمعون كلمات توحي بالثقة.'],
+    [/نطاق فرعي|النطاقات الفرعية|النطاق الحقيقي/i, 'الجزء المهم بالرابط هو آخره قبل أول «/». المحتال يحط اسم الموقع المعروف بالبداية حتى يخدعك.']
+];
+const explainFor = text => (EXPLAIN.find(([re]) => re.test(text)) || [null, ''])[1];
+
+function indicatorsHtml(indicators, level) {
     if (!indicators || !indicators.length) return '';
-    const rows = indicators.slice(0, 8).map(i => `
-        <div class="indicator-row ind-${i.type}">
-            <div class="indicator-bar"><span style="width:${Math.max(4, Math.min(100, i.weight))}%"></span></div>
-            <div class="indicator-text">${escapeHtml(i.text)}</div>
-            <div class="indicator-weight" title="الوزن الخام للمؤشر">${i.weight}</div>
-        </div>`).join('');
-    return `
-        <details class="indicators-box">
-            <summary><i class="fa-solid fa-chart-simple"></i> تفصيل المؤشرات وأوزانها (${indicators.length})</summary>
-            <div class="indicators-list">${rows}</div>
-            <p class="indicators-note">الدرجة تُحسب بدمج احتمالي (Noisy-OR): كل مؤشر مستقل يرفع الخطورة، بدون أن تتجاوز 100% أو تتضخم من تكرار مؤشرات ضعيفة.</p>
+    const shown = indicators.filter(i => i.type !== 'safe' && i.type !== 'info' && (i.impact > 0 || i.weight > 0))
+        .sort((a, b) => (b.impact || 0) - (a.impact || 0)).slice(0, 8);
+    if (!shown.length) return '';
+    const max = Math.max(...shown.map(i => i.impact || 0), 1);
+    const rows = shown.map(i => {
+        const pts = Math.max(0, Math.round(i.impact || 0));
+        const why = explainFor(i.text);
+        return `
+        <details class="factor ind-${i.type}">
+            <summary>
+                <span class="factor-text">${escapeHtml(i.text)}</span>
+                <span class="factor-bar"><span style="width:${Math.max(4, Math.round((pts / max) * 100))}%"></span></span>
+                <b class="factor-pts">+${pts}</b>
+            </summary>
+            ${why ? `<p class="factor-why"><i class="fa-solid fa-lightbulb"></i> ${escapeHtml(why)}</p>` : ''}
         </details>`;
+    }).join('');
+    return `
+        <div class="factors-box">
+            <h4><i class="fa-solid fa-chart-simple"></i> ليش هذي الدرجة؟</h4>
+            <p class="indicators-note">كل سطر: العامل وشكد يرفع الدرجة بالنقاط. اضغط على أي عامل حتى تفهمه.</p>
+            ${rows}
+        </div>`;
+}
+
+// «شنو أسوي هسه؟»: يظهر بعد كل نتيجة غير آمنة
+function responsePlanHtml(boxId) {
+    if (!window.PD_RESPONSE) return '';
+    const buttons = PD_RESPONSE.PLANS.map(p => `<button type="button" class="plan-opt" data-action="showResponsePlan" data-arg="${boxId}" data-arg2="${p.id}"><i class="${p.icon}"></i> ${escapeHtml(p.label)}</button>`).join('');
+    return `
+        <div class="response-box">
+            <h4><i class="fa-solid fa-life-ring"></i> وقعت بالفخ؟ شنو سويت؟</h4>
+            <div class="plan-opts">${buttons}</div>
+            <div class="plan-steps" id="plan-${boxId}" aria-live="polite"></div>
+        </div>`;
+}
+
+function showResponsePlan(boxId, planId) {
+    const plan = window.PD_RESPONSE && PD_RESPONSE.PLANS.find(p => p.id === planId);
+    const box = document.getElementById('plan-' + boxId);
+    if (!plan || !box) return;
+    document.querySelectorAll(`#${boxId} .plan-opt`).forEach(b => b.classList.toggle('active', b.dataset.arg2 === planId));
+    const contacts = ((SITE_SETTINGS.response || {}).contacts || '').trim();
+    const list = document.createElement('ol');
+    list.className = 'plan-checklist';
+    plan.steps.forEach((step, i) => {
+        const li = document.createElement('li');
+        const label = document.createElement('label');
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.id = `step-${boxId}-${planId}-${i}`;
+        label.htmlFor = check.id;
+        label.textContent = step;
+        li.append(check, label);
+        list.append(li);
+    });
+    const intro = document.createElement('p');
+    intro.className = 'plan-intro' + (plan.money ? ' urgent' : '');
+    intro.textContent = plan.intro;
+    const parts = [intro, list];
+    if (plan.money) {
+        const c = document.createElement('div');
+        c.className = 'plan-contacts';
+        const h = document.createElement('strong');
+        h.textContent = 'أرقام وقنوات الطوارئ:';
+        const t = document.createElement('p');
+        t.textContent = contacts || 'استعمل الرقم المكتوب على ظهر بطاقتك أو داخل التطبيق الرسمي لمصرفك أو محفظتك. لا تتصل بأي رقم موجود بالرسالة المشبوهة.';
+        c.append(h, t);
+        parts.push(c);
+    }
+    if (plan.links && plan.links.length) {
+        const links = document.createElement('div');
+        links.className = 'plan-links';
+        for (const key of plan.links) {
+            const l = PD_RESPONSE.LINKS[key];
+            if (!l) continue;
+            const a = document.createElement('a');
+            a.href = l.href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = l.label;
+            links.append(a);
+        }
+        parts.push(links);
+    }
+    box.replaceChildren(...parts);
 }
 
 // يرسم تقرير الفحص. كل نص قادم من المستخدم أو من المحرك يمر عبر escapeHtml.
@@ -653,7 +752,8 @@ function renderReport(box, kind, scoreLabel, result, metaHtml, extraHtml) {
         </div>
         <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">${metaHtml}</div>
         <ul class="report-details-list">${items}</ul>
-        ${indicatorsHtml(result.indicators)}
+        ${indicatorsHtml(result.indicators, result.level)}
+        ${result.level !== 'safe' ? responsePlanHtml(box.id) : ''}
         ${extraHtml || ''}
         <p style="font-size:0.78rem; color:var(--text-muted); margin-top:12px;">${SCAN_DISCLAIMER}${result.engineVersion ? ` · المحرك v${escapeHtml(result.engineVersion)}` : ''}</p>
     `;
@@ -764,6 +864,38 @@ async function loadHomeAlerts() {
     } catch { /* التنبيهات اختيارية */ }
 }
 
+// تثبيت الموقع كتطبيق: زر تثبيت بالأندرويد، وتعليمات للآيفون (المشاركة للتطبيق متاحة بالأندرويد فقط)
+let installPrompt = null;
+function setupInstall() {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const card = document.getElementById('installCard');
+    if (!card || standalone) return;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const text = document.getElementById('installText');
+    const btn = document.getElementById('installBtn');
+    if (ios) {
+        text.textContent = 'بالآيفون: افتح الموقع بـ Safari، اضغط زر المشاركة (المربع والسهم)، واختار «إضافة إلى الشاشة الرئيسية». ملاحظة: آبل ما تسمح للتطبيق يطلع بقائمة «مشاركة» من واتساب، فالصق الرابط داخل التطبيق.';
+        btn.hidden = true;
+        card.hidden = false;
+    }
+    window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        installPrompt = event;
+        text.textContent = 'ثبّته على شاشتك الرئيسية: يفتح مثل التطبيق، ويطلع بقائمة «مشاركة» بالواتساب حتى تفحص الروابط والرسائل بضغطة.';
+        btn.hidden = false;
+        card.hidden = false;
+    });
+    window.addEventListener('appinstalled', () => { card.hidden = true; });
+}
+async function installApp() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    try { await installPrompt.userChoice; } catch { /* تجاهل */ }
+    installPrompt = null;
+    document.getElementById('installCard').hidden = true;
+}
+
 // «شارك إلى Phishing Detector» (من واتساب وغيره، بعد تنصيب الموقع كتطبيق): نفحص المحتوى المشارك مباشرة
 function handleSharedContent() {
     const params = new URLSearchParams(location.search);
@@ -841,6 +973,18 @@ function inspectionHtml(result) {
 
     if (v.status) row('رد الخادم', `${v.status >= 200 && v.status < 300 ? '✅' : '⚠️'} ${v.status}`);
     if (v.redirects) row('التحويلات', `${v.redirects}`);
+    // مسار التحويل خطوة بخطوة، وكل حلقة ملوّنة حسب فحص المحرك لها
+    let chainHtml = '';
+    if (Array.isArray(v.chain) && v.chain.length > 1) {
+        const COLORS = { danger: 'var(--accent-red)', warning: 'var(--accent-yellow)', safe: 'var(--accent-green)' };
+        const steps = v.chain.map((hop, i) => {
+            let level = 'safe', host = hop.url;
+            try { host = new URL(hop.url).hostname; const r = PhishingEngine.analyzeUrl(hop.url); if (!r.error) level = r.level; } catch { /* نعرضه كما هو */ }
+            const last = i === v.chain.length - 1;
+            return `<li class="hop" style="--hop:${COLORS[level]}"><span class="hop-dot"></span><span class="hop-host" dir="ltr">${escapeHtml(host)}</span><span class="hop-status">${last ? 'الوجهة' : escapeHtml(String(hop.status || ''))}</span></li>`;
+        }).join('');
+        chainHtml = `<div class="hop-chain"><strong>مسار التحويل:</strong><ol>${steps}</ol></div>`;
+    }
     if (v.finalUrl && v.finalUrl !== result.input && v.exists !== false) row('الوجهة النهائية', `<code dir="ltr">${escapeHtml(v.finalUrl)}</code>`);
     if (v.tls) row('شهادة HTTPS', v.tls.valid ? '✅ صالحة' : '❌ غير صالحة');
     else if (v.visited && !v.https) row('التشفير', '⚠️ بدون HTTPS');
@@ -863,7 +1007,7 @@ function inspectionHtml(result) {
     const snap = v.snapshotId && /^[A-Za-z0-9_-]{24}$/.test(v.snapshotId)
         ? `<div class="snap-wrap"><button type="button" class="btn-quick snap-btn" data-action="toggleSnapshot" data-arg="${v.snapshotId}"><i class="fa-solid fa-display"></i> عرض شكل الصفحة</button><div class="snap-box" id="snap-${v.snapshotId}" hidden></div></div>`
         : '';
-    return `<div class="live-card"><div class="live-head">${head}</div>${rows.join('')}${excerpt}${snap}${note}</div>`;
+    return `<div class="live-card"><div class="live-head">${head}</div>${rows.join('')}${chainHtml}${excerpt}${snap}${note}</div>`;
 }
 
 // معاينة شكل الصفحة: نسخة معقّمة بناها خادمنا (بدون أكواد ولا اتصال بموقع المحتال) داخل إطار معزول
@@ -1377,7 +1521,7 @@ const ACTIONS = {
     toggleSnapshot,
     analyzeUrl, analyzeText, analyzeFile, uploadAndScan, toggleThemeMenu, openCyberBot,
     clearCyberBotConversation, sendCyberBotMessage, useCyberBotSuggestion, testUrl, loadSimulation, checkSimulation,
-    updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport, warnFamily, reportScam, setFontScale
+    updateFileName, updateMediaFileName, cleanScannedFile, copyReport, downloadReport, warnFamily, reportScam, setFontScale, showResponsePlan, installApp
 };
 
 // يبلّغ حارس الأخطاء (error-guard.js) ويبقي الصفحة تعمل

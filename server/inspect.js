@@ -28,7 +28,7 @@ const zlib = require("node:zlib");
 const crypto = require("node:crypto");
 const engine = require("../public/js/detection-engine.js");
 
-const MAX_REDIRECTS = 5;
+const MAX_REDIRECTS = 10;
 const MAX_BODY = 600 * 1024;
 const TOTAL_TIMEOUT_MS = 10_000;
 const HOP_TIMEOUT_MS = 7_000;
@@ -683,7 +683,7 @@ function createInspector({
             status: result.response ? result.response.status : 0,
             finalUrl: result.url ? result.url.href.slice(0, 300) : start.href,
             redirects: Math.max(0, (result.chain || []).length - 1),
-            chain: (result.chain || []).slice(0, 6),
+            chain: (result.chain || []).slice(0, 11),
             https: Boolean(result.url && result.url.protocol === "https:"),
             tls: result.tls,
             hosting: null,
@@ -733,7 +733,7 @@ function createInspector({
             else if (!dest.error && dest.level === "warning") add(0.25, "warning", `الرابط يحوّلك إلى نطاق ثاني: ${finalHost} (بيه مؤشرات تستدعي الحذر).`);
             else add(0, "info", `الرابط يحوّلك إلى: ${finalHost}${dest.official ? " (نطاق رسمي لـ " + dest.official + ")" : ""}.`);
         }
-        if (out.redirects >= 4) add(0.12, "warning", `الرابط يمر بـ ${out.redirects} تحويلات قبل ما يوصل. سلاسل التحويل الطويلة تُستخدم لإخفاء الوجهة.`);
+        if (out.redirects >= 4) add(out.redirects >= 7 ? 0.2 : 0.12, "warning", `الرابط يمر بـ ${out.redirects} تحويلات قبل ما يوصل. سلاسل التحويل الطويلة تُستخدم لإخفاء الوجهة.`);
 
         const type = String(response.headers["content-type"] || "").toLowerCase();
         const disposition = String(response.headers["content-disposition"] || "");

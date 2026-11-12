@@ -153,6 +153,7 @@ function publicUser(user, now = Date.now()) {
         trialUsed: Boolean(user.trialEndsAt),
         apiKeyHint: user.apiKeyHint || "",
         historyEnabled: !user.historyOff,
+        checkups: Array.isArray(user.checkups) ? user.checkups.slice(-20) : [],
         limits: LIMITS[plan.id]
     };
 }
@@ -530,6 +531,14 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         return update(user.id, u => { u.pw = pw; u.pwAt = clock(); });
     }
 
+    // درجة فحص الأمان (Pro): الدرجة والتاريخ فقط، آخر 20
+    async function saveCheckup(user, rawScore) {
+        if (!LIMITS[planOf(user, clock()).id].history) throw new UserError("pro_only", "حفظ تطور درجتك متاح لمشتركي Pro. درجتك الحالية تبقى ظاهرة عندك.", 403);
+        const score = Number(rawScore);
+        if (!Number.isInteger(score) || score < 0 || score > 100) throw new UserError("bad_score", "درجة غير صالحة.");
+        return update(user.id, u => { u.checkups = [...(Array.isArray(u.checkups) ? u.checkups : []), { at: clock(), score }].slice(-20); });
+    }
+
     async function setHistoryEnabled(user, enabled) {
         if (!enabled) await clearHistory(user);
         return update(user.id, u => { u.historyOff = !enabled; });
@@ -705,7 +714,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     return {
         get, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
-        rename, changePassword, setHistoryEnabled, remove, createResetLink, useResetLink,
+        rename, changePassword, setHistoryEnabled, saveCheckup, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revokeSessions, revenue,
         publicUser: user => publicUser(user, clock())
     };

@@ -447,6 +447,9 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
                 // الجلسات القديمة سقطت بتغيير كلمة السر: نصدر جلسة جديدة لهذا المتصفح ونحذف القديمة
                 await users.destroySession(sessionToken(req)).catch(() => {});
                 return await startSession(req, res, updated, 200, await me(updated));
+            } else if (p === "/api/account/checkup") {
+                updated = await users.saveCheckup(user, body.score);
+                return h.sendJson(res, 200, { ok: true, checkups: users.publicUser(updated).checkups });
             } else if (p === "/api/account/history-setting") updated = await users.setHistoryEnabled(user, Boolean(body.enabled));
             else if (p === "/api/account/history/clear") await users.clearHistory(user);
             else if (p === "/api/account/api-key") {

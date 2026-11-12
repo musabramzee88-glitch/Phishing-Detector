@@ -42,6 +42,7 @@ function defaults(config) {
             freeScansPerDay: 20, freeChatPerDay: 10, proScansPerDay: 1000, proChatPerDay: 200, proBulkMaxUrls: 50
         },
         cyberbot: { greeting: "", suggestions: DEFAULT_SUGGESTIONS.slice(), extraInstructions: "" },
+        response: { contacts: "" },
         security: { mfaEmail: true }
     };
 }
@@ -59,6 +60,7 @@ const SCHEMA = {
         proScansPerDay: ["int", 1, 100_000], proChatPerDay: ["int", 1, 100_000], proBulkMaxUrls: ["int", 1, 500]
     },
     cyberbot: { greeting: ["text", 600], suggestions: ["list", 6, 140], extraInstructions: ["text", 1500] },
+    response: { contacts: ["text", 600] },
     security: { mfaEmail: ["bool"] }
 };
 
@@ -186,7 +188,8 @@ function createSettings({ db, config }) {
             home: { ...c.home },
             features: { ...c.features },
             plans: { priceUsd: c.plans.priceUsd, priceIqd: c.plans.priceIqd, trialDays: c.plans.trialDays },
-            cyberbot: { greeting: c.cyberbot.greeting, suggestions: c.cyberbot.suggestions.slice() }
+            cyberbot: { greeting: c.cyberbot.greeting, suggestions: c.cyberbot.suggestions.slice() },
+            response: { contacts: (c.response && c.response.contacts) || "" }
         };
     }
 

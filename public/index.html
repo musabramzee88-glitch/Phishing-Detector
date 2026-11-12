@@ -7,7 +7,9 @@
     
     <!-- أيقونة تبويب المتصفح (Favicon) -->
     <link rel="icon" href="/favicon.ico" sizes="48x48">
-    <link rel="apple-touch-icon" href="/img/logo-192.jpg?v=4.0.0">
+    <link rel="apple-touch-icon" href="/img/icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="robots" content="noindex">
     <meta name="theme-color" content="#0a0f1d">
 
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -169,7 +171,7 @@
 
             <div class="scanner-card">
                 <div class="input-group">
-                    <input type="text" id="urlInput" placeholder="أدخل الرابط الكامل هنا (مثال: https://fasebook.com)...">
+                    <input type="url" id="urlInput" dir="ltr" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" data-enter="analyzeUrl" placeholder="أدخل الرابط الكامل هنا (مثال: https://fasebook.com)...">
                     <button class="btn-scan" data-action="analyzeUrl">
                         <i class="fa-solid fa-magnifying-glass"></i> فحص الرابط
                     </button>

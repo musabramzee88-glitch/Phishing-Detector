@@ -619,11 +619,14 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (!raw) throw new UserError("not_found", "الطلب غير موجود.", 404);
         const payment = JSON.parse(raw);
         if (payment.status !== "pending") throw new UserError("decided", "تمت مراجعة هذا الطلب مسبقاً.", 409);
+        // SREM ذرّي: أول طلب فقط يحذف الطلب من قائمة المعلّقة. يمنع تمديد الاشتراك مرتين لو ضُغط «موافقة» مرتين بنفس اللحظة
+        const claimed = await db.cmd(["SREM", k("pays", "pending"), id]);
+        if (Number(claimed) !== 1) throw new UserError("decided", "تمت مراجعة هذا الطلب مسبقاً.", 409);
         payment.status = approve ? "approved" : "rejected";
         payment.decidedAt = clock();
         payment.decidedBy = cleanName(admin, 40);
         payment.reason = cleanName(reason, 200);
-        await db.pipe([["SET", k("pay", id), JSON.stringify(payment)], ["SREM", k("pays", "pending"), id]]);
+        await db.cmd(["SET", k("pay", id), JSON.stringify(payment)]);
         let user = null;
         if (approve) user = await extend(payment.uid, payment.months).catch(() => null);
         return { payment, user };
@@ -639,10 +642,24 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     // ---------- للأدمن ----------
     async function listUsers({ offset = 0, limit = 50, query = "" } = {}) {
         const total = Number(await db.cmd(["ZCARD", k("users")])) || 0;
-        if (query) {
-            const email = String(query).trim().toLowerCase();
-            const user = await findByEmail(email);
-            return { total, users: user ? [user] : [] };
+        const q = String(query || "").trim().toLowerCase();
+        if (q) {
+            // تطابق تام بالبريد أولاً (سريع)، وإلا بحث جزئي بالبريد أو الاسم في أحدث 5000 حساب
+            const exact = q.includes("@") ? await findByEmail(q) : null;
+            if (exact) return { total, users: [exact] };
+            const found = [];
+            for (let start = 0; start < Math.min(total, 5000) && found.length < limit; start += 500) {
+                const ids = await db.cmd(["ZREVRANGE", k("users"), String(start), String(start + 499)]);
+                if (!Array.isArray(ids) || !ids.length) break;
+                const raw = await db.pipe(ids.map(id => ["GET", k("u", id)]));
+                for (const r of raw) {
+                    let u;
+                    try { u = JSON.parse(r); } catch { continue; }
+                    if (u && (String(u.email).includes(q) || String(u.name || "").toLowerCase().includes(q))) found.push(u);
+                    if (found.length >= limit) break;
+                }
+            }
+            return { total, users: found };
         }
         const ids = await db.cmd(["ZREVRANGE", k("users"), String(offset), String(offset + limit - 1)]);
         const raw = (Array.isArray(ids) && ids.length) ? await db.pipe(ids.map(id => ["GET", k("u", id)])) : [];

@@ -1381,6 +1381,9 @@
 
     return {
         setSiteHosts,
+        isSiteHost,
+        officialBrandFor,
+        brandsMentioned,
         analyzeUrl,
         analyzeText,
         analyzeFile,

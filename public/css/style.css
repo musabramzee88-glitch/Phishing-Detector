@@ -829,3 +829,13 @@ footer {
 }
 .footer-privacy { font-size: 0.75rem; opacity: 0.75; margin-top: 6px; }
 .footer-links { font-size: 0.8rem; margin-top: 8px; }
+
+/* بطاقة معاينة الموقع (الزيارة الآمنة) */
+.live-card { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(127, 127, 127, 0.06); font-size: .88rem; }
+.live-head { font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+.live-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px dashed var(--border-color); }
+.live-row span { color: var(--text-muted); flex-shrink: 0; }
+.live-row b { font-weight: 600; color: var(--text-main); text-align: left; min-width: 0; overflow-wrap: anywhere; }
+.live-row code { font-size: .8rem; }
+.live-excerpt { margin: 8px 0 0; color: var(--text-muted); font-style: italic; overflow-wrap: anywhere; }
+.live-note { margin: 6px 0 0; font-size: .75rem; color: var(--text-muted); }

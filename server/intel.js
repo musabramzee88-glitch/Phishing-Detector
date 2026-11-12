@@ -179,7 +179,8 @@ function createIntel({ enabled = true, fetchImpl = fetch, feeds = FEEDS, now = (
         if (d <= 7) return [{ weight: 0.6, type: "danger", text: `النطاق مسجّل قبل ${d} يوم فقط (${date}). أغلب مواقع التصيد تُستخدم خلال أيامها الأولى.` }];
         if (d <= 30) return [{ weight: 0.38, type: "warning", text: `النطاق جديد جداً: مسجّل قبل ${d} يوماً (${date}).` }];
         if (d <= 180) return [{ weight: 0.12, type: "warning", text: `النطاق حديث نسبياً: مسجّل قبل ${d} يوماً (${date}).` }];
-        return [{ weight: 0, type: "info", text: `النطاق مسجّل منذ ${date} (قرابة ${Math.floor(d / 365)} سنة).${d > 730 ? " النطاقات القديمة أقل ارتباطاً بالتصيد، لكن قد تُخترق." : ""}` }];
+        const span = d < 365 ? `قرابة ${Math.max(6, Math.floor(d / 30))} أشهر` : `قرابة ${Math.floor(d / 365)} سنة`;
+        return [{ weight: 0, type: "info", text: `النطاق مسجّل منذ ${date} (${span}).${d > 730 ? " النطاقات القديمة أقل ارتباطاً بالتصيد، لكن قد تُخترق." : ""}` }];
     }
 
     function status() {

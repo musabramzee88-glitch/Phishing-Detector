@@ -55,7 +55,7 @@ test('صفحة الدخول تُضغط وروابطها المطلقة تحمل 
     assert.equal(br.headers['content-encoding'], 'br');
     const html = zlib.brotliDecompressSync(br.body).toString('utf8');
     assert.ok(!html.includes('%APP_URL%'));
-    assert.match(html, /og:image" content="http:\/\/localhost:8080\/img\/logo-512\.jpg"/);
+    assert.match(html, /og:image" content="http:\/\/localhost:8080\/img\/icon-512\.png"/);
     assert.match(html, /href="\/privacy"/);
 }));
 

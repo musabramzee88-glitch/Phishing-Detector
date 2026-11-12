@@ -39,7 +39,7 @@ const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
 const { createSettings } = require("./server/settings");
-const { serveStatic } = require("./server/static");
+const { serveStatic, versionAssets } = require("./server/static");
 
 const CLIENT_ERROR_KINDS = new Set(["error", "promise", "action"]);
 
@@ -75,8 +75,9 @@ function createApp(config = loadConfig(), overrides = {}) {
             v.google ? `<meta name="google-site-verification" content="${v.google}">` : "",
             v.bing ? `<meta name="msvalidate.01" content="${v.bing}">` : ""
         ].filter(Boolean).join("\n    ");
-        const raw = Buffer.from(fs.readFileSync(path.join(config.publicDir, name), "utf8")
-            .split("%APP_URL%").join(config.appUrl).split("<!--SITE_VERIFICATION-->").join(verify));
+        const html = fs.readFileSync(path.join(config.publicDir, name), "utf8")
+            .split("%APP_URL%").join(config.appUrl).split("<!--SITE_VERIFICATION-->").join(verify);
+        const raw = Buffer.from(versionAssets(html, config.publicDir));
         return { raw, br: zlib.brotliCompressSync(raw), gzip: zlib.gzipSync(raw, { level: 9 }) };
     };
     const pages = { app: loadPage("index.html"), login: loadPage("login.html") };

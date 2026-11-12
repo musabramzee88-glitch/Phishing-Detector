@@ -353,6 +353,77 @@
         lookupIdentifierForm();
     }
 
+    // ================================================================ مراقبة انتحال الدومين
+    function renderMonitor(data) {
+        const box = $('monList');
+        if (!box) return;
+        box.replaceChildren(...(data.domains || []).map(d => {
+            const card = el('div', 'mon-card');
+            const head = el('div', 'mon-head');
+            const name = el('strong', '', d.domain);
+            name.dir = 'ltr';
+            const actions = el('div', 'mon-actions');
+            const check = el('button', 'app-btn small', 'افحص هسه');
+            check.type = 'button';
+            check.addEventListener('click', async () => {
+                check.disabled = true;
+                check.textContent = 'جارٍ الفحص...';
+                const { ok, data: res } = await api('/api/monitor/check', { domain: d.domain });
+                $('monMsg').textContent = ok ? (res.newFindings ? `لكينا ${res.newFindings} نطاق جديد.` : 'ما لكينا نطاقات جديدة.') : (res.error || 'تعذر الفحص.');
+                if (ok) renderMonitor(res); else { check.disabled = false; check.textContent = 'افحص هسه'; }
+            });
+            const remove = el('button', 'app-btn small secondary', 'إزالة');
+            remove.type = 'button';
+            remove.addEventListener('click', async () => {
+                if (!window.confirm(`إيقاف مراقبة ${d.domain}؟`)) return;
+                const { ok, data: res } = await api('/api/monitor/remove', { domain: d.domain });
+                if (ok) renderMonitor(res);
+            });
+            actions.append(check, remove);
+            head.append(name, actions);
+            card.append(head, el('p', 'muted mon-meta', d.lastCheck ? 'آخر فحص: ' + new Date(d.lastCheck).toLocaleString('ar-IQ') : 'ما انفحص بعد.'));
+            if (d.lastError) card.append(el('p', 'mon-error', d.lastError));
+            const active = d.findings.filter(f => !f.dismissed);
+            if (!active.length) card.append(el('p', 'muted', d.lastCheck ? 'ما اكو نطاقات مشبوهة تشبه نطاقك حالياً.' : ''));
+            for (const f of active) {
+                const row = el('div', 'mon-finding');
+                const host = el('code', '', f.domain);
+                host.dir = 'ltr';
+                const info = el('div');
+                info.append(host, el('p', '', f.reason), el('small', 'muted', 'أول شهادة: ' + new Date(f.firstSeen).toLocaleDateString('ar-IQ') + (f.example && f.example !== f.domain ? ` · ${f.example}` : '')));
+                const ok = el('button', 'btn-quick', 'مو تهديد');
+                ok.type = 'button';
+                ok.addEventListener('click', async () => {
+                    const { ok: done, data: res } = await api('/api/monitor/dismiss', { domain: d.domain, finding: f.domain });
+                    if (done) renderMonitor(res);
+                });
+                const scan = el('button', 'btn-quick', 'افحصه');
+                scan.type = 'button';
+                scan.addEventListener('click', () => scanFoundUrl('https://' + f.domain));
+                const btns = el('div', 'mon-actions');
+                btns.append(scan, ok);
+                row.append(info, btns);
+                card.append(row);
+            }
+            return card;
+        }));
+        if (!(data.domains || []).length) box.append(el('p', 'muted', 'ما أضفت أي نطاق بعد.'));
+    }
+
+    async function loadMonitor() {
+        const { ok, data } = await api('/api/monitor');
+        if (ok) renderMonitor(data);
+        else $('monMsg').textContent = data.error || '';
+    }
+
+    async function monitorAdd() {
+        const { ok, data } = await api('/api/monitor/add', { domain: $('monDomain').value });
+        $('monMsg').textContent = ok ? 'انضاف. اضغط «افحص هسه» حتى نسوي أول فحص.' : (data.error || 'تعذر الإضافة.');
+        if (ok) { $('monDomain').value = ''; renderMonitor(data); }
+    }
+    document.addEventListener('click', e => { if (e.target.closest('[data-page="monitorPage"]')) loadMonitor(); });
+
+    Object.assign(ACTIONS, { monitorAdd });
     Object.assign(ACTIONS, { lookupIdentifierForm, reportIdentifierForm, lookupIdentifier });
     Object.assign(ACTIONS, { scanQrImage, startCamera, stopCamera, scanScreenshot, analyzeOcrText, scanFoundUrl, analyzeHeaders, lookupHeaderIps });
     // نوقف الكاميرا إذا المستخدم طلع من الصفحة

@@ -38,6 +38,8 @@ const { createInspector } = require("./server/inspect");
 const { createCommunity, CommunityError } = require("./server/community");
 const { createIdentifiers, IdentifierError } = require("./server/identifiers");
 const { createCourse, CourseError } = require("./server/course");
+const { createMonitor, MonitorError } = require("./server/monitor");
+const { limitsFor } = require("./server/plans");
 const { createScan } = require("./server/scan");
 const { createChatHandler } = require("./server/chat");
 const { createAdmin } = require("./server/admin");
@@ -69,6 +71,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     const community = createCommunity({ db });
     const identifiers = createIdentifiers({ db });
     const course = createCourse({ db, users });
+    const monitor = overrides.monitor || createMonitor({ db, users, mailer, appUrl: config.appUrl, log: message => stats.event("monitor", String(message).slice(0, 120), "") });
     const idLookupLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
     const disputeLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 5 });
     const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community });
@@ -191,6 +194,31 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
             h.sendJson(res, 201, { ok: true, message: "وصلنا بلاغك، شكراً! راح نراجعه، وإذا تأكدنا ينضاف لقائمة الاحتيال ويحمي غيرك." });
         } catch (error) {
             if (error instanceof CommunityError) return h.sendJson(res, error.status, { error: error.message });
+            auth.sendError(res, error);
+        }
+    }
+
+    // مراقبة انتحال الدومين (Pro)
+    async function handleMonitor(req, res, pathname) {
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        if (!limitsFor(user).deepChecks) return h.sendJson(res, 403, { error: "مراقبة انتحال الدومين متاحة لمشتركي Pro.", code: "pro_only" });
+        try {
+            if (pathname === "/api/monitor" && req.method === "GET") return h.sendJson(res, 200, await monitor.load(user.id));
+            const body = await auth.jsonBody(req, res, 1024);
+            if (body === undefined) return;
+            const action = pathname.slice("/api/monitor/".length);
+            if (action === "add") return h.sendJson(res, 200, await monitor.add(user, body.domain));
+            if (action === "remove") return h.sendJson(res, 200, await monitor.remove(user, body.domain));
+            if (action === "dismiss") return h.sendJson(res, 200, await monitor.dismiss(user, body.domain, body.finding));
+            if (action === "check") {
+                const r = await monitor.check(user, body.domain);
+                stats.event("monitor", `فحص انتحال الدومين: ${r.fresh.length} نتيجة جديدة`, "");
+                return h.sendJson(res, 200, { ...r.data, newFindings: r.fresh.length });
+            }
+            h.sendJson(res, 404, { error: "Not found" });
+        } catch (error) {
+            if (error instanceof MonitorError) return h.sendJson(res, error.status, { error: error.message });
             auth.sendError(res, error);
         }
     }
@@ -365,6 +393,13 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
                 return sendPage(req, res, pages.app);
             }
 
+            // قائمة النطاقات المؤكدة كاحتيال (لإضافة المتصفح): عامة، بدون أي بيانات مستخدمين
+            if (pathname === "/api/blocklist") {
+                if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
+                const domains = await community.listBlocked().catch(() => []);
+                return h.sendJson(res, 200, { domains: domains.slice(0, 20000), updatedAt: new Date().toISOString() }, { "Cache-Control": "public, max-age=600" });
+            }
+
             // تنبيهات الاحتيال: صفحة عامة (للناس ولمحركات البحث) + JSON للتطبيق
             if (pathname === "/alerts" || pathname === "/api/alerts") {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
@@ -375,6 +410,7 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
             if (pathname === "/api/report") return await handleReport(req, res);
             if (pathname.startsWith("/api/identifier/")) return await handleIdentifier(req, res, pathname);
             if (pathname === "/api/course" || pathname.startsWith("/api/course/")) return await handleCourse(req, res, pathname);
+            if (pathname === "/api/monitor" || pathname.startsWith("/api/monitor/")) return await handleMonitor(req, res, pathname);
             const certMatch = /^\/(certificate|verify)\/([A-Za-z0-9]{1,20})$/.exec(pathname);
             if (certMatch) {
                 if (req.method !== "GET" && req.method !== "HEAD") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET, HEAD" });
@@ -409,7 +445,7 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
     server.requestTimeout = 60_000;
     server.keepAliveTimeout = 5_000;
     server.maxHeadersCount = 50;
-    server.on("close", () => { health.stop(); intel.stop(); settings.stop(); community.stop(); });
+    server.on("close", () => { health.stop(); intel.stop(); settings.stop(); community.stop(); if (monitor.stop) monitor.stop(); });
 
     // نتأكد أن القاعدة تعمل قبل الاستماع (ونكمل حتى لو فشلت، مع تحذير)
     const ready = db.cmd(["PING"]).then(() => ({ ok: true }), error => ({ ok: false, error: db.describeError(error) }))
@@ -421,6 +457,7 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
             }
             settings.start();
             community.start();
+            if (config.intel.enabled && monitor.start) monitor.start();
             // الإحصاءات والزوار تُحفظ في القاعدة حتى لا تتصفّر عند كل نشر
             if (state.ok) {
                 const a = await stats.attach(db);

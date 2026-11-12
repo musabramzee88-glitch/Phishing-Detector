@@ -143,6 +143,11 @@
                     <span>فحص رقم أو حساب</span>
                     <small class="card-desc">هل انبلغ عن هذا الرقم أو الحساب أو المحفظة؟</small>
                 </button>
+                <button class="action-card-btn" data-page="monitorPage" data-title="مراقبة انتحال الدومين (Pro)" data-icon="fa-solid fa-satellite-dish">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    <span>مراقبة انتحال الدومين (Pro)</span>
+                    <small class="card-desc">نبهك إذا انسجل نطاق يشبه نطاقك</small>
+                </button>
                 <button class="action-card-btn" data-page="checkupPage" data-title="فحص أمان حساباتك" data-icon="fa-solid fa-user-lock">
                     <i class="fa-solid fa-user-lock"></i>
                     <span>فحص أمان حساباتك</span>
@@ -570,6 +575,25 @@
                     <button class="app-btn" type="submit"><i class="fa-regular fa-flag"></i> إرسال البلاغ</button>
                     <div class="inline-msg" id="idrMsg"></div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="monitorPage" class="page-section">
+        <div class="scanner-container">
+            <button class="back-home-btn" data-page="homePage" data-title="الرئيسية" data-icon="fa-solid fa-house"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+            <div style="text-align:center; margin-bottom: 1.5rem;">
+                <h2><i class="fa-solid fa-satellite-dish"></i> مراقبة انتحال الدومين <span class="pro-tag">Pro</span></h2>
+                <p class="muted">المهاجم عادة يسجّل نطاق يشبه نطاقك ويطلعله شهادة HTTPS قبل ما يبدي يرسل الرسائل. نراقب سجلات الشهادات العامة يومياً، وننبهك أول ما يظهر نطاق يشبه نطاقك.</p>
+            </div>
+            <div class="scanner-card">
+                <form class="id-form mon-form" data-submit="monitorAdd">
+                    <input class="app-input" id="monDomain" maxlength="100" dir="ltr" placeholder="example.com أو tu.edu.iq" autocomplete="off">
+                    <button class="btn-scan" type="submit"><i class="fa-solid fa-plus"></i> أضف للمراقبة</button>
+                </form>
+                <p class="muted" style="font-size:.8rem">حتى 3 نطاقات. الفحص اليومي تلقائي، وتكدر تفحص يدوياً كل 10 دقائق. علّم أي نطاق تابع إلك «مو تهديد» حتى ما يطلع مرة ثانية.</p>
+                <div class="inline-msg" id="monMsg"></div>
+                <div id="monList"></div>
             </div>
         </div>
     </div>

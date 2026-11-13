@@ -32,7 +32,12 @@ self.addEventListener('fetch', event => {
             const hit = await cache.match(req);
             if (hit) return hit;
             const res = await fetch(req);
-            if (res.ok && res.type === 'basic') cache.put(req, res.clone());
+            if (res.ok && res.type === 'basic') {
+                await cache.put(req, res.clone());
+                // نحذف النسخ القديمة لنفس الملف (بصمة ثانية) حتى ما تكبر الذاكرة مع كل تحديث
+                const old = await cache.keys();
+                await Promise.all(old.filter(k => { const u = new URL(k.url); return u.pathname === url.pathname && u.search !== url.search; }).map(k => cache.delete(k)));
+            }
             return res;
         }));
     }

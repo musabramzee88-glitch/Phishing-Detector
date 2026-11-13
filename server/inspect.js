@@ -37,6 +37,8 @@ const MAX_CONCURRENT = 8;
 const CACHE_MS = 10 * 60_000;
 const HOSTING_CACHE_MS = 6 * 60 * 60_000;
 const SNAPSHOT_TIMEOUT_MS = 5_000;
+const MAX_SNAPSHOTS = 200;
+const MAX_SNAPSHOT_BYTES = 40 * 1024 * 1024;   // ~40MB كحد أعلى لكل المعاينات بالذاكرة
 const SNAPSHOT_TTL_MS = 15 * 60_000;   // أطول من ذاكرة نتائج الزيارة (10 دقائق) حتى ما ينكسر رابط معاينة مخزّن
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36";
 
@@ -392,6 +394,7 @@ function createInspector({
     let active = 0;
     const cache = new Map();         // url -> { at, value }
     const hostingCache = new Map();  // ip|AS -> { at, value }
+    let snapshotBytes = 0;
     const snapshots = new Map();     // id -> { at, html }  معاينات معقّمة للصفحات (تُعرض بإطار معزول)
 
     // ------------------------------------------------ الاستضافة (Team Cymru عبر DNS)
@@ -628,10 +631,13 @@ function createInspector({
 
     function storeSnapshot(htmlDoc) {
         const now0 = now();
-        for (const [id, s] of snapshots) if (now0 - s.at > SNAPSHOT_TTL_MS) snapshots.delete(id);
-        while (snapshots.size >= 200) snapshots.delete(snapshots.keys().next().value);
+        const drop = key => { snapshotBytes -= snapshots.get(key).html.length; snapshots.delete(key); };
+        for (const [id, s] of snapshots) if (now0 - s.at > SNAPSHOT_TTL_MS) drop(id);
+        // حد للعدد وللحجم الكلي حتى ما تمتلي ذاكرة الخادم (خطة Render المجانية 512MB)
+        while (snapshots.size && (snapshots.size >= MAX_SNAPSHOTS || snapshotBytes + htmlDoc.length > MAX_SNAPSHOT_BYTES)) drop(snapshots.keys().next().value);
         const id = crypto.randomBytes(18).toString("base64url");
         snapshots.set(id, { at: now0, html: htmlDoc });
+        snapshotBytes += htmlDoc.length;
         return id;
     }
 
@@ -816,7 +822,7 @@ function createInspector({
         return out;
     }
 
-    return { inspect, hosting, getSnapshot, status: () => ({ enabled, active, snapshots: snapshots.size }) };
+    return { inspect, hosting, getSnapshot, status: () => ({ enabled, active, snapshots: snapshots.size, snapshotBytes }) };
 }
 
 // اسم الدولة بالعربي من رمزها (ICU المدمج بـ Node)

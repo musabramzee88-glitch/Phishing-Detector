@@ -1060,8 +1060,60 @@ async function analyzeUrl() {
         reportBox.innerHTML = data.code === 'quota' ? quotaHtml(data.error) : errorHtml(data.error || 'تعذر الفحص.');
         return;
     }
-    const result = data.result;
+    const token = ++urlScanToken;
+    renderUrlResult(data.result, strict, data.result.visual && data.result.visual.job ? { pending: true } : null);
+    addToHistory(input, 'رابط URL', data.result.score, LEVEL_STATUS[data.result.level]);
+    if (data.result.visual && data.result.visual.job) pollVisual(data.result.visual.job, strict, token);
+}
 
+// الكشف البصري يشتغل بالخلفية: نسأل عنه كل ثانيتين ونص لحد دقيقة ونص، وإذا خلص نحدّث الحكم ونعرض اللقطة
+let urlScanToken = 0;
+async function pollVisual(job, strict, token) {
+    for (let i = 0; i < 36; i++) {
+        await new Promise(r => setTimeout(r, 2500));
+        if (token !== urlScanToken) return;   // المستخدم بدأ فحصاً جديداً
+        let out;
+        try {
+            const res = await fetch('/api/scan/visual/' + encodeURIComponent(job), { credentials: 'same-origin', cache: 'no-store' });
+            if (res.status === 404) return;
+            out = await res.json();
+        } catch {
+            continue;
+        }
+        if (out.status === 'pending') continue;
+        if (token !== urlScanToken) return;
+        const result = out.result || LAST_REPORTS.reportBox && LAST_REPORTS.reportBox.result;
+        if (result) renderUrlResult(result, strict, out);
+        return;
+    }
+    if (token === urlScanToken && LAST_REPORTS.reportBox) renderUrlResult(LAST_REPORTS.reportBox.result, strict, { status: 'timeout' });
+}
+
+function visualHtml(v) {
+    if (!v) return '';
+    const head = '<h4><i class="fa-solid fa-eye"></i> الفحص البصري</h4>';
+    if (v.pending) return `<div class="visual-box">${head}<p class="muted"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ فتح الصفحة بمتصفح معزول وأخذ لقطة ومقارنتها بصفحات الدخول الرسمية...</p></div>`;
+    const FAIL = {
+        blocked: 'ما فتحنا الصفحة بالفحص البصري: الرابط يحاول يوصل لعنوان داخلي.',
+        busy: 'خدمة الفحص البصري مشغولة هسه. أعد الفحص بعد شوية.',
+        failed: 'تعذر أخذ لقطة للصفحة هسه.',
+        timeout: 'الفحص البصري طوّل أكثر من اللازم. أعد الفحص بعد شوية.'
+    };
+    if (v.status !== 'ok') return `<div class="visual-box">${head}<p class="muted">${escapeHtml(FAIL[v.status] || FAIL.failed)}</p></div>`;
+    let verdict;
+    if (v.match && !v.match.official) {
+        verdict = `<p class="visual-verdict bad"><i class="fa-solid fa-triangle-exclamation"></i> الصفحة تشبه صفحة دخول ${escapeHtml(v.match.brand)} بنسبة ${Number(v.match.similarity)}% بس الموقع مو تابع لها. لا تدخل أي بيانات.</p>`;
+    } else if (v.match && v.match.official) {
+        verdict = `<p class="visual-verdict ok"><i class="fa-solid fa-circle-check"></i> هذي صفحة ${escapeHtml(v.match.brand)} الرسمية.</p>`;
+    } else {
+        verdict = '<p class="visual-verdict">ما تشبه أي صفحة دخول بمكتبة الصفحات الرسمية عندنا.</p>';
+    }
+    const shot = v.shotId ? `<figure class="visual-shot"><img src="/api/scan/shot/${encodeURIComponent(v.shotId)}" alt="لقطة شاشة للصفحة" width="1280" height="800" loading="lazy"><figcaption>لقطة حقيقية أخذناها بمتصفح معزول على خادمنا. لا تفتح الموقع ولا تدخل بياناتك بيه.</figcaption></figure>` : '';
+    return `<div class="visual-box">${head}${verdict}${shot}</div>`;
+}
+
+function renderUrlResult(result, strict, visual) {
+    const reportBox = document.getElementById('reportBox');
     let meta = `<strong>الرابط المحلل:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.input)}</code>`;
     if (result.host) {
         meta += `<br><strong>النطاق الفعلي:</strong> <code style="direction:ltr; display:inline-block;">${escapeHtml(result.registrable || result.host)}</code>`;
@@ -1074,13 +1126,12 @@ async function analyzeUrl() {
     if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / Phishing Army)');
     if (checks.deep) layers.push('عمر النطاق (RDAP)');
     if (checks.live) layers.push('زيارة الموقع والاستضافة');
+    if (checks.visual) layers.push('الفحص البصري');
     const tr = s => (window.PDI18N ? window.PDI18N.t(s) : s);
     meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.map(tr).join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
-    const extra = visitButtonHtml(result) + inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
+    const extra = visualHtml(visual) + visitButtonHtml(result) + inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
     renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta, extra);
-
-    addToHistory(input, 'رابط URL', result.score, LEVEL_STATUS[result.level]);
 }
 
 let textScanBusy = false;

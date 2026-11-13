@@ -37,7 +37,7 @@ function defaults(config) {
         },
         features: {
             cyberbot: true, registration: true, urlScan: true, textScan: true, fileScan: true, mediaScan: true,
-            bulk: true, awareness: true, liveInspect: true, guest: true, phoneLogin: true, maintenance: false,
+            bulk: true, awareness: true, liveInspect: true, visual: true, guest: true, phoneLogin: true, maintenance: false,
             maintenanceMessage: "الموقع تحت الصيانة حالياً لتحسين الخدمة. نرجع خلال وقت قصير."
         },
         plans: {
@@ -55,7 +55,7 @@ const SCHEMA = {
     home: { title: ["text", 120], subtitle: ["text", 400], announcement: ["text", 300], announcementTone: ["enum", ["info", "warn", "success"]] },
     features: {
         cyberbot: ["bool"], registration: ["bool"], urlScan: ["bool"], textScan: ["bool"], fileScan: ["bool"], mediaScan: ["bool"],
-        bulk: ["bool"], awareness: ["bool"], liveInspect: ["bool"], guest: ["bool"], phoneLogin: ["bool"], maintenance: ["bool"], maintenanceMessage: ["text", 300]
+        bulk: ["bool"], awareness: ["bool"], liveInspect: ["bool"], visual: ["bool"], guest: ["bool"], phoneLogin: ["bool"], maintenance: ["bool"], maintenanceMessage: ["text", 300]
     },
     plans: {
         priceUsd: ["num", 0, 1000], priceIqd: ["num", 0, 10_000_000], trialDays: ["int", 0, 365],

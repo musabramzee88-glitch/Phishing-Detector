@@ -18,6 +18,7 @@ const engine = require("../public/js/detection-engine.js");
 const MAX_DOMAINS = 3;
 const MAX_FINDINGS = 200;
 const CHECK_COOLDOWN_MS = 10 * 60_000;
+const RETRY_COOLDOWN_MS = 60_000;          // بعد فشل الاتصال بـ crt.sh يكدر يعيد بعد دقيقة، مو 10 دقائق
 const DAY_MS = 24 * 60 * 60_000;
 
 class MonitorError extends Error {
@@ -59,7 +60,7 @@ function classify(candidate, domain) {
     return { reason, score, registrable: parts.registrable };
 }
 
-function createMonitor({ db, users, mailer, appUrl, fetchImpl = fetch, now = () => Date.now(), log = () => {} }) {
+function createMonitor({ db, users, mailer, appUrl, fetchImpl = fetch, now = () => Date.now(), log = () => {}, retryDelayMs = 3000 }) {
     const k = (...p) => db.key(...p);
     let timer = null;
 
@@ -107,15 +108,28 @@ function createMonitor({ db, users, mailer, appUrl, fetchImpl = fetch, now = () 
         return data;
     }
 
+    // crt.sh خدمة مجانية وكثيراً ما ترجع 502/503 أو تتأخر، فنعيد المحاولة قبل ما نعتبره فشل
+    async function crtsh(term, attempts = 1) {
+        for (let i = 1; ; i++) {
+            try {
+                return await crtshOnce(term);
+            } catch (error) {
+                if (i >= attempts) throw error;
+                await new Promise(r => setTimeout(r, retryDelayMs));
+            }
+        }
+    }
+
     // crt.sh: الشهادات اللي اسمها يحتوي الكلمة
-    async function crtsh(term) {
+    async function crtshOnce(term) {
         const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), 25_000);
+        const t = setTimeout(() => controller.abort(), 30_000);
         try {
             const res = await fetchImpl(`https://crt.sh/?q=${encodeURIComponent("%" + term + "%")}&output=json&exclude=expired`, { signal: controller.signal, headers: { Accept: "application/json", "User-Agent": "PhishingDetector-BrandMonitor/1" } });
             if (!res.ok) throw new Error("crt.sh HTTP " + res.status);
             const text = await res.text();
             if (text.length > 20 * 1024 * 1024) throw new Error("crt.sh response too large");
+            if (/^\s*</.test(text)) throw new Error("crt.sh returned HTML (busy)");
             const rows = JSON.parse(text || "[]");
             return Array.isArray(rows) ? rows.slice(0, 5000) : [];
         } finally {
@@ -127,8 +141,16 @@ function createMonitor({ db, users, mailer, appUrl, fetchImpl = fetch, now = () 
         const label = engine.splitDomain(entry.domain).label;
         const seen = new Map(entry.findings.map(f => [f.domain, f]));
         const fresh = [];
-        for (const term of searchVariants(label)) {
-            const rows = await crtsh(term);
+        const terms = searchVariants(label);
+        for (const term of terms) {
+            // الاسم الأصلي ضروري (محاولتين)، أما صيغ الأرقام فإضافية: إذا فشلت نكمل بدونها
+            let rows;
+            try {
+                rows = await crtsh(term, term === label ? 2 : 1);
+            } catch (error) {
+                if (term === label) throw error;
+                continue;
+            }
             for (const row of rows) {
                 for (const name of String(row.name_value || "").split(/\s+/)) {
                     const host = name.toLowerCase().replace(/^\*\./, "");
@@ -151,18 +173,24 @@ function createMonitor({ db, users, mailer, appUrl, fetchImpl = fetch, now = () 
         const data = await load(user.id);
         const entry = data.domains.find(d => d.domain === domain);
         if (!entry) throw new MonitorError("أضف النطاق أولاً.", 404);
-        if (manual && now() - entry.lastCheck < CHECK_COOLDOWN_MS) throw new MonitorError("فحصته قبل شوية. جرّب بعد 10 دقائق.", 429);
+        if (manual) {
+            if (entry.lastError && now() - (entry.lastAttempt || 0) < RETRY_COOLDOWN_MS) throw new MonitorError("جرّب بعد دقيقة.", 429);
+            if (!entry.lastError && now() - entry.lastCheck < CHECK_COOLDOWN_MS) throw new MonitorError("فحصته قبل شوية. جرّب بعد 10 دقائق.", 429);
+        }
         let fresh = [];
+        let failed = false;
+        entry.lastAttempt = now();
         try {
             fresh = await checkDomain(entry);
         } catch (error) {
-            entry.lastCheck = now();
-            entry.lastError = "تعذر الوصول لسجلات الشهادات (crt.sh) حالياً. نعيد المحاولة بالفحص الجاي.";
+            // ما نحدّث lastCheck (آخر فحص ناجح) حتى الفحص التلقائي يعيد المحاولة، والمستخدم يكدر يعيد بعد دقيقة
+            failed = true;
+            entry.lastError = "سجلات الشهادات (crt.sh) مشغولة أو ما ترد حالياً. هاي خدمة عامة خارجية وتتعطل أحياناً؛ جرّب بعد دقيقة، والفحص التلقائي يعيد المحاولة وحده.";
             log("brand monitor: " + (error && error.message));
         }
         await save(user.id, data);
         if (fresh.length) await notify(user, entry.domain, fresh);
-        return { data, fresh };
+        return { data, fresh, failed };
     }
 
     async function notify(user, domain, findings) {

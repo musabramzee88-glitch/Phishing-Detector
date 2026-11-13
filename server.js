@@ -214,7 +214,7 @@ ${items}</main><footer class="legal-foot"><a href="/privacy">الخصوصية</a
             if (action === "check") {
                 const r = await monitor.check(user, body.domain);
                 stats.event("monitor", `فحص انتحال الدومين: ${r.fresh.length} نتيجة جديدة`, "");
-                return h.sendJson(res, 200, { ...r.data, newFindings: r.fresh.length });
+                return h.sendJson(res, 200, { ...r.data, newFindings: r.fresh.length, failed: !!r.failed });
             }
             h.sendJson(res, 404, { error: "Not found" });
         } catch (error) {

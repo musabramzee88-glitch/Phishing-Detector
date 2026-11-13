@@ -130,8 +130,8 @@
 }
 .user-dropdown.show { display: block; }
 .user-dropdown .dd-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--border-color); margin-bottom: 6px; }
-.user-dropdown .dd-head small { color: var(--text-muted); display: block; direction: ltr; text-align: right; overflow: hidden; text-overflow: ellipsis; }
-.user-dropdown button { display: flex; gap: 10px; align-items: center; width: 100%; background: none; border: 0; color: var(--text-main); padding: 10px; border-radius: 9px; cursor: pointer; font: inherit; text-align: right; }
+.user-dropdown .dd-head small { color: var(--text-muted); display: block; direction: ltr; text-align: start; overflow: hidden; text-overflow: ellipsis; }
+.user-dropdown button { display: flex; gap: 10px; align-items: center; width: 100%; background: none; border: 0; color: var(--text-main); padding: 10px; border-radius: 9px; cursor: pointer; font: inherit; text-align: start; }
 .user-dropdown button:hover { background: var(--nav-bg); }
 
 .plan-banner {
@@ -170,7 +170,7 @@
 .status-rejected { background: rgba(255, 23, 68, .15); color: var(--accent-red); }
 
 .simple-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
-.simple-table th, .simple-table td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); text-align: right; vertical-align: top; }
+.simple-table th, .simple-table td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); text-align: start; vertical-align: top; }
 .simple-table th { color: var(--text-muted); font-weight: 700; }
 
 .api-key-box { direction: ltr; text-align: left; font-family: ui-monospace, Consolas, monospace; padding: 12px; border-radius: 10px; background: rgba(0, 0, 0, .25); border: 1px dashed var(--accent-blue); word-break: break-all; margin: 10px 0; }
@@ -220,7 +220,7 @@
 }
 .acc-id-text { min-width: 0; }
 .acc-id-text h2 { margin: 0; font-size: 1.35rem; line-height: 1.4; overflow-wrap: anywhere; }
-.acc-email { margin: 2px 0 6px; color: var(--text-muted); font-size: .88rem; overflow-wrap: anywhere; text-align: right; }
+.acc-email { margin: 2px 0 6px; color: var(--text-muted); font-size: .88rem; overflow-wrap: anywhere; text-align: start; }
 .acc-meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: .82rem; }
 .acc-plan { font-size: .75rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--nav-bg); color: var(--text-muted); border: 1px solid var(--border-color); }
 .acc-plan.pro { color: #06101f; background: linear-gradient(135deg, #ffd166, #ffab00); border-color: transparent; }
@@ -260,7 +260,7 @@
 .acc-quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .acc-quick-btn {
     display: flex; align-items: center; gap: 8px; padding: 14px 12px; border-radius: 12px; border: 1px solid var(--border-color);
-    background: var(--nav-bg); color: var(--text-main); font: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; text-align: right;
+    background: var(--nav-bg); color: var(--text-main); font: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; text-align: start;
 }
 .acc-quick-btn i { color: var(--accent-blue); }
 .acc-quick-btn:hover { border-color: var(--accent-blue); }
@@ -323,3 +323,9 @@ body:has(#accountPage.active) .plan-banner { display: none; }
 .auth-warn i { margin-inline-end: 4px; }
 #phoneStep1:not([hidden]), #phoneStep2:not([hidden]) { display: grid; gap: 14px; }
 #phoneForm .auth-submit { width: 100%; }
+
+/* اختيار اللغة بصفحة الدخول */
+.auth-lang { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.auth-lang .lang-option { width: auto; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 999px; font-size: .82rem; }
+.auth-lang .lang-option.active { border-color: var(--accent-blue); }
+.auth-lang .lang-option.active::after { content: none; }

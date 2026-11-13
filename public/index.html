@@ -12,6 +12,7 @@
     <meta name="robots" content="noindex">
     <meta name="theme-color" content="#0a0f1d">
 
+    <script src="/js/i18n.js?v=4.0.0"></script>
     <link rel="stylesheet" href="/vendor/tajawal/tajawal.css?v=1">
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css?v=1">
     
@@ -54,8 +55,8 @@
             </div>
 
             <div class="theme-selector-container">
-                <button class="theme-dropdown-btn" data-action="toggleThemeMenu" aria-label="المظهر" aria-haspopup="true">
-                    <i class="fa-solid fa-circle-half-stroke"></i> <span class="btn-label">المظهر</span> <i class="fa-solid fa-chevron-down chevron"></i>
+                <button class="theme-dropdown-btn" data-action="toggleThemeMenu" aria-label="المظهر واللغة" aria-haspopup="true">
+                    <i class="fa-solid fa-circle-half-stroke"></i><i class="fa-solid fa-globe"></i> <span class="btn-label">المظهر واللغة</span> <i class="fa-solid fa-chevron-down chevron"></i>
                 </button>
                 <div class="theme-menu" id="themeMenu">
                     <button class="theme-option" data-theme="auto"><i class="fa-solid fa-display"></i> تلقائي (حسب الجهاز)</button>
@@ -68,6 +69,9 @@
                         <button type="button" data-action="setFontScale" data-arg="1.15" aria-label="خط كبير" style="font-size:1.15em">أ</button>
                         <button type="button" data-action="setFontScale" data-arg="1.3" aria-label="خط كبير جداً" style="font-size:1.3em">أ</button>
                     </div>
+                    <div class="menu-sep" role="separator"></div>
+                    <div class="menu-label"><i class="fa-solid fa-globe"></i> اللغة</div>
+                    <div class="lang-menu" data-lang-menu role="group" aria-label="اللغة"></div>
                 </div>
             </div>
         </div>
@@ -395,7 +399,7 @@
                     <button class="sim-tab-btn" data-action="loadSimulation" data-arg="2">3: عرض شغل وهمي</button>
                 </div>
 
-                <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px; direction: rtl;"></div>
+                <div id="simContentContainer" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px; margin-bottom: 15px;"></div>
 
                 <div id="simOptions"></div>
 

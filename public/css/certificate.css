@@ -3,7 +3,7 @@
 .cert-kicker { letter-spacing: .1em; color: #b08d2a; font-weight: 800; margin: 10px 0 0; }
 .cert h1 { font-size: 2.2rem; margin: 6px 0 14px; }
 .cert-levels { list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; font-size: .92rem; }
-.cert-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-top: 22px; text-align: right; font-size: .9rem; }
+.cert-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-top: 22px; text-align: start; font-size: .9rem; }
 .cert-foot p { margin: 4px 0; }
 .cert-qr img { display: block; image-rendering: pixelated; background: #fff; padding: 4px; border-radius: 6px; }
 .cert-disclaimer { margin-top: 18px; font-size: .78rem; color: var(--muted); }

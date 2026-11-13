@@ -330,6 +330,9 @@ function createChatHandler({ config, users, auth, scan, stats, settings, fetchIm
             if (content) history.push({ role: item.role, content });
         }
         const context = [`User display name: ${name}. Current date: ${new Date().toISOString().slice(0, 10)}.`];
+        // لغة الواجهة اللي اختارها المستخدم (قيمة من قائمة ثابتة فقط، ما ندخل نص المستخدم بالتعليمات)
+        const UI_LANG = { ar: "Modern Standard Arabic (الفصحى)", ku: "Central Kurdish (Sorani, Arabic script)", en: "English" };
+        if (UI_LANG[body.lang]) context.push(`UI LANGUAGE: The user chose ${UI_LANG[body.lang]} for the website. Reply in ${UI_LANG[body.lang]} unless they clearly write in another language.`);
         if (scans.length) context.push("PLATFORM SCAN RESULTS (from this website's engine, threat lists and domain-age lookup):\n" + scans.map(s => summarizeScan(s.url, s.result)).join("\n"));
         // تعليمات إضافية من الأدمن (تُضاف بعد قواعد الأمان ولا تلغيها)
         const extra = settings ? String(settings.get().cyberbot.extraInstructions || "").trim() : "";

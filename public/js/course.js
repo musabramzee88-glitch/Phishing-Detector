@@ -94,7 +94,10 @@
         const form = el('form', 'quiz-form');
         data.questions.forEach((q, i) => {
             const fs = el('fieldset', 'quiz-q');
-            fs.append(el('legend', '', `${i + 1}. ${q.q}`));
+            // الرقم بعنصر منفصل حتى نص السؤال ينترجم
+            const legend = el('legend', '');
+            legend.append(el('span', 'quiz-num', `${i + 1}. `), q.q);
+            fs.append(legend);
             q.options.forEach((opt, j) => {
                 const label = el('label', 'quiz-opt');
                 const radio = el('input');
@@ -124,7 +127,9 @@
             const r = data.results[i];
             const opts = fs.querySelectorAll('.quiz-opt');
             opts.forEach((o, j) => { o.classList.toggle('right', j === r.correctIndex); o.classList.toggle('wrong', j === answers[i] && !r.correct); o.querySelector('input').disabled = true; });
-            fs.append(el('p', 'quiz-explain ' + (r.correct ? 'ok' : 'bad'), (r.correct ? '✓ ' : '✗ ') + r.explain));
+            const explain = el('p', 'quiz-explain ' + (r.correct ? 'ok' : 'bad'));
+            explain.append(el('span', '', r.correct ? '✓ ' : '✗ '), r.explain);
+            fs.append(explain);
         });
         form.querySelector('button[type=submit]').remove();
         const verdict = el('p', 'quiz-verdict ' + (data.passed ? 'ok' : 'bad'), data.passed ? `ممتاز! ${data.score}/${data.total}. اجتزت المستوى.` : `${data.score}/${data.total}. تحتاج 4 حتى تجتاز. راجع الدروس وجرّب مرة ثانية.`);

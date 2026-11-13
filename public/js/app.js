@@ -406,7 +406,7 @@ async function sendCyberBotMessage() {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 60000);
     try {
-        const { ok, data } = await api("/api/chat", { message: userText, history: previous }, { signal: controller.signal });
+        const { ok, data } = await api("/api/chat", { message: userText, history: previous, lang: window.PDI18N ? window.PDI18N.lang : 'iq' }, { signal: controller.signal });
         if (!ok) {
             failed = true;
             answer = data.error || "تعذر الحصول على رد. حاول مرة أخرى.";
@@ -1074,7 +1074,8 @@ async function analyzeUrl() {
     if (checks.feeds) layers.push('قوائم التهديدات (OpenPhish / Phishing Army)');
     if (checks.deep) layers.push('عمر النطاق (RDAP)');
     if (checks.live) layers.push('زيارة الموقع والاستضافة');
-    meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.join(' + '))}`;
+    const tr = s => (window.PDI18N ? window.PDI18N.t(s) : s);
+    meta += `<br><strong>طبقات الفحص:</strong> ${escapeHtml(layers.map(tr).join(' + '))}`;
     if (strict) meta += '<br><strong>الوضع:</strong> حماية أكاديمية وحكومية مشددة (عتبات تنبيه أقل).';
     const extra = visitButtonHtml(result) + inspectionHtml(result) + (checks.deep ? '' : '<p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;"><i class="fa-solid fa-crown"></i> مشتركو Pro يحصلون على فحص عمر النطاق وتاريخ تسجيله أيضاً.</p>');
     renderReport(reportBox, 'url', 'مؤشر الخطورة', result, meta, extra);

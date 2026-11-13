@@ -1,7 +1,7 @@
 /* ==========================================
    المظاهر: داكن (الافتراضي) وفاتح. «تلقائي» يختار بينهما حسب إعداد الجهاز
    ========================================== */
-:root, [data-theme="dark"] {
+:root, body[data-theme="dark"] {
     --bg-primary: #0a0f1d;
     --bg-card: #131b2e;
     --accent-blue: #00f2fe;
@@ -16,7 +16,7 @@
     --nav-bg: rgba(255, 255, 255, 0.03);
 }
 
-[data-theme="light"] {
+body[data-theme="light"] {
     --bg-primary: #f4f6f9;
     --bg-card: #ffffff;
     --accent-blue: #0066ff;
@@ -152,7 +152,7 @@ header {
 .theme-menu {
     display: none;
     position: absolute;
-    left: 0;
+    inset-inline-end: 0;
     top: 120%;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -161,7 +161,7 @@ header {
     padding: 8px;
     min-width: 195px;
     z-index: 2000;
-    text-align: right;
+    text-align: start;
 }
 
 .theme-menu.show {
@@ -174,7 +174,7 @@ header {
     border: none;
     color: var(--text-main);
     width: 100%;
-    text-align: right;
+    text-align: start;
     padding: 9px 12px;
     border-radius: 8px;
     cursor: pointer;
@@ -460,7 +460,7 @@ header {
     border-radius: 14px;
     display: none;
     padding: 1.5rem;
-    text-align: right;
+    text-align: start;
     border: 1px solid var(--border-color);
     background: rgba(0, 0, 0, 0.1);
 }
@@ -575,7 +575,7 @@ header {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
-    text-align: right;
+    text-align: start;
 }
 
 .history-table th, .history-table td {
@@ -646,7 +646,7 @@ header {
 
 .sim-option-btn {
     width: 100%;
-    text-align: right;
+    text-align: start;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-color);
     color: var(--text-main);
@@ -696,7 +696,7 @@ footer {
 .chat-action-button, .chat-settings-button { background:var(--nav-bg); border:1px solid var(--border-color); color:var(--text-main); padding:7px 11px; border-radius:9px; cursor:pointer; font:inherit; font-size:.82rem; font-weight:700; }
 .chat-status { display:inline-flex; align-items:center; gap:8px; margin:8px 0 12px; color:var(--text-muted); font-size:.82rem; padding:4px 12px; border:1px solid var(--border-color); border-radius:999px; }
 .chat-status::before { content:""; width:8px; height:8px; border-radius:50%; background:currentColor; }
-.chat-history { height:440px; overflow-y:auto; background:color-mix(in srgb, var(--bg-primary) 75%, transparent); border:1px solid var(--border-color); border-radius:14px; padding:16px; margin-bottom:12px; display:flex; flex-direction:column; gap:14px; direction:rtl; scroll-behavior:smooth; }
+.chat-history { height:440px; overflow-y:auto; background:color-mix(in srgb, var(--bg-primary) 75%, transparent); border:1px solid var(--border-color); border-radius:14px; padding:16px; margin-bottom:12px; display:flex; flex-direction:column; gap:14px; scroll-behavior:smooth; }
 .chat-row { display:flex; align-items:flex-start; gap:10px; max-width:min(92%,780px); animation:chatIn .25s ease-out; }
 .chat-row-user { align-self:flex-start; }
 .chat-row-assistant { align-self:flex-end; flex-direction:row-reverse; }
@@ -730,11 +730,11 @@ footer {
 @keyframes typing { 0%,80%,100% { opacity:.25; transform:translateY(0); } 40% { opacity:1; transform:translateY(-4px); } }
 .chat-suggestions { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
 .chat-suggestions[hidden] { display:none; }
-.chat-chip { background:var(--nav-bg); border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:999px; font:inherit; font-size:.82rem; cursor:pointer; text-align:right; transition:border-color .15s, transform .15s; }
+.chat-chip { background:var(--nav-bg); border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:999px; font:inherit; font-size:.82rem; cursor:pointer; text-align: start; transition:border-color .15s, transform .15s; }
 .chat-chip:hover, .chat-chip:focus-visible { border-color:var(--accent-blue); transform:translateY(-1px); }
 .chat-chip i { color:var(--accent-blue); margin-inline-end:4px; }
 .chat-form { display:flex; gap:10px; align-items:flex-end; }
-.chat-form input, .chat-form textarea { flex:1; min-width:0; background:var(--nav-bg); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px; color:var(--text-main); font:inherit; direction:rtl; resize:none; line-height:1.6; min-height:48px; max-height:160px; }
+.chat-form input, .chat-form textarea { flex:1; min-width:0; background:var(--nav-bg); border:1px solid var(--border-color); border-radius:12px; padding:12px 14px; color:var(--text-main); font:inherit; resize:none; line-height:1.6; min-height:48px; max-height:160px; }
 .chat-form textarea:focus { outline:2px solid color-mix(in srgb, var(--accent-blue) 60%, transparent); outline-offset:1px; }
 .chat-send-button { background:var(--accent-blue); color:var(--bg-primary); border:0; padding:0 20px; min-height:48px; border-radius:12px; font:inherit; font-weight:700; cursor:pointer; }
 .chat-send-button:disabled, .chat-action-button:disabled { opacity:.6; cursor:wait; transform:none; }
@@ -778,7 +778,7 @@ footer {
 .license-msg.bad { border-color: var(--accent-red); color: var(--accent-red); }
 .bulk-wrap { overflow-x: auto; margin-top: 10px; }
 .bulk-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.bulk-table th, .bulk-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border-color); }
+.bulk-table th, .bulk-table td { padding: 8px 10px; text-align: start; border-bottom: 1px solid var(--border-color); }
 .bulk-table .ltr-cell { direction: ltr; text-align: left; word-break: break-all; max-width: 260px; }
 
 /* ---------- الصفحة الرئيسية ---------- */
@@ -856,7 +856,7 @@ footer {
 @keyframes guestFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 4px var(--accent-yellow); } }
 
 /* آخر تنبيهات الاحتيال بالرئيسية */
-.home-alerts { max-width: 900px; margin: 28px auto 0; padding: 0 16px; text-align: right; }
+.home-alerts { max-width: 900px; margin: 28px auto 0; padding: 0 16px; text-align: start; }
 .home-alerts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
 .home-alerts-head h2 { font-size: 1.05rem; margin: 0; }
 .home-alerts-head a { color: var(--accent-blue); font-size: .9rem; }
@@ -921,7 +921,7 @@ footer {
 .response-box { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px solid rgba(255, 23, 68, .35); background: rgba(255, 23, 68, .05); }
 .response-box h4 { margin: 0 0 10px; font-size: 1rem; }
 .plan-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.plan-opt { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer; text-align: right; }
+.plan-opt { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer; text-align: start; }
 .plan-opt.active { border-color: var(--accent-red); box-shadow: 0 0 0 2px rgba(255, 23, 68, .25); }
 .plan-intro { margin: 12px 0 6px; font-weight: 700; }
 .plan-intro.urgent { color: var(--accent-red); }
@@ -964,7 +964,7 @@ footer {
 @media (max-width: 860px) { .checkup-layout { grid-template-columns: 1fr; } .checkup-side { position: static; } }
 
 /* بطاقة تثبيت التطبيق */
-.install-card { max-width: 900px; margin: 22px auto 0; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-align: right; border-radius: 14px; border: 1px dashed var(--accent-blue); background: var(--bg-card); }
+.install-card { max-width: 900px; margin: 22px auto 0; padding: 14px 16px; display: flex; align-items: center; gap: 14px; text-align: start; border-radius: 14px; border: 1px dashed var(--accent-blue); background: var(--bg-card); }
 .install-card > i { font-size: 1.8rem; color: var(--accent-blue); }
 .install-card p { margin: 4px 0 0; color: var(--text-muted); font-size: .86rem; line-height: 1.8; }
 .install-card > div { flex: 1; }
@@ -1056,3 +1056,18 @@ footer {
 .glossary-list > div { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; }
 .glossary-list dt { font-weight: 700; color: var(--accent-blue); margin-bottom: 4px; }
 .glossary-list dd { margin: 0; font-size: .9rem; line-height: 1.7; color: var(--text-muted); }
+
+/* اللغات */
+html.i18n-loading body { visibility: hidden; }
+.lang-menu { display: grid; gap: 2px; }
+.lang-option {
+    display: flex; align-items: center; width: 100%; padding: 8px 12px; border: 0; border-radius: 8px;
+    background: none; color: var(--text-main); font: inherit; font-size: .9rem; cursor: pointer; text-align: start;
+}
+.lang-option:hover { background: var(--nav-bg); }
+.lang-option.active { color: var(--accent-blue); font-weight: 700; }
+.lang-option.active::after { content: '✓'; margin-inline-start: auto; }
+.theme-dropdown-btn .fa-globe { margin-inline-start: 4px; }
+/* الإنكليزية: الأرقام والنص من اليسار لليمين */
+html[dir="ltr"] .back-home-btn .fa-arrow-right { transform: scaleX(-1); }
+html[dir="ltr"] body { text-align: left; }

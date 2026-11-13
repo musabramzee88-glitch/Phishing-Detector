@@ -8,7 +8,8 @@
     "start": "node server.js",
     "test": "node --test",
     "make-admin": "node tools/make-admin.js",
-    "build-extension": "node tools/build-extension.js"
+    "build-extension": "node tools/build-extension.js",
+    "build-i18n": "node tools/build-i18n.js"
   },
   "engines": {
     "node": ">=20"

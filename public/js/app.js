@@ -498,7 +498,7 @@ function loadSimulation(index) {
     container.innerHTML = `
         <strong style="color: var(--accent-yellow);">المرسل:</strong> ${sc.sender}<br>
         <strong style="color: var(--accent-yellow);">الموضوع:</strong> ${sc.subject}<br><br>
-        "${sc.body} <code style="color: var(--accent-blue); font-weight: bold;">${sc.link}</code>"
+        <span aria-hidden="true">"</span>${sc.body} <code style="color: var(--accent-blue); font-weight: bold;">${sc.link}</code><span aria-hidden="true">"</span>
     `;
 
     let optionsHtml = '';

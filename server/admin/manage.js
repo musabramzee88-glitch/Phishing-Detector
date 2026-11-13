@@ -146,6 +146,7 @@
                 const actions = node("td", "actions");
                 const grant = node("select");
                 grant.append(new Option("منح Pro...", ""), ...[1, 3, 6, 12].map(m => new Option(`${m} شهر`, String(m))));
+                grant.setAttribute("aria-label", "منح اشتراك Pro لهذا الحساب");
                 grant.addEventListener("change", () => { if (grant.value) userAction(u, "grant", Number(grant.value)); grant.value = ""; });
                 const toggle = node("button", "secondary", u.disabled ? "تفعيل" : "إيقاف");
                 toggle.type = "button";

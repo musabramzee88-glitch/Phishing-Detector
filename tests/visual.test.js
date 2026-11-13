@@ -215,7 +215,7 @@ test('مكتبة الكشف البصري بلوحة الإدارة: للأدمن
         assert.equal(list.status, 200);
         assert.ok(list.json.refs.some(r => r.brand === 'فيسبوك' && r.domains.includes('facebook.com')), 'مراجع أولية مع نطاقاتها الرسمية');
         assert.equal(list.json.health.configured, true);
-        for (const bad of [{ brand: 'x', url: 'http://rafidain.iq/login', domains: 'rafidain.iq' }, { brand: 'x', url: 'https://evil.example/login', domains: 'rafidain.iq' }, { brand: '', url: 'https://rafidain.iq/', domains: '' }, { brand: 'x', url: 'javascript:alert(1)' }]) {
+        for (const bad of [{ brand: 'x', url: 'http://rafidain.iq/login', domains: 'rafidain.iq' }, { brand: 'x', url: 'https://evil.example/login', domains: 'rafidain.iq' }, { brand: '', url: 'https://rafidain.iq/', domains: '' }, { brand: 'x', url: 'javascript:alert(1)' }, { brand: 'x', url: 'https://127.0.0.1/login', domains: '127.0.0.1' }, { brand: 'x', url: 'https://169.254.169.254/latest', domains: '' }, { brand: 'x', url: 'https://intranet.local/login', domains: 'intranet.local' }, { brand: 'x', url: 'https://[::1]/', domains: '' }]) {
             assert.equal((await request(app, 'POST', '/api/admin/visual/add', { headers: admin, body: bad })).status, 400, JSON.stringify(bad));
         }
         const add = await request(app, 'POST', '/api/admin/visual/add', { headers: admin, body: { brand: 'مصرف الرافدين', url: 'https://www.rafidain-bank.iq/login', domains: 'rafidain-bank.iq, rafidain.iq' } });

@@ -369,7 +369,7 @@
                 check.disabled = true;
                 check.textContent = 'جارٍ الفحص...';
                 const { ok, data: res } = await api('/api/monitor/check', { domain: d.domain });
-                $('monMsg').textContent = ok ? (res.newFindings ? `لكينا ${res.newFindings} نطاق جديد.` : 'ما لكينا نطاقات جديدة.') : (res.error || 'تعذر الفحص.');
+                $('monMsg').textContent = !ok ? (res.error || 'تعذر الفحص.') : res.failed ? 'ما كدرنا نكمل الفحص هسه. التفاصيل تحت.' : (res.newFindings ? `لكينا ${res.newFindings} نطاق جديد.` : 'تم الفحص، وما لكينا نطاقات جديدة.');
                 if (ok) renderMonitor(res); else { check.disabled = false; check.textContent = 'افحص هسه'; }
             });
             const remove = el('button', 'app-btn small secondary', 'إزالة');
@@ -381,10 +381,10 @@
             });
             actions.append(check, remove);
             head.append(name, actions);
-            card.append(head, el('p', 'muted mon-meta', d.lastCheck ? 'آخر فحص: ' + new Date(d.lastCheck).toLocaleString('ar-IQ') : 'ما انفحص بعد.'));
+            card.append(head, el('p', 'muted mon-meta', d.lastCheck ? 'آخر فحص ناجح: ' + new Date(d.lastCheck).toLocaleString('ar-IQ') : 'ما انفحص بنجاح بعد.'));
             if (d.lastError) card.append(el('p', 'mon-error', d.lastError));
             const active = d.findings.filter(f => !f.dismissed);
-            if (!active.length) card.append(el('p', 'muted', d.lastCheck ? 'ما اكو نطاقات مشبوهة تشبه نطاقك حالياً.' : ''));
+            if (!active.length && d.lastCheck && !d.lastError) card.append(el('p', 'muted', 'ما اكو نطاقات مشبوهة تشبه نطاقك حالياً.'));
             for (const f of active) {
                 const row = el('div', 'mon-finding');
                 const host = el('code', '', f.domain);

@@ -54,12 +54,21 @@ test('الفحص: يجيب النتائج من crt.sh، ما يكرر، و«مو
 });
 
 test('تعطل crt.sh ما يكسر شي ويطلع رسالة واضحة', async () => {
+    let calls = 0; let t = 1_000_000;
     const db = createMemoryDb(); db.key = (...p) => ['pd', ...p].join(':');
     const user = { id: 'u2', email: 'x@example.com' };
-    const monitor = createMonitor({ db, users: { get: async () => user }, mailer: null, appUrl: 'https://s', fetchImpl: async () => ({ ok: false, status: 502, text: async () => '' }) });
+    const monitor = createMonitor({ db, users: { get: async () => user }, mailer: null, appUrl: 'https://s', fetchImpl: async () => { calls++; return { ok: false, status: 502, text: async () => '' }; }, now: () => t, retryDelayMs: 0 });
     await monitor.add(user, 'example.com');
     const r = await monitor.check(user, 'example.com');
-    assert.match(r.data.domains[0].lastError, /تعذر الوصول لسجلات الشهادات/);
+    assert.equal(r.failed, true);
+    assert.match(r.data.domains[0].lastError, /crt\.sh/);
+    assert.equal(r.data.domains[0].lastCheck, 0, 'الفشل ما يُحسب كفحص ناجح');
+    assert.equal(calls, 2, 'الاسم الأصلي ينعاد مرتين');
+    // بعد الفشل: ما ننتظر 10 دقائق، بس دقيقة
+    await assert.rejects(monitor.check(user, 'example.com'), /بعد دقيقة/);
+    t += 61_000;
+    await monitor.check(user, 'example.com');
+    assert.equal(calls, 4);
 });
 
 test('واجهة المراقبة: Pro فقط، وتحتاج حساب', () => withServer({}, async app => {
@@ -74,3 +83,18 @@ test('واجهة المراقبة: Pro فقط، وتحتاج حساب', () => wi
     const free = await request(app, 'GET', '/api/monitor', { headers: { Cookie: cookie } });
     assert.equal(free.status, 403);
 }, null, { monitor: createMonitor({ db: (() => { const d = createMemoryDb(); d.key = (...p) => ['pd', ...p].join(':'); return d; })(), users: { get: async () => null }, mailer: null, appUrl: 'https://s', fetchImpl: async () => ({ ok: true, text: async () => '[]' }) }) }));
+
+test('صيغ الأرقام اختيارية: إذا فشلت والاسم الأصلي نجح، الفحص ينجح', async () => {
+    const db = createMemoryDb(); db.key = (...p) => ['pd', ...p].join(':');
+    const user = { id: 'u9', email: 'x@example.com' };
+    const fetchImpl = async url => decodeURIComponent(url).includes('%google%')
+        ? { ok: true, text: async () => JSON.stringify([{ name_value: 'google-login.xyz', not_before: '2026-11-10' }]) }
+        : { ok: false, status: 503, text: async () => '<html>busy</html>' };
+    const monitor = createMonitor({ db, users: { get: async () => user }, mailer: null, appUrl: 'https://s', fetchImpl, retryDelayMs: 0 });
+    await monitor.add(user, 'google.com');
+    const r = await monitor.check(user, 'google.com');
+    assert.equal(r.failed, false);
+    assert.equal(r.data.domains[0].lastError, '');
+    assert.ok(r.data.domains[0].lastCheck > 0);
+    assert.ok(r.data.domains[0].findings.some(f => f.domain === 'google-login.xyz'));
+});

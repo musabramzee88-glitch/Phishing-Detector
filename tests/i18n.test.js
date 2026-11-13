@@ -79,3 +79,15 @@ test('CyberBot يستلم لغة الواجهة من قائمة ثابتة فق�
     assert.match(src, /const UI_LANG = \{ ar: .*ku: .*en: /);
     assert.match(src, /if \(UI_LANG\[body\.lang\]\)/);
 });
+
+test('الدورة كلها مترجمة: المستويات والدروس والأسئلة والخيارات والشرح', () => {
+    const { LEVELS } = require('../server/course');
+    const missing = [];
+    const check = s => { const k = norm(s); if (/[؀-ۿ]/.test(k) && !(k in dicts.en.dict)) missing.push(k); };
+    for (const level of LEVELS) {
+        check(level.title);
+        for (const l of level.lessons) { check(l.title); check(l.body); }
+        for (const q of level.bank) { check(q.q); q.options.forEach(check); check(q.explain); }
+    }
+    assert.deepEqual(missing, []);
+});

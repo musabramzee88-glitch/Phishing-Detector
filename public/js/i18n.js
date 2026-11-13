@@ -11,7 +11,7 @@
 (function () {
     'use strict';
 
-    const DICT_VERSION = '164533bf26';
+    const DICT_VERSION = 'c56d26e784';
     const LANGS = {
         iq: { name: 'اللهجة العراقية', short: 'عراقي', html: 'ar-IQ', dir: 'rtl' },
         ar: { name: 'العربية الفصحى', short: 'فصحى', html: 'ar', dir: 'rtl' },

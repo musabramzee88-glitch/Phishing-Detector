@@ -56,7 +56,10 @@
         if (!list) return;
         list.replaceChildren(...QUESTIONS.map((q, i) => {
             const card = el('fieldset', 'cq');
-            card.append(el('legend', '', `${i + 1}. ${q.q}`));
+            // الرقم بعنصر منفصل حتى السؤال نفسه ينترجم
+            const legend = el('legend', '');
+            legend.append(el('span', 'cq-num', `${i + 1}. `), q.q);
+            card.append(legend);
             const row = el('div', 'cq-opts');
             for (const [value, label] of [['yes', 'نعم'], ['no', 'لا'], ['unsure', 'ما أدري']]) {
                 const b = el('button', 'cq-opt' + (answers[q.id] === value ? ' active' : ''), label);

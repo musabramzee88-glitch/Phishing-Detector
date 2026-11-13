@@ -86,8 +86,8 @@ test('منطق الرمز: انتظار دقيقة، 5 محاولات، صلاح
     for (let i = 0; i < 2; i++) { await db.cmd(['DEL', db.key('otpwait', '9647701234567')]); await pa.start({ phone: '07701234567', ip: '2.2.2.' + i }); }
     await db.cmd(['DEL', db.key('otpwait', '9647701234567')]);
     await assert.rejects(pa.start({ phone: '07701234567', ip: '3.3.3.3' }), e => e.code === 'phone_limit');
-    // حد الـ IP (10 بالساعة)
-    for (let i = 0; i < 10; i++) await pa.start({ phone: '0780' + String(1000000 + i), ip: '9.9.9.9' }).catch(e => assert.fail(e.message));
+    // حد الـ IP (20 بالساعة)
+    for (let i = 0; i < 20; i++) await pa.start({ phone: '0780' + String(1000000 + i), ip: '9.9.9.9' }).catch(e => assert.fail(e.message));
     await assert.rejects(pa.start({ phone: '07811111111', ip: '9.9.9.9' }), e => e.code === 'ip_limit');
     // رقم دولي مرفوض قبل أي إرسال
     const before = sms.sent;

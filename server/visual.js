@@ -250,6 +250,11 @@ function createVisual({ db, config, settings, fetchImpl = fetch, now = () => Dat
         let u;
         try { u = new URL(String(url || "").trim()); } catch { throw new VisualError("اكتب رابط صفحة الدخول الرسمية كاملاً (https://...)."); }
         if (u.protocol !== "https:" || u.username || u.password) throw new VisualError("الرابط لازم يبدي بـ https://");
+        // صفحات دخول رسمية فقط: اسم نطاق عام، مو عنوان IP ولا اسم داخلي (حماية إضافية فوق حماية الخدمة نفسها)
+        const bareHost = u.hostname.replace(/^\[|\]$/g, "");
+        if (require("node:net").isIP(bareHost) || !/^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i.test(bareHost) || /(^|\.)(localhost|local|internal|lan|home|corp)$/i.test(bareHost)) {
+            throw new VisualError("استخدم رابط باسم نطاق عام (مثل https://bank.iq/login)، مو عنوان IP أو اسم داخلي.");
+        }
         if (!name) throw new VisualError("اكتب اسم الجهة.");
         const list = normalizeDomains(domains);
         const host = u.hostname.toLowerCase().replace(/^www\./, "");

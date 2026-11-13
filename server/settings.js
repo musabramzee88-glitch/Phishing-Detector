@@ -24,17 +24,20 @@ const DEFAULT_SUGGESTIONS = [
     "شنو هو التصيد الإلكتروني وشلون أكشفه؟"
 ];
 
+// النصوص القديمة للواجهة: إذا الأدمن ما غيّرها، نبدلها بالنص البسيط الجديد تلقائياً
+const LEGACY_HOME = { title: "منظومة كشف ومكافحة التصيد الإلكتروني الذكية", subtitle: "حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية وتزييف الوسائط." };
+
 function defaults(config) {
     return {
         home: {
-            title: "منظومة كشف ومكافحة التصيد الإلكتروني الذكية",
-            subtitle: "حل أمني استباقي يعتمد خوارزميات التحليل متعدد الطبقات لحماية المؤسسات والمستخدمين من الروابط الضارة وهجمات الهندسة الاجتماعية وتزييف الوسائط.",
+            title: "اكشف النصب قبل ما يوصلك",
+            subtitle: "رابط، رسالة، ملف، أو رقم وصلك وتشك بيه؟ افحصه هنا ببلاش، ونكلك بكلام بسيط إذا هو آمن لو نصب، وشتسوي بعدين.",
             announcement: "",
             announcementTone: "info"
         },
         features: {
             cyberbot: true, registration: true, urlScan: true, textScan: true, fileScan: true, mediaScan: true,
-            bulk: true, awareness: true, liveInspect: true, guest: true, maintenance: false,
+            bulk: true, awareness: true, liveInspect: true, guest: true, phoneLogin: true, maintenance: false,
             maintenanceMessage: "الموقع تحت الصيانة حالياً لتحسين الخدمة. نرجع خلال وقت قصير."
         },
         plans: {
@@ -52,7 +55,7 @@ const SCHEMA = {
     home: { title: ["text", 120], subtitle: ["text", 400], announcement: ["text", 300], announcementTone: ["enum", ["info", "warn", "success"]] },
     features: {
         cyberbot: ["bool"], registration: ["bool"], urlScan: ["bool"], textScan: ["bool"], fileScan: ["bool"], mediaScan: ["bool"],
-        bulk: ["bool"], awareness: ["bool"], liveInspect: ["bool"], guest: ["bool"], maintenance: ["bool"], maintenanceMessage: ["text", 300]
+        bulk: ["bool"], awareness: ["bool"], liveInspect: ["bool"], guest: ["bool"], phoneLogin: ["bool"], maintenance: ["bool"], maintenanceMessage: ["text", 300]
     },
     plans: {
         priceUsd: ["num", 0, 1000], priceIqd: ["num", 0, 10_000_000], trialDays: ["int", 0, 365],
@@ -142,7 +145,16 @@ function createSettings({ db, config }) {
     async function load() {
         try {
             const raw = await db.cmd(["GET", db.key("settings")]);
-            if (raw) adopt(JSON.parse(raw));
+            if (raw) {
+                const stored = JSON.parse(raw);
+                const home = stored && stored.home;
+                if (home && typeof home === "object") {
+                    const fresh = defaults(config).home;
+                    if (home.title === LEGACY_HOME.title) home.title = fresh.title;
+                    if (home.subtitle === LEGACY_HOME.subtitle) home.subtitle = fresh.subtitle;
+                }
+                adopt(stored);
+            }
             else apply();
             return { ok: true };
         } catch (error) {

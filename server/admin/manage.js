@@ -8,6 +8,7 @@
     let offset = 0;
     let total = 0;
     let query = "";
+    const who = u => u.email || (u.phone ? "+" + u.phone : u.id);
 
     function node(tag, className, text) {
         const n = document.createElement(tag);
@@ -158,7 +159,7 @@
                 revoke.addEventListener("click", () => userAction(u, "revoke-sessions"));
                 actions.append(grant, toggle, " ", reset, " ", revoke);
                 tr.append(
-                    node("td", "ltr", u.email + (u.disabled ? " (موقوف)" : "")),
+                    node("td", "ltr", who(u) + (u.disabled ? " (موقوف)" : "")),
                     node("td", "", u.name),
                     node("td", "", PLAN_LABELS[u.planSource] || u.plan),
                     node("td", "num", shortDate(u.planUntil)),
@@ -184,15 +185,15 @@
     }
 
     async function userAction(u, action, months) {
-        if (action === "disable" && !window.confirm(`إيقاف حساب ${u.email}؟ سيخرج من كل الأجهزة.`)) return;
-        if (action === "revoke-sessions" && !window.confirm(`إنهاء كل جلسات ${u.email}؟ سيحتاج يسجّل دخوله من جديد على كل أجهزته.`)) return;
-        if (action === "grant" && !window.confirm(`منح ${u.email} اشتراك Pro لمدة ${months} شهر بدون طلب دفع؟`)) return;
+        if (action === "disable" && !window.confirm(`إيقاف حساب ${who(u)}؟ سيخرج من كل الأجهزة.`)) return;
+        if (action === "revoke-sessions" && !window.confirm(`إنهاء كل جلسات ${who(u)}؟ سيحتاج يسجّل دخوله من جديد على كل أجهزته.`)) return;
+        if (action === "grant" && !window.confirm(`منح ${who(u)} اشتراك Pro لمدة ${months} شهر بدون طلب دفع؟`)) return;
         try {
             const data = await call("/api/admin/users/action", { id: u.id, action, months });
             if (action === "reset-link") {
                 const box = $("userNotice");
                 box.replaceChildren(
-                    node("p", "", `رابط إعادة تعيين كلمة السر لـ ${u.email} (صالح ساعة ولمرة واحدة). أرسله له بنفسك عبر قناة موثوقة:`),
+                    node("p", "", `رابط إعادة تعيين كلمة السر لـ ${who(u)} (صالح ساعة ولمرة واحدة). أرسله له بنفسك عبر قناة موثوقة:`),
                     node("code", "key", data.link)
                 );
                 return;

@@ -141,7 +141,8 @@ function publicUser(user, now = Date.now()) {
     const plan = planOf(user, now);
     return {
         id: user.id,
-        email: user.email,
+        email: user.email || "",
+        phone: user.phone || "",
         name: user.name,
         emailVerified: Boolean(user.emailVerified),
         hasPassword: Boolean(user.pw),
@@ -235,6 +236,57 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         if (provider) commands.push(["SET", k("oauth", provider, sub), id]);
         await db.pipe(commands);
         return remember(user);
+    }
+
+    // ---------- الحسابات برقم الهاتف ----------
+    async function findByPhone(phone) {
+        const id = await db.cmd(["GET", k("phone", phone)]);
+        return id ? get(id) : null;
+    }
+
+    // حساب جديد برقم هاتف مؤكَّد برمز SMS (بدون بريد ولا كلمة سر). الرقم يُحجز بـ SET NX
+    async function createPhoneUser(phone, name) {
+        const id = randomId();
+        const reserved = await db.cmd(["SET", k("phone", phone), id, "NX"]);
+        if (reserved !== "OK") {
+            const existing = await findByPhone(phone);
+            if (existing) return { user: existing, created: false };
+            throw new UserError("phone_taken", "هذا الرقم مسجّل مسبقاً.", 409);
+        }
+        const now = clock();
+        let trialEndsAt = 0;
+        if (trialMs > 0 && await db.cmd(["SET", k("trial", "tel:" + phone), "1", "NX"]) === "OK") trialEndsAt = now + trialMs;
+        const user = {
+            id, email: "", phone, phoneVerifiedAt: now,
+            name: cleanName(name) || "مستخدم " + phone.slice(-4),
+            emailVerified: false, pw: "", providers: {},
+            createdAt: now, trialEndsAt, paidUntil: 0, disabled: false, lastLoginAt: now
+        };
+        await db.pipe([["SET", k("u", id), JSON.stringify(user)], ["ZADD", k("users"), String(now), id]]);
+        return { user: remember(user), created: true };
+    }
+
+    // ربط رقم مؤكَّد بحساب موجود (حتى يقدر يدخل بالرقم لاحقاً)
+    async function linkPhone(user, phone) {
+        const owner = await db.cmd(["GET", k("phone", phone)]);
+        if (owner && owner !== user.id) throw new UserError("phone_taken", "هذا الرقم مربوط بحساب ثاني.", 409);
+        const reserved = owner === user.id ? "OK" : await db.cmd(["SET", k("phone", phone), user.id, "NX"]);
+        if (reserved !== "OK") throw new UserError("phone_taken", "هذا الرقم مربوط بحساب ثاني.", 409);
+        const old = user.phone && user.phone !== phone ? user.phone : "";
+        if (old) await db.cmd(["DEL", k("phone", old)]);
+        return update(user.id, u => { u.phone = phone; u.phoneVerifiedAt = clock(); });
+    }
+
+    async function unlinkPhone(user) {
+        if (!user.phone) return user;
+        if (!user.email) throw new UserError("phone_only", "هذا الحساب يدخل بالرقم فقط، فما نكدر نشيل الرقم.", 400);
+        await db.cmd(["DEL", k("phone", user.phone)]);
+        return update(user.id, u => { delete u.phone; delete u.phoneVerifiedAt; });
+    }
+
+    async function loginPhoneUser(user) {
+        if (user.disabled) throw new UserError("disabled", "هذا الحساب موقوف. تواصل مع الدعم.", 403);
+        return update(user.id, u => { u.lastLoginAt = clock(); });
     }
 
     async function register({ email: rawEmail, password, name }) {
@@ -547,9 +599,11 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     // حذف الحساب نهائياً (طلبات الدفع تبقى بسجل الإيرادات بدون اسم)
     async function remove(user) {
         const commands = [
-            ["DEL", k("u", user.id)], ["DEL", k("email", user.email)], ["DEL", k("canon", canonicalEmail(user.email))], ["ZREM", k("users"), user.id],
+            ["DEL", k("u", user.id)], ["ZREM", k("users"), user.id],
             ["DEL", k("hist", user.id)], ["DEL", k("upays", user.id)]
         ];
+        if (user.email) commands.push(["DEL", k("email", user.email)], ["DEL", k("canon", canonicalEmail(user.email))]);
+        if (user.phone) commands.push(["DEL", k("phone", user.phone)]);
         for (const [provider, sub] of Object.entries(user.providers || {})) commands.push(["DEL", k("oauth", provider, sub)]);
         if (user.apiKeySha) commands.push(["DEL", k("apikey", user.apiKeySha)]);
         await db.pipe(commands);
@@ -655,7 +709,8 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
         const q = String(query || "").trim().toLowerCase();
         if (q) {
             // تطابق تام بالبريد أولاً (سريع)، وإلا بحث جزئي بالبريد أو الاسم في أحدث 5000 حساب
-            const exact = q.includes("@") ? await findByEmail(q) : null;
+            const digits = q.replace(/[\s\-+()]/g, "").replace(/^00/, "").replace(/^0(?=7\d{9}$)/, "964");
+            const exact = q.includes("@") ? await findByEmail(q) : /^9647\d{9}$/.test(digits) ? await findByPhone(digits) : null;
             if (exact) return { total, users: [exact] };
             const found = [];
             for (let start = 0; start < Math.min(total, 5000) && found.length < limit; start += 500) {
@@ -665,7 +720,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
                 for (const r of raw) {
                     let u;
                     try { u = JSON.parse(r); } catch { continue; }
-                    if (u && (String(u.email).includes(q) || String(u.name || "").toLowerCase().includes(q))) found.push(u);
+                    if (u && (String(u.email || "").includes(q) || String(u.phone || "").includes(q) || String(u.name || "").toLowerCase().includes(q))) found.push(u);
                     if (found.length >= limit) break;
                 }
             }
@@ -712,7 +767,7 @@ function createUsers({ db, config, now: clock = () => Date.now() }) {
     }
 
     return {
-        get, update, register, login, loginWithProvider, findByEmail, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
+        get, update, register, login, loginWithProvider, findByEmail, findByPhone, createPhoneUser, linkPhone, unlinkPhone, loginPhoneUser, needsVerification, mailAllowed, createVerifyToken, createVerifyCode, verifyCode, verifyEmail, createLoginChallenge, resendLoginChallenge, verifyLoginChallenge, createSession, userFromSession, destroySession,
         consume, usage, addHistory, history, clearHistory, rotateApiKey, userFromApiKey,
         rename, changePassword, setHistoryEnabled, saveCheckup, remove, createResetLink, useResetLink,
         createPayment, paymentsOf, listPayments, decidePayment, extend, listUsers, count, setDisabled, revokeSessions, revenue,

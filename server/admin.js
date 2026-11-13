@@ -380,6 +380,7 @@ function createAdmin(config, stats, extras = {}) {
                 chatConfigured: Boolean(config.openai.apiKey && config.openai.model),
                 chat: extras.chat ? extras.chat() : null,
                 mail: extras.mail ? extras.mail() : null,
+                sms: extras.sms ? extras.sms() : null,
                 database: extras.db ? { backend: extras.db.backend, persistent: extras.db.persistent, warning: extras.db.persistent ? "" : (config.onRender ? "الحسابات محفوظة بالذاكرة فقط وستضيع عند أي نشر أو إعادة تشغيل! أضف UPSTASH_REDIS_REST_URL و UPSTASH_REDIS_REST_TOKEN." : "ذاكرة فقط (تشغيل محلي).") } : null,
                 intel: extras.intel ? extras.intel.status() : null,
                 oauth: Object.keys(config.oauth).filter(k => config.oauth[k]),
@@ -599,7 +600,7 @@ function createAdmin(config, stats, extras = {}) {
     function adminUserView(u) {
         const plan = planOf(u);
         return {
-            id: u.id, email: u.email, name: u.name, providers: Object.keys(u.providers || {}), hasPassword: Boolean(u.pw),
+            id: u.id, email: u.email || "", phone: u.phone || "", name: u.name, providers: Object.keys(u.providers || {}), hasPassword: Boolean(u.pw),
             emailVerified: Boolean(u.emailVerified), disabled: Boolean(u.disabled),
             createdAt: new Date(u.createdAt).toISOString(), lastLoginAt: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : null,
             plan: plan.id, planSource: plan.source, planUntil: plan.until ? new Date(plan.until).toISOString() : null,
@@ -723,7 +724,7 @@ function createAdmin(config, stats, extras = {}) {
                     if (page.users.length < 500) break;
                 }
                 stats.event("export", "تصدير المستخدمين CSV", ip);
-                const rows = all.map(adminUserView).map(u => [u.email, u.name, u.plan, u.planSource, u.planUntil || "", u.providers.join(" "), u.createdAt, u.lastLoginAt || "", u.disabled ? "yes" : ""]);
+                const rows = all.map(adminUserView).map(u => [u.email || (u.phone ? "+" + u.phone : ""), u.name, u.plan, u.planSource, u.planUntil || "", u.providers.join(" "), u.createdAt, u.lastLoginAt || "", u.disabled ? "yes" : ""]);
                 return sendDownload(res, "text/csv; charset=utf-8", "users.csv", toCsv(["email", "name", "plan", "source", "until", "providers", "created", "last_login", "disabled"], rows));
             }
             if (p === "/api/admin/export/payments.csv" && req.method === "GET") {

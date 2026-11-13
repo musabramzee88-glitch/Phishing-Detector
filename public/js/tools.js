@@ -277,7 +277,7 @@
         const box = $('headersReportBox');
         box.style.display = 'block';
         const r = window.EmailHeaders.analyze(raw);
-        if (r.error) { box.innerHTML = errorHtml('الصق الترويسات كاملة (من «Show original» بجيميل أو «View message details» بآوتلوك).'); return; }
+        if (r.error) { box.innerHTML = errorHtml('الصق المعلومات المخفية للإيميل كاملة (من «Show original» بجيميل أو «View message details» بآوتلوك). الخطوات مكتوبة فوق.'); return; }
         lastHeaders = r;
         const AUTH = { pass: ['نجح', 'ok'], fail: ['فشل', 'bad'], softfail: ['فشل جزئي', 'warn'], neutral: ['محايد', 'warn'], none: ['غير موجود', 'warn'], temperror: ['خطأ مؤقت', 'warn'], permerror: ['خطأ دائم', 'bad'] };
         const chip = v => { const [t, c] = AUTH[v] || ['غير معروف', 'warn']; return `<span class="auth-chip ${c}">${t}</span>`; };
@@ -285,16 +285,16 @@
         const hops = r.path.map((h, i) => `<li class="hop" style="--hop:var(--accent-blue)"><span class="hop-dot"></span><span class="hop-host" dir="ltr">${escapeHtml(h.from || '?')} → ${escapeHtml(h.by || '?')}${h.publicIps.length ? ' [' + escapeHtml(h.publicIps.join(', ')) + ']' : ''}</span><span class="hop-status">${i + 1}</span></li>`).join('');
         const extra = `
             <div class="live-card">
-                <div class="live-row"><span>SPF</span><b>${chip(r.auth.spf)}</b></div>
-                <div class="live-row"><span>DKIM</span><b>${chip(r.auth.dkim)}${r.auth.dkimDomain ? ' <code dir="ltr">' + escapeHtml(r.auth.dkimDomain) + '</code>' : ''}</b></div>
-                <div class="live-row"><span>DMARC</span><b>${chip(r.auth.dmarc)}</b></div>
+                <div class="live-row"><span>السيرفر مسموح له يرسل؟ <small dir="ltr">(SPF)</small></span><b>${chip(r.auth.spf)}</b></div>
+                <div class="live-row"><span>الختم الرقمي سليم؟ <small dir="ltr">(DKIM)</small></span><b>${chip(r.auth.dkim)}${r.auth.dkimDomain ? ' <code dir="ltr">' + escapeHtml(r.auth.dkimDomain) + '</code>' : ''}</b></div>
+                <div class="live-row"><span>فعلاً من الجهة الظاهرة؟ <small dir="ltr">(DMARC)</small></span><b>${chip(r.auth.dmarc)}</b></div>
                 <div class="live-row"><span>المرسل الظاهر</span><b>${addr(r.from)}</b></div>
                 <div class="live-row"><span>الرد يروح إلى</span><b>${addr(r.replyTo)}</b></div>
-                <div class="live-row"><span>عنوان الإرجاع</span><b>${addr(r.returnPath)}</b></div>
+                <div class="live-row"><span>عنوان الإرجاع (الحقيقي)</span><b>${addr(r.returnPath)}</b></div>
                 ${r.subject ? `<div class="live-row"><span>الموضوع</span><b>${escapeHtml(r.subject)}</b></div>` : ''}
             </div>
-            ${hops ? `<div class="hop-chain"><strong>مسار السيرفرات (من المرسل للمستلم):</strong><ol>${hops}</ol></div>` : ''}
-            ${r.publicIps.length ? `<button type="button" class="app-btn small secondary" data-action="lookupHeaderIps"><i class="fa-solid fa-globe"></i> اعرض استضافة السيرفرات (${r.publicIps.length})</button><p class="muted" style="font-size:.78rem">نرسل عناوين IP العامة فقط للخادم، مو الترويسات.</p><div id="headerIpsBox"></div>` : ''}`;
+            ${hops ? `<div class="hop-chain"><strong>الطريق اللي مشى بيه الإيميل (من المرسل إلك):</strong><ol>${hops}</ol></div>` : ''}
+            ${r.publicIps.length ? `<button type="button" class="app-btn small secondary" data-action="lookupHeaderIps"><i class="fa-solid fa-globe"></i> وين موجودة السيرفرات؟ (${r.publicIps.length})</button><p class="muted" style="font-size:.78rem">نرسل للخادم عناوين السيرفرات فقط، مو محتوى الإيميل.</p><div id="headerIpsBox"></div>` : ''}`;
         const meta = `<strong>من:</strong> ${addr(r.from)}${r.date ? ' · ' + escapeHtml(r.date) : ''}`;
         renderReport(box, 'email', 'مؤشر الانتحال', { ...r, confidence: null, indicators: [] }, meta, extra);
     }

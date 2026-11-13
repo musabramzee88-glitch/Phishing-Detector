@@ -36,6 +36,80 @@
         registration_closed: 'إنشاء الحسابات الجديدة متوقف حالياً.',
         mfa_mail: 'تعذر إرسال رمز الدخول إلى بريدك الآن. حاول بعد قليل.'
     };
+
+    // ---------- الدخول برقم الهاتف ----------
+    let phoneChallenge = '';
+    let phoneTimer = null;
+    function showPhone() {
+        $('authMain').hidden = true;
+        $('phoneForm').hidden = false;
+        phoneStep(1);
+        notice('');
+        $('phoneNumber').focus();
+    }
+    function hidePhone() {
+        clearInterval(phoneTimer);
+        $('phoneForm').hidden = true;
+        $('authMain').hidden = false;
+        notice('');
+    }
+    function phoneStep(n) {
+        $('phoneStep1').hidden = n !== 1;
+        $('phoneStep2').hidden = n !== 2;
+    }
+    function countdown(seconds) {
+        clearInterval(phoneTimer);
+        let left = seconds;
+        const tick = () => {
+            $('phoneResend').hidden = left > 0;
+            $('phoneTimer').textContent = left > 0 ? `تكدر تطلب رمز جديد بعد ${left} ثانية.` : 'ما وصلك الرمز؟';
+            if (left-- <= 0) clearInterval(phoneTimer);
+        };
+        tick();
+        phoneTimer = setInterval(tick, 1000);
+    }
+    async function sendPhoneCode() {
+        const phone = $('phoneNumber').value.trim();
+        const digits = phone.replace(/[^\d٠-٩]/g, '');
+        if (digits.length < 10) return notice('اكتب رقم موبايلك كامل، مثل 07701234567.');
+        const form = $('phoneForm');
+        setBusy(form, true);
+        try {
+            const data = await post('/api/auth/phone/start', { phone });
+            phoneChallenge = data.challenge;
+            $('phoneIntro').textContent = `أرسلنا رمز من 6 أرقام إلى \u2066${data.masked}\u2069. اكتبه هنا (صالح 5 دقائق).`;
+            setBusy(form, false);
+            phoneStep(2);
+            $('phoneCode').value = '';
+            $('phoneCode').focus();
+            countdown(data.resendIn || 60);
+            notice('');
+        } catch (error) {
+            setBusy(form, false);
+            notice(error.message);
+        }
+    }
+    async function verifyPhoneCode() {
+        const code = $('phoneCode').value.replace(/\D/g, '');
+        if (code.length !== 6) return notice('اكتب الرمز المكوّن من 6 أرقام.');
+        const form = $('phoneForm');
+        setBusy(form, true);
+        try {
+            const data = await post('/api/auth/phone/verify', { challenge: phoneChallenge, code });
+            notice(data.created ? 'تم إنشاء حسابك! جارٍ فتح لوحتك...' : 'تم! جارٍ فتح لوحتك...', 'success');
+            goHome();
+        } catch (error) {
+            setBusy(form, false);
+            notice(error.message);
+            if (error.code === 'expired' || error.code === 'too_many') { phoneStep(1); $('phoneIntro').textContent = 'اطلب رمز جديد.'; }
+            else $('phoneCode').select();
+        }
+    }
+    function submitPhone(event) {
+        event.preventDefault();
+        if (busy) return;
+        if ($('phoneStep2').hidden) sendPhoneCode(); else verifyPhoneCode();
+    }
     const PROVIDER_ICONS = { google: 'fa-brands fa-google', microsoft: 'fa-brands fa-microsoft', apple: 'fa-brands fa-apple' };
 
     function notice(text, kind = 'error') {
@@ -257,6 +331,10 @@
                 if (mode === 'register') setMode('login', true);
             }
             $('guestBtn').hidden = config.guest === false;
+            $('phoneLoginBtn').hidden = !config.phone;
+            if (config.phone) {
+                $('providerDivider').hidden = false;
+            }
             if (config.trialDays > 0) {
                 $('trialOfferText').textContent = `لكل حساب جديد ${config.trialDays} يوماً مجاناً، وبعدها ${config.priceUsd}$ شهرياً أو الخطة المجانية.`;
             } else {
@@ -269,6 +347,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         $('guestBtn').addEventListener('click', enterAsGuest);
+        $('phoneLoginBtn').addEventListener('click', showPhone);
+        $('phoneForm').addEventListener('submit', submitPhone);
+        $('phoneBack').addEventListener('click', hidePhone);
+        $('phoneChange').addEventListener('click', () => { clearInterval(phoneTimer); phoneStep(1); notice(''); $('phoneNumber').focus(); });
+        $('phoneResend').addEventListener('click', () => { phoneStep(1); sendPhoneCode(); });
+        $('phoneCode').addEventListener('input', () => { if ($('phoneCode').value.replace(/\D/g, '').length === 6 && !busy) verifyPhoneCode(); });
         const params = new URLSearchParams(window.location.search);
         if (params.get('reset')) {
             $('authMain').hidden = true;

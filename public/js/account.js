@@ -54,7 +54,7 @@
         $('userAvatar').textContent = (u.name || u.email || '؟').trim().charAt(0).toUpperCase();
         $('userChipName').textContent = u.name;
         $('ddName').textContent = u.name;
-        $('ddEmail').textContent = u.email;
+        $('ddEmail').textContent = u.email || (u.phone ? '0' + u.phone.slice(3) : '');
         const badge = $('planBadge');
         badge.textContent = u.plan === 'pro' ? (u.planSource === 'trial' ? 'Pro تجربة' : 'Pro') : 'مجاني';
         badge.classList.toggle('pro', u.plan === 'pro');
@@ -217,8 +217,9 @@
         renderHero();
         $('accountPlanLine').textContent = planText(u);
         $('accPlanFact').textContent = planText(u);
-        $('profileEmail').textContent = u.email;
-        $('profileProviders').textContent = [u.hasPassword ? 'البريد وكلمة السر' : '', ...u.providers.map(p => PROVIDER_NAMES[p] || p)].filter(Boolean).join('، ');
+        $('profileEmail').textContent = u.email || (u.phone ? '0' + u.phone.slice(3) : '');
+        $('profileProviders').textContent = [u.hasPassword ? 'البريد وكلمة السر' : '', ...u.providers.map(p => PROVIDER_NAMES[p] || p), u.phone ? 'رقم الهاتف' : ''].filter(Boolean).join('، ');
+        renderPhoneCard();
         if (document.activeElement !== $('profileName')) $('profileName').value = u.name;
         $('pwCurrent').hidden = !u.hasPassword;
         $('apiKeyHint').textContent = u.limits.api
@@ -439,6 +440,60 @@
         loadHistory();
     }
 
+    // ---------------------------------------------------------------- رقم الهاتف
+    let phoneAvailable = null;
+    let phoneChallenge = '';
+    async function renderPhoneCard() {
+        const u = state.user;
+        if (phoneAvailable === null) {
+            phoneAvailable = false;
+            try { phoneAvailable = Boolean((await (await fetch('/api/auth/config', { credentials: 'same-origin' })).json()).phone); } catch { /* اختياري */ }
+        }
+        $('phoneCard').hidden = !phoneAvailable && !u.phone;
+        if (phoneChallenge) return;
+        $('phoneLinkInput').value = '';
+        $('phoneLinkInput').placeholder = '07XX XXX XXXX';
+        $('phoneLinkInput').setAttribute('inputmode', 'tel');
+        $('phoneLinkBtn').textContent = u.phone ? 'غيّر الرقم' : 'أرسل الرمز';
+        $('phoneState').textContent = u.phone
+            ? `رقمك المربوط: \u20660${u.phone.slice(3)}\u2069. تكدر تدخل بيه برمز يوصلك برسالة.`
+            : 'اربط رقم موبايلك حتى تكدر تدخل بيه برمز يوصلك برسالة، بدون كلمة سر.';
+        $('phoneLinkForm').hidden = !phoneAvailable;
+        $('phoneUnlinkBtn').hidden = !u.phone || !u.email;
+    }
+
+    async function phoneLinkStep() {
+        const value = $('phoneLinkInput').value.trim();
+        if (!phoneChallenge) {
+            const { ok, data } = await api('/api/account/phone/start', { phone: value });
+            if (!ok) return msg('phoneMsg', data.error);
+            phoneChallenge = data.challenge;
+            $('phoneLinkInput').value = '';
+            $('phoneLinkInput').placeholder = 'الرمز (6 أرقام)';
+            $('phoneLinkInput').setAttribute('inputmode', 'numeric');
+            $('phoneLinkBtn').textContent = 'تأكيد';
+            return msg('phoneMsg', `أرسلنا رمز إلى \u2066${data.masked}\u2069. اكتبه هنا.`, true);
+        }
+        const { ok, data } = await api('/api/account/phone/verify', { challenge: phoneChallenge, code: value });
+        if (!ok) {
+            if (data.code === 'expired' || data.code === 'too_many') phoneChallenge = '';
+            msg('phoneMsg', data.error);
+            if (!phoneChallenge) renderPhoneCard();
+            return;
+        }
+        phoneChallenge = '';
+        applyUser(data);
+        msg('phoneMsg', 'تم ربط الرقم.', true);
+    }
+
+    async function phoneUnlink() {
+        if (!window.confirm('إزالة رقم الهاتف من حسابك؟ ما تكدر تدخل بيه بعدها.')) return;
+        const { ok, data } = await api('/api/account/phone/remove', {});
+        if (!ok) return msg('phoneMsg', data.error);
+        applyUser(data);
+        msg('phoneMsg', 'انشال الرقم.', true);
+    }
+
     async function deleteAccount() {
         const confirmEmail = $('deleteConfirm').value.trim();
         if (!window.confirm('سيُحذف حسابك نهائياً. متأكد؟')) return;
@@ -544,7 +599,8 @@
     window.PDAccount = { user: null, guest: false, noteUsage, refresh: refreshMe, guestNotice };
     Object.assign(ACTIONS, {
         openUpgrade, toggleUserMenu, logout, submitPayment, saveProfileName, changePassword,
-        rotateApiKey, toggleHistory, clearHistory, deleteAccount, runBulkScan, exportBulkCsv, leaveGuest
+        rotateApiKey, toggleHistory, clearHistory, deleteAccount, runBulkScan, exportBulkCsv, leaveGuest,
+        phoneLinkStep, phoneUnlink
     });
 
     // عند فتح صفحة الحساب نحدّث بياناتها

@@ -168,6 +168,23 @@
             </div>
         </section>
 
+        <section data-tab-panel="security" id="visualAdmin">
+            <h2>الكشف البصري عن صفحات التصيد</h2>
+            <p class="muted">الخدمة تفتح الرابط بمتصفح مخفي وتقارن شكل الصفحة وأيقونتها بصفحات الدخول الرسمية بهالمكتبة. نخزن البصمات فقط (مو الصور). أضف صفحات دخول المصارف والمحافظ اللي تهمك، واضغط «حدّث البصمات» بعد أي تغيير بتصميمها.</p>
+            <div id="visualStatus" class="info-list"></div>
+            <div class="table-wrap"><table id="visualRefs"></table></div>
+            <form id="visualAddForm" class="form-grid" autocomplete="off">
+                <input id="visualBrand" maxlength="60" placeholder="اسم الجهة (مثل: مصرف الرافدين)" required>
+                <input id="visualUrl" maxlength="300" dir="ltr" placeholder="https://.../login" required>
+                <input id="visualDomains" maxlength="400" dir="ltr" placeholder="النطاقات الرسمية: example.iq, example.com">
+                <button type="submit">إضافة</button>
+            </form>
+            <div class="actions-row">
+                <button type="button" id="visualRefreshAll" class="secondary">حدّث كل البصمات</button>
+                <span id="visualMsg" class="muted" role="status"></span>
+            </div>
+        </section>
+
         <section data-tab-panel="security">
             <h2>الخادم والإعدادات</h2>
             <dl id="info" class="info-list"></dl>
@@ -185,5 +202,6 @@
     <script src="/admin/assets/manage.js"></script>
     <script src="/admin/assets/settings.js"></script>
     <script src="/admin/assets/community.js"></script>
+    <script src="/admin/assets/visual.js"></script>
 </body>
 </html>

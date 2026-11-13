@@ -28,6 +28,7 @@
                 { key: "cyberbot", label: "CyberBot", type: "toggle" },
                 { key: "bulk", label: "الفحص الجماعي (Pro)", type: "toggle" },
                 { key: "liveInspect", label: "زيارة الرابط الآمنة ومعلومات الاستضافة", type: "toggle" },
+                { key: "visual", label: "الكشف البصري (لقطة الصفحة ومقارنتها بصفحات الدخول الرسمية)", type: "toggle" },
                 { key: "awareness", label: "المسار التوعوي ومحاكي التصيد", type: "toggle" },
                 { key: "registration", label: "إنشاء حسابات جديدة", type: "toggle" },
                 { key: "guest", label: "الدخول كضيف (مشاهدة فقط)", type: "toggle" },

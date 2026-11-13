@@ -40,7 +40,8 @@ const ASSETS = {
     "dashboard.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
     "manage.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
     "settings.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
-    "community.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
+    "community.js": { type: "text/javascript; charset=utf-8", publicAsset: false },
+    "visual.js": { type: "text/javascript; charset=utf-8", publicAsset: false }
 };
 
 function sha256(value) {
@@ -555,6 +556,42 @@ function createAdmin(config, stats, extras = {}) {
                     await ids.removeByHash(String(body.h || ""));
                     stats.event("identifier_dispute", "حذف بلاغات معرّف يدوياً", ip);
                     return http.sendJson(res, 200, { ok: true }), true;
+                }
+                return http.sendJson(res, 404, { error: "Not found" }), true;
+            } catch (error) {
+                if (error && typeof error.status === "number" && error.name !== "UpstashError") return http.sendJson(res, error.status, { error: error.message }), true;
+                if (error && error.name === "UpstashError") return http.sendJson(res, 503, { error: "تعذر الوصول لقاعدة البيانات." }), true;
+                throw error;
+            }
+        }
+        if (p === "/api/admin/visual" || p.startsWith("/api/admin/visual/")) {
+            const session = currentSession(req);
+            if (!session) return http.sendJson(res, 401, { error: "Unauthorized" }), true;
+            const visual = extras.visual;
+            if (!visual) return http.sendJson(res, 404, { error: "Not found" }), true;
+            try {
+                if (p === "/api/admin/visual" && req.method === "GET") {
+                    const [refs, health] = await Promise.all([visual.listRefs(), visual.health()]);
+                    return http.sendJson(res, 200, { refs, health, status: visual.status() }), true;
+                }
+                if (req.method !== "POST") return methodNotAllowed(res, "POST"), true;
+                const body = await adminPostBody(req, res);
+                if (body === undefined) return true;
+                const ip = http.getClientIp(req, config);
+                if (p === "/api/admin/visual/add") {
+                    const ref = await visual.addRef({ brand: body.brand, url: body.url, domains: body.domains });
+                    stats.event("visual_ref", `إضافة صفحة مرجعية للكشف البصري: ${ref.brand}`, ip);
+                    return http.sendJson(res, 201, { refs: await visual.listRefs() }), true;
+                }
+                if (p === "/api/admin/visual/remove") {
+                    await visual.removeRef(String(body.id || ""));
+                    stats.event("visual_ref", "حذف صفحة مرجعية من الكشف البصري", ip);
+                    return http.sendJson(res, 200, { refs: await visual.listRefs() }), true;
+                }
+                if (p === "/api/admin/visual/refresh") {
+                    const refs = await visual.refreshRef(body.id ? String(body.id) : "");
+                    stats.event("visual_ref", body.id ? "تحديث بصمة صفحة مرجعية" : "تحديث كل بصمات الكشف البصري", ip);
+                    return http.sendJson(res, 200, { refs }), true;
                 }
                 return http.sendJson(res, 404, { error: "Not found" }), true;
             } catch (error) {

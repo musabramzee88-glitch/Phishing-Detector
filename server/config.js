@@ -21,6 +21,7 @@
     PRICE_USD (2), PRICE_IQD (3000), TRIAL_DAYS (30)
     BREVO_API_KEY أو RESEND_API_KEY أو (MAILJET_API_KEY + MAILJET_SECRET_KEY) + MAIL_FROM (+ MAIL_FROM_NAME)   تفعيل التحقق من البريد وإرسال روابط كلمة السر
     TELEGRAM_GATEWAY_TOKEN أو (TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM) أو SMS_WEBHOOK_URL   الدخول برقم الهاتف برمز تحقق (انظر server/sms.js). SMS_DAILY_CAP حد الرسائل اليومي (300)
+    VISUAL_WORKER_URL + VISUAL_WORKER_TOKEN   الكشف البصري عن صفحات التصيد (خدمة visual-worker المنفصلة)
     PAY_QICARD                       رقم بطاقة الماستر كارد (Qi Card) لاستلام الدفع، يظهر للمشترك (الطريقة الوحيدة)
     CONTACT_WHATSAPP, CONTACT_TELEGRAM, PAYMENT_NOTE
   أخرى:
@@ -178,6 +179,17 @@ function parseAdminEmails(value) {
     return emails;
 }
 
+// خدمة الكشف البصري (خدمة منفصلة: visual-worker). بدونها الميزة مطفية والموقع يشتغل طبيعي
+function parseVisual(env) {
+    const token = String(env.VISUAL_WORKER_TOKEN || "").trim();
+    let url = "";
+    try {
+        const u = new URL(String(env.VISUAL_WORKER_URL || "").trim());
+        if (u.protocol === "https:" || (u.protocol === "http:" && /^(127\.0\.0\.1|localhost)$/.test(u.hostname))) url = u.origin;
+    } catch { url = ""; }
+    return { url, token: token.length >= 24 ? token : "" };
+}
+
 function loadConfig(env = process.env) {
     const onRender = Boolean(env.RENDER);
     const root = path.resolve(__dirname, "..");
@@ -212,6 +224,7 @@ function loadConfig(env = process.env) {
         payment: parsePayment(env),
         mail: parseMail(env),
         sms: require("./sms").parseSms(env),
+        visual: parseVisual(env),
         admins: parseAdmins(env.ADMINS),
         adminEmails: parseAdminEmails(env.ADMIN_EMAILS),
         // سجل التدقيق كسطور JSON في سجلات الاستضافة (تلقائي على Render، يُعطَّل بـ AUDIT_STDOUT=0)

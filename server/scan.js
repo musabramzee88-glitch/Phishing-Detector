@@ -49,12 +49,12 @@ function merge(result, extra, thresholds) {
     return { ...result, score, level, confidence, reasons, indicators };
 }
 
-function createScan({ config, users, auth, intel, stats, inspector = null, settings = null, community = null }) {
+function createScan({ config, users, auth, intel, stats, inspector = null, settings = null, community = null, visual = null }) {
     const liveOn = () => Boolean(inspector) && (!settings || settings.get().features.liveInspect !== false);
     const perMinute = createRateLimiter({ windowMs: 60_000, max: config.limits.scanPerMinute });
     const badKeys = createFailureLimiter({ windowMs: config.limits.loginWindowMs, max: config.limits.badApiKeysPerWindow });
 
-    async function scanUrl(rawUrl, { strict = false, deep = false, inspect = false } = {}) {
+    async function scanUrl(rawUrl, { strict = false, deep = false, inspect = false, visualFor = "" } = {}) {
         const url = String(rawUrl || "").trim().slice(0, MAX_URL);
         const result = engine.analyzeUrl(url, { strict });
         if (result.error) return result;
@@ -84,6 +84,18 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         if (inspection) {
             const { signals, ...visible } = inspection;
             merged.inspection = visible;
+        }
+        // الكشف البصري: بالخلفية، للصفحات اللي زرناها فعلاً وطلعت صفحة ويب (مو تنزيل ولا نطاق غير موجود)
+        if (visualFor && visual && visual.enabled() && inspection && inspection.visited && inspection.exists !== false && !inspection.download) {
+            const target = inspection.finalUrl || result.input;
+            const job = visual.start(target, signals => {
+                const updated = merge(result, [...extra, ...signals], thresholds);
+                if (inspection.tls && inspection.tls.valid === false) updated.reasons = updated.reasons.filter(r => !(r.type === "info" && /HTTPS/.test(r.text)));
+                updated.checks = { ...merged.checks, visual: true };
+                updated.inspection = merged.inspection;
+                return publicResult(updated);
+            }, visualFor);
+            if (job) merged.visual = { job };
         }
         return merged;
     }
@@ -153,8 +165,30 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         score: r.score, level: r.level, confidence: r.confidence, reasons: r.reasons, indicators: r.indicators,
         engineVersion: r.engineVersion, input: r.input, host: r.host, unicodeHost: r.unicodeHost,
         registrable: r.registrable, official: r.official, brand: r.brand, checks: r.checks,
-        categories: r.categories, urls: r.urls, advice: r.advice, inspection: r.inspection
+        categories: r.categories, urls: r.urls, advice: r.advice, inspection: r.inspection, visual: r.visual
     });
+
+    // نتيجة الكشف البصري (تُسأل من الواجهة بعد الفحص)
+    async function visualPoll(req, res, id) {
+        if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" });
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        const out = visual ? visual.poll(id, user.id) : null;
+        if (!out) return h.sendJson(res, 404, { error: "انتهت صلاحية الفحص البصري. أعد فحص الرابط." });
+        if (out.status === "done" && out.match && !out.match.official) stats.count("visualMatches");
+        h.sendJson(res, 200, out, { "Cache-Control": "no-store" });
+    }
+
+    // لقطة الشاشة الحقيقية للصفحة (صورة JPEG فقط، لصاحب الفحص فقط)
+    async function visualShot(req, res, id) {
+        if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" });
+        const user = await auth.requireUser(req, res);
+        if (!user) return;
+        const buf = visual ? visual.getShot(id, user.id) : null;
+        if (!buf) return h.sendJson(res, 404, { error: "انتهت صلاحية اللقطة. أعد فحص الرابط." });
+        res.writeHead(200, { "Content-Type": "image/jpeg", "Content-Length": buf.length, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" });
+        res.end(buf);
+    }
 
     // مراقبة الزيارة الآمنة بلوحة الإدارة: عدد الزيارات، ومحاولات الوصول لعناوين داخلية (SSRF) كحدث أمني
     function noteInspection(result, req) {
@@ -207,6 +241,8 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
         const p = url.pathname;
         const snap = /^\/api\/scan\/snapshot\/([A-Za-z0-9_-]{1,64})$/.exec(p);
         if (snap) return await snapshot(req, res, snap[1]), true;
+        const vis = /^\/api\/scan\/(visual|shot)\/([A-Za-z0-9_-]{1,64})$/.exec(p);
+        if (vis) return await (vis[1] === "visual" ? visualPoll : visualShot)(req, res, vis[2]), true;
         const viaApi = p.startsWith("/api/v1/");
         if (p === "/api/scan/ip-hosting") return await ipHosting(req, res), true;
         const routes = ["/api/scan/url", "/api/scan/text", "/api/scan/file", "/api/scan/record", "/api/scan/bulk", "/api/scan/clean", "/api/v1/scan-url", "/api/v1/scan-text"];
@@ -231,7 +267,7 @@ function createScan({ config, users, auth, intel, stats, inspector = null, setti
             if (p === "/api/scan/url" || (p === "/api/v1/scan-url" && !Array.isArray(input.urls))) {
                 if (typeof input.url !== "string" || !input.url.trim()) return h.sendJson(res, 400, { error: "أرسل الرابط بالحقل url." }), true;
                 if (!(await quota(res, user, "scan"))) return true;
-                const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks, inspect: input.inspect !== false });
+                const result = await scanUrl(input.url, { strict: Boolean(input.strict), deep: limits.deepChecks, inspect: input.inspect !== false, visualFor: p === "/api/scan/url" ? user.id : "" });
                 if (result.error) return h.sendJson(res, 400, { error: "الرابط غير صالح هيكلياً.", code: result.error }), true;
                 stats.scan("url", result.level);
                 noteInspection(result, req);

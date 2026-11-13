@@ -35,6 +35,7 @@ const { createOAuth } = require("./server/oauth");
 const { createAuth } = require("./server/auth");
 const { createSms } = require("./server/sms");
 const { createPhoneAuth } = require("./server/phone-auth");
+const { createVisual } = require("./server/visual");
 const { createIntel } = require("./server/intel");
 const { createInspector } = require("./server/inspect");
 const { createCommunity, CommunityError } = require("./server/community");
@@ -78,9 +79,10 @@ function createApp(config = loadConfig(), overrides = {}) {
     const monitor = overrides.monitor || createMonitor({ db, users, mailer, appUrl: config.appUrl, log: message => stats.event("monitor", String(message).slice(0, 120), "") });
     const idLookupLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
     const disputeLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 5 });
-    const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community });
+    const visual = overrides.visual || createVisual({ db, config, settings, fetchImpl: overrides.visualFetch || fetch, log: message => stats.event("visual", String(message).slice(0, 120), "") });
+    const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community, visual });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, sms: sms.status, mailer, settings, community, identifiers });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, sms: sms.status, mailer, settings, community, identifiers, visual });
 
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {

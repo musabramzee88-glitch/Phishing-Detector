@@ -1,0 +1,9 @@
+{
+  "name": "phishing-detector-visual-worker",
+  "private": true,
+  "description": "Visual phishing detection worker: headless Chromium behind an SSRF guard, returns screenshots and perceptual hashes.",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node worker.js" },
+  "dependencies": { "playwright": "1.63.0" }
+}

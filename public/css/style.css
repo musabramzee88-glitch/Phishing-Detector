@@ -1071,3 +1071,13 @@ html.i18n-loading body { visibility: hidden; }
 /* الإنكليزية: الأرقام والنص من اليسار لليمين */
 html[dir="ltr"] .back-home-btn .fa-arrow-right { transform: scaleX(-1); }
 html[dir="ltr"] body { text-align: left; }
+
+/* الكشف البصري */
+.visual-box { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--nav-bg); }
+.visual-box h4 { margin: 0 0 8px; }
+.visual-verdict { margin: 0 0 10px; font-weight: 700; }
+.visual-verdict.bad { color: var(--accent-red); }
+.visual-verdict.ok { color: #22c55e; }
+.visual-shot { margin: 0; }
+.visual-shot img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border-color); }
+.visual-shot figcaption { margin-top: 6px; font-size: .78rem; color: var(--text-muted); }

@@ -33,6 +33,8 @@ const { createUsers } = require("./server/users");
 const { createMailer } = require("./server/mailer");
 const { createOAuth } = require("./server/oauth");
 const { createAuth } = require("./server/auth");
+const { createSms } = require("./server/sms");
+const { createPhoneAuth } = require("./server/phone-auth");
 const { createIntel } = require("./server/intel");
 const { createInspector } = require("./server/inspect");
 const { createCommunity, CommunityError } = require("./server/community");
@@ -65,7 +67,9 @@ function createApp(config = loadConfig(), overrides = {}) {
     const intel = overrides.intel || createIntel({ enabled: config.intel.enabled, log: message => stats.event("intel", message, "") });
     const mailer = createMailer(config);
     const settings = createSettings({ db, config });
-    const auth = createAuth({ config, users, oauth, stats, mailer, settings });
+    const sms = overrides.sms || createSms(config.sms);
+    const phoneAuth = createPhoneAuth({ db, sms, now: overrides.now });
+    const auth = createAuth({ config, users, oauth, stats, mailer, settings, sms, phoneAuth });
     // الزيارة الآمنة للروابط ومعلومات الاستضافة (تتعطل مع THREAT_FEEDS=0 بالاختبارات، أو LIVE_INSPECT=0)
     const inspector = overrides.inspector !== undefined ? overrides.inspector : createInspector({ enabled: config.intel.enabled && config.liveInspect });
     const community = createCommunity({ db });
@@ -76,7 +80,7 @@ function createApp(config = loadConfig(), overrides = {}) {
     const disputeLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 5 });
     const scan = createScan({ config, users, auth, intel, stats, inspector, settings, community });
     const chat = createChatHandler({ config, users, auth, scan, stats, settings, ...(overrides.chatFetch ? { fetchImpl: overrides.chatFetch } : {}) });
-    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, mailer, settings, community, identifiers });
+    const admin = createAdmin(config, stats, { visitors, health: currentHealth, users, db, intel, chat: chat.status, chatTest: chat.test, mail: mailer.status, sms: sms.status, mailer, settings, community, identifiers });
 
     // الصفحات تُقرأ وتُضغط مرة واحدة عند التشغيل
     const loadPage = name => {

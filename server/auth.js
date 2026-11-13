@@ -29,6 +29,7 @@ const h = require("./http");
 const { UserError } = require("./users");
 const { createRateLimiter, createFailureLimiter } = require("./rate-limit");
 const { pricingInfo } = require("./plans");
+const { PhoneError, maskPhone, normalizeIraqiMobile } = require("./phone-auth");
 
 const PROVIDER_IDS = new Set(["google", "microsoft", "apple"]);
 
@@ -39,7 +40,7 @@ function maskEmail(email) {
     return `${shown}${"•".repeat(Math.max(2, Math.min(6, name.length - shown.length)))}@${domain}`;
 }
 
-function createAuth({ config, users, oauth, stats, mailer, settings }) {
+function createAuth({ config, users, oauth, stats, mailer, settings, sms = null, phoneAuth = null }) {
     const feature = name => !settings || settings.get().features[name] !== false;
     // التحقق الثنائي بالبريد: يعمل عند ضبط مزوّد البريد، ويقدر الأدمن يطفيه من لوحة الإدارة
     const mfaActive = () => Boolean(mailer.enabled && (!settings || settings.get().security.mfaEmail));
@@ -129,6 +130,9 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
     }
 
     function sendError(res, error) {
+        if (error instanceof PhoneError) {
+            return h.sendJson(res, error.status, { error: error.message, code: error.code }, error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {});
+        }
         if (error instanceof UserError) return h.sendJson(res, error.status, { error: error.message, code: error.code });
         if (error && error.name === "UpstashError") {
             stats.event("db_error", "تعذر الوصول لقاعدة البيانات", "");
@@ -356,6 +360,83 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         }
     }
 
+    // ---------------------------------------------------------------- الدخول برقم الهاتف
+    const phoneOn = () => Boolean(sms && sms.enabled && phoneAuth && feature("phoneLogin"));
+
+    async function phoneStart(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        const body = await jsonBody(req, res, 512);
+        if (body === undefined) return;
+        if (!phoneOn()) return h.sendJson(res, 503, { error: "الدخول برقم الهاتف غير متاح حالياً.", code: "sms_off" });
+        try {
+            const r = await phoneAuth.start({ phone: body.phone, ip, purpose: "login" });
+            stats.event("phone_code", `إرسال رمز دخول لرقم ${r.masked}`, ip);
+            h.sendJson(res, 200, { challenge: r.challenge, masked: r.masked, expiresIn: r.expiresIn, resendIn: r.resendIn });
+        } catch (error) {
+            if (error instanceof PhoneError && error.code === "send_failed") stats.event("sms_error", "تعذر إرسال رمز SMS", ip);
+            sendError(res, error);
+        }
+    }
+
+    async function phoneVerify(req, res) {
+        const ip = h.getClientIp(req, config);
+        if (!authLimiter.take(ip)) return h.sendJson(res, 429, { error: "محاولات كثيرة. حاول بعد دقيقة." }, { "Retry-After": "60" });
+        if (ipFailures.isBlocked(ip)) return h.sendJson(res, 429, { error: "محاولات خاطئة كثيرة. حاول لاحقاً." }, { "Retry-After": String(ipFailures.retryAfterSeconds(ip)) });
+        const body = await jsonBody(req, res, 512);
+        if (body === undefined) return;
+        if (!phoneOn()) return h.sendJson(res, 503, { error: "الدخول برقم الهاتف غير متاح حالياً.", code: "sms_off" });
+        try {
+            const { phone } = await phoneAuth.verify({ challenge: body.challenge, code: body.code, purpose: "login" });
+            ipFailures.clear(ip);
+            let user = await users.findByPhone(phone);
+            let created = false;
+            if (!user) {
+                if (!feature("registration")) return h.sendJson(res, 403, { error: "إنشاء الحسابات الجديدة متوقف حالياً.", code: "registration_closed" });
+                ({ user, created } = await users.createPhoneUser(phone, body.name));
+            }
+            user = await users.loginPhoneUser(user);
+            if (created) {
+                stats.count("registrations");
+                stats.event("register", "حساب جديد (رقم هاتف)", ip);
+            }
+            stats.count("userLogins");
+            await startSession(req, res, user, created ? 201 : 200, { ...(await me(user)), created });
+        } catch (error) {
+            if (error instanceof PhoneError && (error.code === "bad_code" || error.code === "too_many")) {
+                ipFailures.fail(ip);
+                stats.event("phone_failed", "رمز هاتف خاطئ", ip);
+            }
+            sendError(res, error);
+        }
+    }
+
+    // ربط رقم بحساب موجود / إزالته (من صفحة الحساب)
+    async function accountPhone(req, res, p, user) {
+        const body = await jsonBody(req, res, 512);
+        if (body === undefined) return;
+        const ip = h.getClientIp(req, config);
+        if (p === "/api/account/phone/remove") {
+            const updated = await users.unlinkPhone(user);
+            return h.sendJson(res, 200, await me(updated));
+        }
+        if (!phoneOn()) return h.sendJson(res, 503, { error: "خدمة رسائل التحقق غير متاحة حالياً.", code: "sms_off" });
+        if (p === "/api/account/phone/start") {
+            const phone = normalizeIraqiMobile(body.phone);
+            const owner = phone ? await users.findByPhone(phone) : null;
+            if (owner && owner.id !== user.id) return h.sendJson(res, 409, { error: "هذا الرقم مربوط بحساب ثاني.", code: "phone_taken" });
+            const r = await phoneAuth.start({ phone: body.phone, ip, purpose: "link", uid: user.id });
+            return h.sendJson(res, 200, { challenge: r.challenge, masked: r.masked, expiresIn: r.expiresIn, resendIn: r.resendIn });
+        }
+        if (p === "/api/account/phone/verify") {
+            const { phone } = await phoneAuth.verify({ challenge: body.challenge, code: body.code, purpose: "link", uid: user.id });
+            const updated = await users.linkPhone(user, phone);
+            stats.event("phone_linked", `ربط رقم ${maskPhone(phone)} بحساب`, ip);
+            return h.sendJson(res, 200, await me(updated));
+        }
+        h.sendJson(res, 404, { error: "Not found" });
+    }
+
     // ---------------------------------------------------------------- الدخول الخارجي
 
     function redirect(res, location, cookies = []) {
@@ -437,6 +518,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (!user) return;
         try {
             if (p === "/api/account/history" && req.method === "GET") return h.sendJson(res, 200, { history: await users.history(user) });
+            if (p.startsWith("/api/account/phone/")) return await accountPhone(req, res, p, user);
             const body = await jsonBody(req, res);
             if (body === undefined) return;
             let updated = user;
@@ -456,8 +538,10 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
                 const key = await users.rotateApiKey(user);
                 return h.sendJson(res, 200, { key, ...(await me(await users.get(user.id))) });
             } else if (p === "/api/account/delete") {
-                if (String(body.confirm || "").trim().toLowerCase() !== user.email) {
-                    return h.sendJson(res, 400, { error: "اكتب بريدك الإلكتروني بالضبط لتأكيد الحذف." });
+                const typed = String(body.confirm || "").trim().toLowerCase();
+                const confirmed = user.email ? typed === user.email : Boolean(user.phone) && normalizeIraqiMobile(typed) === user.phone;
+                if (!confirmed) {
+                    return h.sendJson(res, 400, { error: user.email ? "اكتب بريدك الإلكتروني بالضبط لتأكيد الحذف." : "اكتب رقم هاتفك بالضبط لتأكيد الحذف." });
                 }
                 await users.remove(user);
                 await users.destroySession(sessionToken(req)).catch(() => {});
@@ -506,7 +590,7 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (p === "/api/auth/config") {
             if (req.method !== "GET") return h.sendJson(res, 405, { error: "Method not allowed" }, { Allow: "GET" }), true;
             h.sendJson(res, 200, {
-                providers: oauth.providers, emailVerification: mailer.enabled, mfa: mfaActive(), registration: feature("registration"), guest: feature("guest"),
+                providers: oauth.providers, emailVerification: mailer.enabled, mfa: mfaActive(), registration: feature("registration"), guest: feature("guest"), phone: phoneOn(),
                 trialDays: config.plans.trialDays, priceUsd: config.plans.priceUsd
             });
             return true;
@@ -515,6 +599,8 @@ function createAuth({ config, users, oauth, stats, mailer, settings }) {
         if (p === "/api/auth/login") return await login(req, res), true;
         if (p === "/api/auth/logout") return await logout(req, res), true;
         if (p === "/api/auth/guest") return await startGuest(req, res), true;
+        if (p === "/api/auth/phone/start") return await phoneStart(req, res), true;
+        if (p === "/api/auth/phone/verify") return await phoneVerify(req, res), true;
         if (p === "/api/auth/mfa") return await mfaVerify(req, res), true;
         if (p === "/api/auth/mfa/resend") return await mfaResend(req, res), true;
         if (p === "/api/auth/reset") return await resetPassword(req, res), true;

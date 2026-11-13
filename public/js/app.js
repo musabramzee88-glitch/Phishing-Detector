@@ -1190,13 +1190,13 @@ async function analyzeFile() {
 
     const sizeText = file.size >= 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : (file.size / 1024).toFixed(2) + ' KB';
     let meta = `<strong>اسم الملف:</strong> ${escapeHtml(file.name)} | <strong>النوع الفعلي:</strong> ${escapeHtml(result.type.label)} | <strong>الحجم:</strong> ${sizeText}`;
-    if (file.size > 0) meta += ` | <strong>عشوائية البيانات:</strong> ${result.entropy} / 8`;
+    if (file.size > 0) meta += ` | <strong>عشوائية البيانات</strong> <small>(كلما أعلى، احتمال الملف مشفّر أو مخفي أكثر)</small>: ${result.entropy} / 8`;
 
     let extra = '';
     if (hash) {
         extra = `
             <div style="margin-top:14px; padding:12px 14px; border:1px dashed var(--border-color); border-radius:10px;">
-                <strong><i class="fa-solid fa-fingerprint"></i> بصمة الملف (SHA-256)</strong>
+                <strong><i class="fa-solid fa-fingerprint"></i> بصمة الملف (رقم مميز لهذا الملف بالضبط، SHA-256)</strong>
                 <p style="font-size:0.78rem; direction:ltr; word-break:break-all; margin:6px 0; color:var(--text-main);">${hash}</p>
                 <a href="https://www.virustotal.com/gui/file/${hash}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue); font-size:0.85rem;">
                     <i class="fa-solid fa-magnifying-glass"></i> ابحث عن البصمة في VirusTotal

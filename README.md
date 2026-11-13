@@ -141,6 +141,14 @@ curl -s -X POST https://موقعك/api/admin/login -H "Content-Type: application
 لوحة الأدمن تعرض حالة البريد وآخر عطل. بدون هذه المتغيرات يبقى التسجيل يعمل بدون تأكيد.
 (بديل: `RESEND_API_KEY` لكنه يلزمه نطاق خاص موثّق.)
 
+### 5.6 الدخول برقم الهاتف (اختياري)
+المستخدم يكتب رقم موبايله العراقي (07XXXXXXXXX) ويوصله رمز من 6 أرقام. إذا ما عنده حساب ينسوّى تلقائياً، ومستخدمي البريد يكدرون يربطون رقمهم من صفحة الحساب. الرسائل تكلف فلوس عند كل المزوّدين، فاختار واحد:
+- **Telegram Gateway** (الأرخص، والرمز يوصل داخل تيليگرام): من gateway.telegram.org اشحن رصيد وخذ التوكن ← `TELEGRAM_GATEWAY_TOKEN`.
+- **Twilio** (SMS عادي): `TWILIO_ACCOUNT_SID` و`TWILIO_AUTH_TOKEN` و`TWILIO_FROM` (أو `TWILIO_MESSAGING_SERVICE_SID`).
+- **بوابة SMS محلية**: `SMS_WEBHOOK_URL` (https) و`SMS_WEBHOOK_TOKEN`. نرسل POST JSON فيه `to` و`message` و`code`.
+
+الحماية: أرقام عراقية فقط (حتى ما ينسرق رصيدك بأرقام دولية غالية)، رسالة كل دقيقة و5 باليوم لكل رقم، 10 بالساعة لكل IP، و`SMS_DAILY_CAP` (افتراضي 300) حد يومي لكل الموقع. الرمز صالح 5 دقائق و5 محاولات. تكدر تطفي الميزة من لوحة الإدارة ← الإعدادات. بدون مزوّد، زر الدخول بالهاتف ما يظهر.
+
 ### 6. الدخول عبر Google / Microsoft / Apple (اختياري)
 عنوان الرجوع (Redirect URI) لكل مزوّد: `APP_URL/auth/<google|microsoft|apple>/callback`
 

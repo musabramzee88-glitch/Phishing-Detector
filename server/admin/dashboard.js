@@ -403,6 +403,8 @@ function renderServices(data) {
     rows.push(serviceRow("قاعدة البيانات", db && db.persistent ? "ok" : "bad", db ? (db.persistent ? "Upstash (دائمة)" : db.warning || "ذاكرة فقط") : "—"));
     rows.push(serviceRow("حفظ الإحصائيات", data.persistent ? "ok" : "warn", data.persistent ? "دائم، تبقى بعد النشر" : "مؤقت، تضيع عند النشر"));
     const mail = cfg.mail;
+    const sms = cfg.sms;
+    rows.push(serviceRow("رسائل التحقق للهاتف", sms && sms.enabled ? (sms.lastError ? "warn" : "ok") : "off", sms && sms.enabled ? `${sms.provider} · أُرسل ${sms.sent} منذ التشغيل · الحد اليومي ${sms.dailyCap}` + (sms.lastError ? " — آخر عطل: " + sms.lastError : "") : "غير مفعّل: أضف TELEGRAM_GATEWAY_TOKEN أو Twilio"));
     rows.push(serviceRow("البريد (تأكيد الحسابات)", mail && mail.enabled ? (mail.lastError ? "warn" : "ok") : "off", mail && mail.enabled ? mail.provider + (mail.lastError ? " — " + mail.lastError : "") : "غير مفعّل"));
     const intel = cfg.intel;
     if (intel && intel.enabled) {

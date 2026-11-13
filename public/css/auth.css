@@ -316,3 +316,10 @@ body:has(#accountPage.active) .plan-banner { display: none; }
     .acc-payments .simple-table td:nth-child(2), .acc-payments .simple-table td:nth-child(3) { font-weight: 700; }
     .acc-payments .simple-table td:nth-child(4) { grid-column: 3 / 5; color: var(--text-muted); }
 }
+
+/* الدخول برقم الهاتف */
+.provider-phone { width: 100%; margin-bottom: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+.auth-warn { color: #f5a524; line-height: 1.7; }
+.auth-warn i { margin-inline-end: 4px; }
+#phoneStep1:not([hidden]), #phoneStep2:not([hidden]) { display: grid; gap: 14px; }
+#phoneForm .auth-submit { width: 100%; }

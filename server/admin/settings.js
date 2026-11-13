@@ -31,6 +31,7 @@
                 { key: "awareness", label: "المسار التوعوي ومحاكي التصيد", type: "toggle" },
                 { key: "registration", label: "إنشاء حسابات جديدة", type: "toggle" },
                 { key: "guest", label: "الدخول كضيف (مشاهدة فقط)", type: "toggle" },
+                { key: "phoneLogin", label: "الدخول برقم الهاتف (رمز تحقق)", type: "toggle" },
                 { key: "maintenance", label: "وضع الصيانة (يوقف الموقع للزوار؛ لوحة الإدارة تبقى تعمل)", type: "toggle", danger: true },
                 { key: "maintenanceMessage", label: "رسالة الصيانة", type: "textarea", max: 300, rows: 2 }
             ]

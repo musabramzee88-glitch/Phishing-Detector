@@ -77,12 +77,12 @@
                 </div>
             </div>
             <h1>اكشف التصيد قبل ما يكشفك.</h1>
-            <p class="auth-lead">افحص أي رابط أو رسالة أو ملف بثواني، بمحرك متعدد الطبقات وقوائم تهديدات محدّثة ومساعد ذكي يفهم لهجتك.</p>
+            <p class="auth-lead">وصلك رابط أو رسالة أو ملف وتشك بيه؟ افحصه بثواني، ونكلك بكلام بسيط إذا هو آمن لو نصب، وشتسوي بعدين.</p>
             <ul class="auth-points">
-                <li><i class="fa-solid fa-shield-halved"></i> كشف انتحال المواقع والأحرف المتشابهة والروابط المختصرة</li>
-                <li><i class="fa-solid fa-comment-sms"></i> تحليل رسائل الاحتيال بالعربية والعراقية والإنكليزية</li>
-                <li><i class="fa-solid fa-robot"></i> CyberBot يفحص الروابط ويشرح لك النتيجة</li>
-                <li><i class="fa-solid fa-lock"></i> ملفاتك تُفحص داخل جهازك ولا تُرفع</li>
+                <li><i class="fa-solid fa-shield-halved"></i> نكشف المواقع المزيّفة اللي تقلّد البنوك وفيسبوك والمواقع الحكومية</li>
+                <li><i class="fa-solid fa-comment-sms"></i> نفحص رسائل النصب بالعربي والعراقي والإنكليزي</li>
+                <li><i class="fa-solid fa-robot"></i> مساعد (CyberBot) تسأله باللهجة العراقية ويشرحلك</li>
+                <li><i class="fa-solid fa-lock"></i> ملفاتك تنفحص داخل جهازك وما تنرفع لأي مكان</li>
             </ul>
             <div class="auth-offer" id="trialOffer">
                 <i class="fa-solid fa-gift"></i>
@@ -102,6 +102,7 @@
                     <button type="button" class="auth-tab" data-mode="register" role="tab" aria-selected="false">حساب جديد</button>
                 </div>
 
+                <button type="button" id="phoneLoginBtn" class="provider-btn provider-phone" hidden><i class="fa-solid fa-mobile-screen-button"></i> الدخول برقم الهاتف</button>
                 <div id="providerButtons" class="provider-list" hidden></div>
                 <div id="providerDivider" class="auth-divider" hidden><span>أو بالبريد الإلكتروني</span></div>
 
@@ -152,6 +153,28 @@
                 </label>
                 <button type="submit" class="auth-submit">تأكيد الدخول</button>
                 <p class="auth-small">ما وصلك الرمز؟ افحص الرسائل غير المرغوبة، أو <button type="button" class="auth-link" id="mfaResend">أرسل رمزاً جديداً</button> · <button type="button" class="auth-link" id="mfaBack">رجوع</button></p>
+            </form>
+
+            <form id="phoneForm" class="auth-form" hidden novalidate>
+                <h2 class="auth-title"><i class="fa-solid fa-mobile-screen-button"></i> الدخول برقم الهاتف</h2>
+                <p class="auth-small" id="phoneIntro">اكتب رقم موبايلك، ونرسلك رمز من 6 أرقام. إذا ما عندك حساب، نسويلك واحد تلقائياً.</p>
+                <div id="phoneStep1">
+                    <label class="auth-field">
+                        <span>رقم الموبايل</span>
+                        <input type="tel" id="phoneNumber" maxlength="20" autocomplete="tel" inputmode="tel" dir="ltr" placeholder="07XX XXX XXXX">
+                    </label>
+                    <button type="submit" class="auth-submit" id="phoneSend">أرسل الرمز</button>
+                </div>
+                <div id="phoneStep2" hidden>
+                    <label class="auth-field">
+                        <span>رمز التحقق</span>
+                        <input type="text" id="phoneCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" dir="ltr" style="text-align:center;letter-spacing:.5em;font-size:1.4rem" placeholder="------">
+                    </label>
+                    <button type="submit" class="auth-submit" id="phoneVerify">تأكيد والدخول</button>
+                    <p class="auth-small"><span id="phoneTimer"></span> <button type="button" class="auth-link" id="phoneResend" hidden>أرسل رمز جديد</button> · <button type="button" class="auth-link" id="phoneChange">غيّر الرقم</button></p>
+                </div>
+                <p class="auth-small auth-warn"><i class="fa-solid fa-triangle-exclamation"></i> لا تعطي هذا الرمز لأي أحد، حتى لو كال إنه من الموقع أو من شركة الاتصالات. إحنا ما نطلبه منك أبداً.</p>
+                <p class="auth-small"><button type="button" class="auth-link" id="phoneBack">رجوع لطرق الدخول الثانية</button></p>
             </form>
 
             <form id="resetForm" class="auth-form" hidden novalidate>
